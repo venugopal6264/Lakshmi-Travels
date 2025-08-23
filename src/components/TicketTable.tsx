@@ -196,8 +196,6 @@ export default function TicketTable({
         </div>
       </div>
 
-  {/* Date Filter now lives in Dashboard header */}
-
       {/* Table Toggle */}
       <div className="flex gap-2 mb-4">
         <button

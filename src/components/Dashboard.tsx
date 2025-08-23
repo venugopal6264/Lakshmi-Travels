@@ -110,11 +110,11 @@ export default function Dashboard({
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Compact Date Filter */}
-                    <div className="bg-gray-50 px-3 py-2 rounded-md flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-600" />
+                    <div className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-white-1000" />
                         <select
                             onChange={(e) => handleQuickRangeChange(e.target.value)}
-                            className="bg-transparent text-sm text-gray-700 focus:outline-none"
+                            className="bg-transparent text-md text-white focus:outline-none"
                             aria-label="Date Range"
                         >
                             <option value="all">All Time</option>
@@ -125,7 +125,7 @@ export default function Dashboard({
                     </div>
                     <button
                         onClick={exportReport}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2"
+                        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" />
                         Export Report
