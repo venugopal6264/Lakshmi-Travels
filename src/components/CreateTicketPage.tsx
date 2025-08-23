@@ -5,9 +5,12 @@ import TicketForm from './TicketForm';
 interface CreateTicketPageProps {
     onAddTicket: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     loading: boolean;
+    tickets: ApiTicket[];
 }
 
-export default function CreateTicketPage({ onAddTicket, loading }: CreateTicketPageProps) {
+export default function CreateTicketPage({ onAddTicket, loading, tickets }: CreateTicketPageProps) {
+    const existingAccounts = Array.from(new Set((tickets || []).map(t => t.account).filter(Boolean)));
+    const existingServices = Array.from(new Set((tickets || []).map(t => t.service).filter(Boolean)));
     return (
         <div className="space-y-6">
             <div>
@@ -20,7 +23,12 @@ export default function CreateTicketPage({ onAddTicket, loading }: CreateTicketP
                 </p>
             </div>
 
-            <TicketForm onAddTicket={onAddTicket} loading={loading} />
+            <TicketForm
+                onAddTicket={onAddTicket}
+                loading={loading}
+                existingAccounts={existingAccounts}
+                existingServices={existingServices}
+            />
         </div>
     );
 }

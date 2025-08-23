@@ -118,6 +118,7 @@ function App() {
           <CreateTicketPage
             onAddTicket={handleAddTicket}
             loading={ticketsLoading}
+            tickets={tickets}
           />
         );
       case 'payments':
