@@ -2,36 +2,61 @@ import { ApiTicket } from '../services/api';
 
 export const generateCSVReport = (tickets: ApiTicket[]) => {
   const headers = [
-    'Date',
+    'Account',
+    'Booking Date',
     'Type',
-    'Passenger',
+    'Names',
     'PNR',
     'Place',
-    'Amount',
-    'Profit',
     'Fare',
-    'Service',
-    'Account',
     'Refund',
     'Remarks'
   ];
 
   const rows = tickets.map(ticket => [
-    ticket.bookingDate,
+    ticket.account,
+    ticket.bookingDate?.split('T')[0],
     ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1),
     ticket.passengerName,
     ticket.pnr,
     ticket.place,
-    ticket.amount.toString(),
-    ticket.profit.toString(),
     ticket.fare.toString(),
-    ticket.service,
-    ticket.account,
     ticket.refund.toString(),
     ticket.remarks || ''
   ]);
 
-  const csvContent = [headers, ...rows]
+  // Totals
+  const totalFare = tickets.reduce((sum, t) => sum + (Number(t.fare) || 0), 0);
+  const totalRefund = tickets.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
+  const totalDue = totalFare - totalRefund;
+
+  // Summary rows aligned to headers: put values in Fare and Refund columns
+  const blankRow = Array(headers.length).fill('');
+  const totalsRow = [
+    '',
+    '',
+    '',
+    '',
+    'Total',
+    totalFare.toFixed(2), // Fare column
+    '',
+    totalRefund.toFixed(2), // Refund column
+    ''
+  ];
+
+  const dueRow = [
+    '',
+    '',
+    '',
+    '',
+    'Total Due',
+    totalDue.toFixed(2), // Place due in Fare column for visibility
+    '',
+    '',
+    ''
+  ];
+
+  const csvContent = [headers, ...rows, blankRow, totalsRow, dueRow]
     .map(row => row.map(cell => `"${cell}"`).join(','))
     .join('\n');
 

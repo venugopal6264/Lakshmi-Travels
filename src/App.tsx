@@ -18,7 +18,6 @@ function App() {
     deleteTicket,
     updateTicket,
     processRefund,
-    refetch: refetchTickets
   } = useTickets();
 
   const {
@@ -126,7 +125,7 @@ function App() {
           <PaymentTracker
             payments={payments}
             tickets={tickets}
-            onAddPayment={addPayment}
+            onAddPayment={async (paymentData) => { await addPayment(paymentData); }}
             dateRange={dateRange}
             loading={paymentsLoading}
           />

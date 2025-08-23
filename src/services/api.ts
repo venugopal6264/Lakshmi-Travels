@@ -3,6 +3,7 @@ import { PdfUploadResponse } from "../types/pdf";
 // Resolve API base URL from Vite env. Must be prefixed with VITE_ to be exposed to the client.
 // Fallback to local server when not provided.
 const API_URL: string = import.meta.env?.VITE_API_URL || "http://localhost:5050/api";
+console.log('API_URL:', API_URL);
 export interface ApiTicket {
   _id?: string;
   amount: number;
@@ -16,6 +17,10 @@ export interface ApiTicket {
   pnr: string;
   fare: number;
   refund: number;
+  // Optional refund details (present when a refund is processed)
+  refundAmount?: number;
+  refundDate?: string;
+  refundReason?: string;
   remarks: string;
   createdAt?: string;
   updatedAt?: string;

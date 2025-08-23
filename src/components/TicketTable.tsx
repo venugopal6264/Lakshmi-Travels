@@ -1,4 +1,4 @@
-import { Calendar, CheckCircle, Clock, CreditCard, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, CreditCard, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ApiTicket } from '../services/api';
 import EditTicketModal from './EditTicketModal';
@@ -13,7 +13,7 @@ interface TicketTableProps {
   onBulkMarkAsPaid: (ticketIds: string[]) => Promise<void>;
   loading?: boolean;
   dateRange: { from: string; to: string };
-  onDateRangeChange: (range: { from: string; to: string }) => void;
+  // Date range is controlled by parent; no handler here
 }
 
 export default function TicketTable({
@@ -26,7 +26,7 @@ export default function TicketTable({
   onBulkMarkAsPaid,
   loading = false,
   dateRange,
-  onDateRangeChange
+  // date handler removed
 }: TicketTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -35,8 +35,7 @@ export default function TicketTable({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [dateFilterType, setDateFilterType] = useState<string>('all');
-  const [showCustomDates, setShowCustomDates] = useState(false);
+  // Date filter is controlled in Dashboard header
   const [activeTable, setActiveTable] = useState<'open' | 'paid'>('open');
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
@@ -153,39 +152,7 @@ export default function TicketTable({
     }
   };
 
-  const handleDateFilterChange = (filterType: string) => {
-    setDateFilterType(filterType);
-
-    if (filterType === 'custom') {
-      setShowCustomDates(true);
-      return;
-    }
-
-    setShowCustomDates(false);
-    const today = new Date();
-    let from = '';
-    let to = today.toISOString().split('T')[0];
-
-    switch (filterType) {
-      case 'thisMonth':
-        from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        break;
-      case 'lastMonth':
-        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        from = lastMonth.toISOString().split('T')[0];
-        to = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
-        break;
-      case 'thisYear':
-        from = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
-        break;
-      case 'all':
-        from = '';
-        to = '';
-        break;
-    }
-
-    onDateRangeChange({ from, to });
-  };
+  // Date range is provided by parent via props
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -229,6 +196,8 @@ export default function TicketTable({
         </div>
       </div>
 
+  {/* Date Filter now lives in Dashboard header */}
+
       {/* Table Toggle */}
       <div className="flex gap-2 mb-4">
         <button
@@ -253,53 +222,7 @@ export default function TicketTable({
         </button>
       </div>
 
-      {/* Date Filter */}
-      <div className="bg-gray-50 p-4 rounded-lg mb-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-          <Calendar className="w-4 h-4" />
-          Date Filter
-        </h3>
-
-        <div className="flex gap-4 mb-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date Range</label>
-            <select
-              value={dateFilterType}
-              onChange={(e) => handleDateFilterChange(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Time</option>
-              <option value="thisMonth">This Month</option>
-              <option value="lastMonth">Last Month</option>
-              <option value="thisYear">This Year</option>
-              <option value="custom">Custom Date Range</option>
-            </select>
-          </div>
-        </div>
-
-        {showCustomDates && (
-          <div className="flex gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
-              <input
-                type="date"
-                value={dateRange.from}
-                onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
-              <input
-                type="date"
-                value={dateRange.to}
-                onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      
 
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <div className="flex-1 relative">

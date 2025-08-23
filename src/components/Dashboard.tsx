@@ -1,4 +1,4 @@
-import { BarChart3, Download, TrendingUp } from 'lucide-react';
+import { BarChart3, Calendar, Download, TrendingUp } from 'lucide-react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { downloadCSV, generateCSVReport } from '../utils/reportGenerator';
 import ProfitSummary from './ProfitSummary';
@@ -66,27 +66,84 @@ export default function Dashboard({
             alert('No tickets to export');
             return;
         }
-
         const csvContent = generateCSVReport(tickets);
         const filename = `travel-tickets-report-${new Date().toISOString().split('T')[0]}.csv`;
         downloadCSV(csvContent, filename);
     };
 
+    // Local UI state for quick range selector; persists selection while delegating actual range via onDateRangeChange
+    const handleQuickRangeChange = (filterType: string) => {
+        if (filterType === 'custom') return; // custom not implemented in header; could add date inputs if needed
+
+        const today = new Date();
+        let from = '';
+        let to = today.toISOString().split('T')[0];
+
+        switch (filterType) {
+            case 'thisMonth':
+                from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                break;
+            case 'lastMonth': {
+                const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                from = lastMonth.toISOString().split('T')[0];
+                to = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+                break;
+            }
+            case 'thisYear':
+                from = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+                break;
+            case 'all':
+                from = '';
+                to = '';
+                break;
+        }
+
+        onDateRangeChange({ from, to });
+    };
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
                     <p className="text-gray-600 mt-1">Overview of your travel tickets and profits</p>
                 </div>
-                <button
-                    onClick={exportReport}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2"
-                >
-                    <Download className="w-4 h-4" />
-                    Export Report
-                </button>
+                <div className="flex items-center gap-3">
+                    {/* Compact Date Filter */}
+                    <div className="bg-gray-50 px-3 py-2 rounded-md flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-600" />
+                        <select
+                            onChange={(e) => handleQuickRangeChange(e.target.value)}
+                            className="bg-transparent text-sm text-gray-700 focus:outline-none"
+                            aria-label="Date Range"
+                        >
+                            <option value="all">All Time</option>
+                            <option value="thisMonth">This Month</option>
+                            <option value="lastMonth">Last Month</option>
+                            <option value="thisYear">This Year</option>
+                        </select>
+                    </div>
+                    <button
+                        onClick={exportReport}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2"
+                    >
+                        <Download className="w-4 h-4" />
+                        Export Report
+                    </button>
+                </div>
             </div>
+
+             <TicketTable
+                tickets={tickets}
+                paidTickets={paidTicketIds}
+                onDeleteTicket={onDeleteTicket}
+                onUpdateTicket={onUpdateTicket}
+                onProcessRefund={onProcessRefund}
+                onMarkAsPaid={onMarkAsPaid}
+                onBulkMarkAsPaid={onBulkMarkAsPaid}
+                loading={loading}
+                dateRange={dateRange}
+            />
 
             <ProfitSummary
                 tickets={tickets}
@@ -145,19 +202,7 @@ export default function Dashboard({
                 </div>
             </div>
 
-            <TicketTable
-                tickets={tickets}
-                paidTickets={paidTicketIds}
-                onDeleteTicket={onDeleteTicket}
-                onUpdateTicket={onUpdateTicket}
-                onProcessRefund={onProcessRefund}
-                onMarkAsPaid={onMarkAsPaid}
-                onBulkMarkAsPaid={onBulkMarkAsPaid}
-                loading={loading}
-                dateRange={dateRange}
-                onDateRangeChange={onDateRangeChange}
-            />
-
+           
             {tickets.length === 0 && !loading && (
                 <div className="text-center py-12">
                     <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
