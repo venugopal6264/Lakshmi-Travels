@@ -1,7 +1,7 @@
 import { PdfUploadResponse } from "../types/pdf";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
-
+// Use Vite's client-side env variables; fall back to local API for development
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'https://lakshmi-travels-api.onrender.com/api';
 export interface ApiTicket {
   _id?: string;
   amount: number;
