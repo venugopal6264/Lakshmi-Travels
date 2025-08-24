@@ -1,7 +1,6 @@
 import { Calendar, CreditCard, MapPin, Plus, User } from 'lucide-react';
 import React, { useState } from 'react';
 import { ApiTicket } from '../services/api';
-import PdfUpload from './PdfUpload';
 
 interface TicketFormProps {
   onAddTicket: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -54,32 +53,15 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [showPdfUpload, setShowPdfUpload] = useState(false);
+  // Removed PDF upload UI
 
   const resetForm = () => {
     setFormData({ ...initialFormState, bookingDate: getToday() });
     setErrors({});
-    setShowPdfUpload(false);
+  // no-op
   };
 
-  const handlePdfDataExtracted = (extractedData: Partial<ApiTicket>) => {
-    setFormData(prev => ({
-      ...prev,
-      amount: extractedData.amount?.toString() || prev.amount,
-      profit: extractedData.profit?.toString() || prev.profit,
-      type: extractedData.type || prev.type,
-      service: extractedData.service || prev.service,
-      account: extractedData.account || prev.account,
-      bookingDate: extractedData.bookingDate || prev.bookingDate,
-      passengerName: extractedData.passengerName || prev.passengerName,
-      place: extractedData.place || prev.place,
-      pnr: extractedData.pnr || prev.pnr,
-      fare: extractedData.fare?.toString() || prev.fare,
-      refund: extractedData.refund?.toString() || prev.refund,
-      remarks: extractedData.remarks || prev.remarks
-    }));
-    setShowPdfUpload(false);
-  };
+  // Removed PDF extraction handler
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,10 +158,7 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
         Add New Ticket
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {showPdfUpload && (
-          <PdfUpload onDataExtracted={handlePdfDataExtracted} />
-        )}
+  <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div data-testId="type-input">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -392,15 +371,6 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
 
         <div className="flex items-center justify-between pt-4">
           <div className="flex items-center gap-2">
-            <button
-              data-testId="pdf-upload-toggle"
-              type="button"
-              onClick={() => setShowPdfUpload(!showPdfUpload)}
-              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              {showPdfUpload ? 'Hide PDF Upload' : 'Upload PDF Ticket'}
-            </button>
             <button
               type="button"
               onClick={resetForm}

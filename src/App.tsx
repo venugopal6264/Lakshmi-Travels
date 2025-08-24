@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CreateTicketPage from './components/CreateTicketPage';
 import Dashboard from './components/Dashboard';
 import Navigation from './components/Navigation';
+import FuelTracker from './components/FuelTracker';
 import PaymentTracker from './components/PaymentTracker';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket } from './services/api';
@@ -130,6 +131,10 @@ function App() {
             dateRange={dateRange}
             loading={paymentsLoading}
           />
+        );
+      case 'fuel':
+        return (
+          <FuelTracker />
         );
       default:
         return null;

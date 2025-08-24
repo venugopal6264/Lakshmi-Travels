@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, FileText, Plus } from 'lucide-react';
+import { BarChart3, DollarSign, FileText, Plus, Fuel } from 'lucide-react';
 
 interface NavigationProps {
     currentPage: string;
@@ -10,6 +10,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
         { id: 'create', label: 'Create Ticket', icon: Plus },
         { id: 'payments', label: 'Payment Tracker', icon: DollarSign },
+        { id: 'fuel', label: 'Fuel Tracker', icon: Fuel },
     ];
 
     return (

@@ -1,4 +1,4 @@
-import { PdfUploadResponse } from "../types/pdf";
+// PDF upload removed
 
 // Resolve API base URL from Vite env. Must be prefixed with VITE_ to be exposed to the client.
 // Fallback to local server when not provided.
@@ -42,6 +42,31 @@ export interface ProfitSummary {
   flight: number;
   total: number;
   totalTickets: number;
+}
+
+export interface ApiFuel {
+  _id?: string;
+  date: string; // ISO date string
+  vehicle: 'car' | 'bike';
+  entryType: 'refueling' | 'service';
+  odometer?: number | null;
+  liters?: number | null;
+  pricePerLiter?: number | null;
+  total?: number | null;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FuelSummaryBucket {
+  car: { liters: number; fuelSpend: number; serviceSpend: number };
+  bike: { liters: number; fuelSpend: number; serviceSpend: number };
+}
+
+export interface FuelSummaryResponse {
+  currentMonth: FuelSummaryBucket;
+  lastMonth: FuelSummaryBucket;
+  yearToDate: FuelSummaryBucket;
 }
 
 class ApiService {
@@ -123,28 +148,41 @@ class ApiService {
     });
   }
 
+  // Fuel API methods
+  async getFuel(): Promise<ApiFuel[]> {
+    return this.request<ApiFuel[]>('/fuel');
+  }
+
+  async createFuel(entry: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'>): Promise<ApiFuel> {
+    return this.request<ApiFuel>('/fuel', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
+  }
+
+  async updateFuel(id: string, entry: Partial<ApiFuel>): Promise<ApiFuel> {
+    return this.request<ApiFuel>(`/fuel/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(entry),
+    });
+  }
+
+  async deleteFuel(id: string): Promise<void> {
+    await this.request(`/fuel/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getFuelSummary(): Promise<FuelSummaryResponse> {
+    return this.request<FuelSummaryResponse>('/fuel/summary');
+  }
+
   // Health check
   async healthCheck(): Promise<{ message: string; timestamp: string }> {
     return this.request<{ message: string; timestamp: string }>('/health');
   }
 
-  // PDF upload and parsing
-  async uploadPdf(file: File): Promise<PdfUploadResponse> {
-    const formData = new FormData();
-    formData.append('pdf', file);
-
-    const response = await fetch(`${API_URL}/pdf/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
-  }
+  // PDF upload removed
 }
 
 export const apiService = new ApiService();

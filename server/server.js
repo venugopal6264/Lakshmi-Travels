@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import paymentsRouter from './routes/payments.js';
-import pdfRouter from './routes/pdf.js';
 import ticketsRouter from './routes/tickets.js';
+import fuelRouter from './routes/fuel.js';
 
 dotenv.config();
 
@@ -25,7 +25,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/payments', paymentsRouter);
-app.use('/api/pdf', pdfRouter);
+app.use('/api/fuel', fuelRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

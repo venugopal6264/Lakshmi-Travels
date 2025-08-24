@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiPayment, apiService, ApiTicket, ProfitSummary } from '../services/api';
+import { ApiPayment, apiService, ApiTicket, ProfitSummary, ApiFuel } from '../services/api';
 
 export function useTickets() {
   const [tickets, setTickets] = useState<ApiTicket[]>([]);
@@ -168,4 +168,61 @@ export function useProfitSummary() {
     error,
     refetch: fetchSummary
   };
+}
+
+export function useFuel() {
+  const [fuel, setFuel] = useState<ApiFuel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchFuel = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getFuel();
+      setFuel(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch fuel entries');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addFuel = async (entry: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const newEntry = await apiService.createFuel(entry);
+      setFuel(prev => [newEntry, ...prev]);
+      return newEntry;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add fuel entry');
+      throw err;
+    }
+  };
+
+  const updateFuel = async (id: string, entry: Partial<ApiFuel>) => {
+    try {
+      const updated = await apiService.updateFuel(id, entry);
+      setFuel(prev => prev.map(f => (f._id === id ? updated : f)));
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update fuel entry');
+      throw err;
+    }
+  };
+
+  const deleteFuel = async (id: string) => {
+    try {
+      await apiService.deleteFuel(id);
+      setFuel(prev => prev.filter(f => f._id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete fuel entry');
+      throw err;
+    }
+  };
+
+  useEffect(() => {
+    fetchFuel();
+  }, []);
+
+  return { fuel, loading, error, addFuel, updateFuel, deleteFuel, refetch: fetchFuel };
 }
