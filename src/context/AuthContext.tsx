@@ -32,9 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = () => {
-    // Redirect to server login endpoint; include current path for post-login return
-    const redirect = encodeURIComponent(window.location.pathname || '/');
-    window.location.href = `${import.meta.env?.VITE_API_URL || 'http://localhost:5050/api'}/auth/login?redirect=${redirect}`;
+    // Navigate to the client login page; the form there will POST to /api/auth/login
+    const target = '/login';
+    if (window.location.pathname !== target) {
+      window.history.pushState({}, '', target);
+      // fire a popstate-equivalent for our lightweight router if needed
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   };
 
   const logout = async () => {

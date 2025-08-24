@@ -7,6 +7,8 @@ import jwt from 'jsonwebtoken';
 import paymentsRouter from './routes/payments.js';
 import ticketsRouter from './routes/tickets.js';
 import fuelRouter from './routes/fuel.js';
+import bcrypt from 'bcryptjs';
+import User from './models/User.js';
 
 dotenv.config();
 
@@ -17,12 +19,41 @@ const PORT = process.env.PORT || 5050;
 // CORS with credentials so the client can send/receive cookies
 const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 const serverOrigin = process.env.SERVER_ORIGIN || 'http://localhost:5050';
-app.use(cors({ origin: clientOrigin, credentials: true }));
+const allowedOrigins = new Set([
+  clientOrigin,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]);
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser requests (no Origin) and whitelisted origins
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+// Ensure preflight handled for all routes
+// In Express 5, use a RegExp for catch-all preflight handling
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1); // behind proxy (Render/Heroku) so secure cookies work
 }
+// Extra headers for reliability with some hosts/proxies
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (origin === clientOrigin || origin === 'http://localhost:5173' || origin === 'http://127.0.0.1:5173')) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Vary', 'Origin');
+  next();
+});
 
 // --- Auth Helpers ---
 const JWT_SECRET = process.env.APP_JWT_SECRET || 'dev-secret-change-me';
@@ -31,9 +62,10 @@ const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID;
 const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
 const AUTH0_REDIRECT_URI = process.env.AUTH0_REDIRECT_URI || `${serverOrigin}/api/auth/callback`;
 const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE || undefined; // optional API audience
+const ALLOW_DEV_LOGIN = process.env.ALLOW_DEV_LOGIN === 'true';
 
 function signSession(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 }
 
 function verifySession(req, res, next) {
@@ -47,6 +79,18 @@ function verifySession(req, res, next) {
   } catch (e) {
     return res.status(401).json({ message: 'Invalid session' });
   }
+}
+
+function getCookieOptions(req) {
+  const prod = process.env.NODE_ENV === 'production';
+  const origin = req.headers.origin;
+  const isLocalhost = origin?.startsWith('http://localhost') || origin?.startsWith('http://127.0.0.1');
+  return {
+    httpOnly: true,
+    sameSite: isLocalhost ? 'lax' : (prod ? 'none' : 'lax'),
+    secure: prod && !isLocalhost,
+  maxAge: 24 * 60 * 60 * 1000,
+  };
 }
 
 // Start login by redirecting to Auth0
@@ -100,13 +144,7 @@ app.get('/api/auth/callback', async (req, res) => {
       email: user.email,
       picture: user.picture,
     });
-    const cookieOptions = {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    };
-    res.cookie('session', sessionToken, cookieOptions);
+  res.cookie('session', sessionToken, getCookieOptions(req));
 
     const redirectPath = decodeURIComponent(state || '/') || '/';
     // Redirect back to client root; client router will handle the rest
@@ -118,7 +156,8 @@ app.get('/api/auth/callback', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('session', { httpOnly: true, sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', secure: process.env.NODE_ENV === 'production' });
+  const clearOpts = getCookieOptions(req);
+  res.clearCookie('session', { httpOnly: true, sameSite: clearOpts.sameSite, secure: clearOpts.secure });
   res.json({ success: true });
 });
 
@@ -133,6 +172,16 @@ app.get('/api/auth/me', (req, res) => {
   }
 });
 
+// Dev-only login: enable with ALLOW_DEV_LOGIN=true (do NOT enable in production)
+app.post('/api/auth/dev-login', (req, res) => {
+  if (!ALLOW_DEV_LOGIN) return res.status(403).json({ message: 'Disabled' });
+  const { email = 'dev@example.com', name = 'Dev User' } = req.body || {};
+  const user = { sub: `dev|${email}`, email, name };
+  const sessionToken = signSession(user);
+  res.cookie('session', sessionToken, getCookieOptions(req));
+  res.json({ user });
+});
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -145,6 +194,27 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.use('/api/tickets', verifySession, ticketsRouter);
 app.use('/api/payments', verifySession, paymentsRouter);
 app.use('/api/fuel', verifySession, fuelRouter);
+
+// --- Users API (removed admin management per request) ---
+
+
+// Login with username/password -> sets session cookie (for local or password-based fallback)
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) return res.status(400).json({ message: 'username and password are required' });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+    const sessionToken = signSession({ sub: String(user._id), username: user.username, role: user.role });
+    res.cookie('session', sessionToken, getCookieOptions(req));
+    res.json({ user: { sub: String(user._id), username: user.username, role: user.role } });
+  } catch (e) {
+    console.error('Password login failed', e);
+    res.status(500).json({ message: 'Login failed' });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
