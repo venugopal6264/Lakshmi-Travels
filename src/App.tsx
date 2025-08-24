@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DateRangeProvider } from './context/DateRangeContext';
+import { AuthProvider } from './context/AuthContext';
 import CreateTicketPage from './components/CreateTicketPage';
 import Dashboard from './components/Dashboard';
 import Navigation from './components/Navigation';
@@ -178,8 +179,10 @@ function InnerApp() {
 
 export default function App() {
   return (
-    <DateRangeProvider>
-      <InnerApp />
-    </DateRangeProvider>
+    <AuthProvider>
+      <DateRangeProvider>
+        <InnerApp />
+      </DateRangeProvider>
+    </AuthProvider>
   );
 }

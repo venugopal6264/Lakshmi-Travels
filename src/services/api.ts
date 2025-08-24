@@ -79,6 +79,7 @@ class ApiService {
           'Content-Type': 'application/json',
           ...options?.headers,
         },
+        credentials: 'include',
         ...options,
       });
 
@@ -180,6 +181,15 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<{ message: string; timestamp: string }> {
     return this.request<{ message: string; timestamp: string }>('/health');
+  }
+
+  // Auth endpoints
+  async getCurrentUser(): Promise<{ user: { sub: string; name?: string; email?: string; picture?: string } | null }> {
+    return this.request('/auth/me');
+  }
+
+  async logout(): Promise<{ success: boolean }> {
+    return this.request('/auth/logout', { method: 'POST' });
   }
 
   // PDF upload removed
