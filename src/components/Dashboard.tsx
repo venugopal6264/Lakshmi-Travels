@@ -96,8 +96,21 @@ export default function Dashboard({
             alert('No tickets to export');
             return;
         }
-        const csvContent = generateCSVReport(tickets);
-        const filename = `travel-tickets-report-${new Date().toISOString().split('T')[0]}.csv`;
+        // Prepare filtered tickets for export; CSV includes Fare only (as per generator)
+        const csvContent = generateCSVReport(dateFilteredTickets);
+        // Build filename: Account-BookingStartDate-EndDate
+        const accounts = Array.from(new Set(dateFilteredTickets.map(t => t.account)));
+        const accountLabel = accounts.length === 1 ? accounts[0] : 'AllAccounts';
+        const start = dateFilteredTickets.length > 0 ? dateFilteredTickets
+            .map(t => t.bookingDate)
+            .sort()[0] : '';
+        const end = dateFilteredTickets.length > 0 ? dateFilteredTickets
+            .map(t => t.bookingDate)
+            .sort()
+            .slice(-1)[0] : '';
+        const startLabel = start ? start.split('T')[0] : 'ALL';
+        const endLabel = end ? end.split('T')[0] : 'ALL';
+        const filename = `${accountLabel}-${startLabel}-${endLabel}.csv`;
         downloadCSV(csvContent, filename);
     };
 

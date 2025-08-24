@@ -333,6 +333,9 @@ export default function TicketTable({
               >
                 Amount {sortField === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Fare
+              </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('profit')}
@@ -394,6 +397,9 @@ export default function TicketTable({
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   ₹{ticket.amount.toLocaleString()}
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  ₹{Number(ticket.fare || 0).toLocaleString()}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                   {showProfit ? `₹${ticket.profit.toLocaleString()}` : ''}

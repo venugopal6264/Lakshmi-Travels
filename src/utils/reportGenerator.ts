@@ -37,9 +37,9 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
+    '',
     'Total',
     totalFare.toFixed(2), // Fare column
-    '',
     totalRefund.toFixed(2), // Refund column
     ''
   ];
@@ -49,9 +49,9 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
+    '',
     'Total Due',
     totalDue.toFixed(2), // Place due in Fare column for visibility
-    '',
     '',
     ''
   ];
@@ -67,14 +67,14 @@ export const downloadCSV = (content: string, filename: string) => {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
   link.style.visibility = 'hidden';
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   URL.revokeObjectURL(url);
 };
