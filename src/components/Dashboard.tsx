@@ -1,4 +1,5 @@
 import { BarChart3, Calendar, Download, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
 import { downloadCSV, generateCSVReport } from '../utils/reportGenerator';
@@ -26,14 +27,29 @@ export default function Dashboard({
     loading
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
+
+    // Parse YYYY-MM-DD as local date to avoid timezone shifts
+    const parseLocalDate = (s?: string) => {
+        if (!s) return null;
+        const [y, m, d] = s.split('-').map(Number);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
+    };
+    // Format a Date as YYYY-MM-DD using local time (no UTC shift)
+    const formatLocalDate = (d: Date) => {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
     // Get paid ticket IDs from payments
     const paidTicketIds = payments.flatMap(payment => payment.tickets);
 
     // Filter tickets by date range for account breakdown
     const dateFilteredTickets = tickets.filter(ticket => {
-        const ticketDate = new Date(ticket.bookingDate);
-        const fromDate = dateRange.from ? new Date(dateRange.from) : null;
-        const toDate = dateRange.to ? new Date(dateRange.to) : null;
+        const ticketDate = parseLocalDate(ticket.bookingDate) || new Date(ticket.bookingDate);
+        const fromDate = parseLocalDate(dateRange.from);
+        const toDate = parseLocalDate(dateRange.to);
 
         if (fromDate && ticketDate < fromDate) return false;
         if (toDate && ticketDate > toDate) return false;
@@ -42,9 +58,9 @@ export default function Dashboard({
 
     // Filter payments by date range for KPIs
     const dateFilteredPayments = payments.filter(p => {
-        const payDate = new Date(p.date);
-        const fromDate = dateRange.from ? new Date(dateRange.from) : null;
-        const toDate = dateRange.to ? new Date(dateRange.to) : null;
+        const payDate = parseLocalDate(p.date) || new Date(p.date);
+        const fromDate = parseLocalDate(dateRange.from);
+        const toDate = parseLocalDate(dateRange.to);
         if (fromDate && payDate < fromDate) return false;
         if (toDate && payDate > toDate) return false;
         return true;
@@ -85,58 +101,54 @@ export default function Dashboard({
         downloadCSV(csvContent, filename);
     };
 
-    // Map current dateRange to a quick selector value so the dropdown stays in sync across navigation
-    const quickRangeValue = (() => {
+    // Local quick range selection, synced with context
+    const [quickRange, setQuickRange] = useState<'all' | 'thisMonth' | 'lastMonth' | 'thisYear'>('all');
+    useEffect(() => {
         const { from, to } = dateRange;
-        if (!from && !to) return 'all';
-
+        if (!from && !to) {
+            setQuickRange('all');
+            return;
+        }
         const today = new Date();
         const startOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
         const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const startOfThisYear = new Date(today.getFullYear(), 0, 1);
-
-        const parse = (s: string) => (s ? new Date(s) : null);
-        const fromD = parse(from);
-        const toD = parse(to);
-
+        const fromD = parseLocalDate(from);
+        const toD = parseLocalDate(to);
         const isSameYMD = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-        // This Month: from = 1st of this month, to within this month (any day)
         if (fromD && isSameYMD(fromD, startOfThisMonth) && toD && toD.getFullYear() === today.getFullYear() && toD.getMonth() === today.getMonth()) {
-            return 'thisMonth';
+            setQuickRange('thisMonth');
+        } else if (fromD && isSameYMD(fromD, startOfLastMonth) && toD && isSameYMD(toD, endOfLastMonth)) {
+            setQuickRange('lastMonth');
+        } else if (fromD && isSameYMD(fromD, startOfThisYear) && toD && toD.getFullYear() === today.getFullYear()) {
+            setQuickRange('thisYear');
+        } else {
+            setQuickRange('all');
         }
-        // Last Month: exact month span
-        if (fromD && isSameYMD(fromD, startOfLastMonth) && toD && isSameYMD(toD, endOfLastMonth)) {
-            return 'lastMonth';
-        }
-        // This Year: from = Jan 1 this year, to within this year
-        if (fromD && isSameYMD(fromD, startOfThisYear) && toD && toD.getFullYear() === today.getFullYear()) {
-            return 'thisYear';
-        }
-        return 'all';
-    })();
+    }, [dateRange]);
 
     // Local UI handler for quick range selector; persists selection while delegating actual range via onDateRangeChange
     const handleQuickRangeChange = (filterType: string) => {
+        setQuickRange(filterType as 'all' | 'thisMonth' | 'lastMonth' | 'thisYear');
         if (filterType === 'custom') return; // custom not implemented in header; could add date inputs if needed
 
         const today = new Date();
         let from = '';
-        let to = today.toISOString().split('T')[0];
+        let to = formatLocalDate(today);
 
         switch (filterType) {
             case 'thisMonth':
-                from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                from = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
                 break;
             case 'lastMonth': {
                 const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                from = lastMonth.toISOString().split('T')[0];
-                to = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+                from = formatLocalDate(lastMonth);
+                to = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 0));
                 break;
             }
             case 'thisYear':
-                from = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+                from = formatLocalDate(new Date(today.getFullYear(), 0, 1));
                 break;
             case 'all':
                 from = '';
@@ -144,7 +156,7 @@ export default function Dashboard({
                 break;
         }
 
-    setDateRange({ from, to });
+        setDateRange({ from, to });
     };
 
     return (
@@ -156,11 +168,11 @@ export default function Dashboard({
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Compact Date Filter */}
-            <div className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2">
+                    <div className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-white-1000" />
                         <select
-                value={quickRangeValue}
-                onChange={(e) => handleQuickRangeChange(e.target.value)}
+                            value={quickRange}
+                            onChange={(e) => handleQuickRangeChange(e.target.value)}
                             className="bg-transparent text-md text-white focus:outline-none"
                             aria-label="Date Range"
                         >
@@ -180,28 +192,28 @@ export default function Dashboard({
                 </div>
             </div>
 
-                {/* Top-level KPIs moved from Payment Tracker */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-purple-600">Total Booking Amount</h3>
-                        <p className="text-2xl font-bold text-purple-900">₹{totalBookingAmount.toLocaleString()}</p>
-                        <p className="text-xs text-purple-600">{dateFilteredTickets.length} tickets</p>
-                    </div>
-                    <div className="bg-indigo-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-indigo-600">Total Fare</h3>
-                        <p className="text-2xl font-bold text-indigo-900">₹{totalFare.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-green-600">Total Paid</h3>
-                        <p className="text-2xl font-bold text-green-900">₹{totalPaid.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-orange-600">Remaining</h3>
-                        <p className="text-2xl font-bold text-orange-900">₹{remaining.toLocaleString()}</p>
-                    </div>
+            {/* Top-level KPIs moved from Payment Tracker */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-purple-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-purple-600">Total Booking Amount</h3>
+                    <p className="text-2xl font-bold text-purple-900">₹{totalBookingAmount.toLocaleString()}</p>
+                    <p className="text-xs text-purple-600">{dateFilteredTickets.length} tickets</p>
                 </div>
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-indigo-600">Total Fare</h3>
+                    <p className="text-2xl font-bold text-indigo-900">₹{totalFare.toLocaleString()}</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-green-600">Total Paid</h3>
+                    <p className="text-2xl font-bold text-green-900">₹{totalPaid.toLocaleString()}</p>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-orange-600">Remaining</h3>
+                    <p className="text-2xl font-bold text-orange-900">₹{remaining.toLocaleString()}</p>
+                </div>
+            </div>
 
-                 <TicketTable
+            <TicketTable
                 tickets={tickets}
                 paidTickets={paidTicketIds}
                 onDeleteTicket={onDeleteTicket}
@@ -210,7 +222,7 @@ export default function Dashboard({
                 onMarkAsPaid={onMarkAsPaid}
                 onBulkMarkAsPaid={onBulkMarkAsPaid}
                 loading={loading}
-                     dateRange={dateRange}
+                dateRange={dateRange}
             />
 
             {/* Profit summary moved to Payment Tracker */}
@@ -262,7 +274,7 @@ export default function Dashboard({
                 </div>
             </div>
 
-           
+
             {tickets.length === 0 && !loading && (
                 <div className="text-center py-12">
                     <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
