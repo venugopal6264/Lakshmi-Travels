@@ -7,11 +7,20 @@ interface NavigationProps {
 
 export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
     const navItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-        { id: 'create', label: 'Create Ticket', icon: Plus },
-        { id: 'payments', label: 'Payment Tracker', icon: DollarSign },
-        { id: 'fuel', label: 'Fuel Tracker', icon: Fuel },
+        { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
+        { id: 'create', label: 'Create Ticket', icon: Plus, path: '/create-ticket' },
+        { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
+        { id: 'fuel', label: 'Fuel Tracker', icon: Fuel, path: '/fuel-dashboard' },
     ];
+
+    const buildHref = (basePath: string) => basePath;
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+        // Allow open-in-new-tab/window via modifier keys; only SPA-navigate on plain left-click
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        onPageChange(id);
+    };
 
     return (
         <nav className="bg-white shadow-sm border-b">
@@ -27,10 +36,12 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                             const Icon = item.icon;
                             const isActive = currentPage === item.id;
 
+                            const href = buildHref(item.path);
                             return (
-                                <button
+                                <a
                                     key={item.id}
-                                    onClick={() => onPageChange(item.id)}
+                                    href={href}
+                                    onClick={(e) => handleClick(e, item.id)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${isActive
                                         ? 'bg-blue-100 text-blue-700 font-medium'
                                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -38,7 +49,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                                 >
                                     <Icon className="w-4 h-4" />
                                     {item.label}
-                                </button>
+                                </a>
                             );
                         })}
                     </div>

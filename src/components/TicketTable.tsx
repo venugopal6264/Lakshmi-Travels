@@ -39,6 +39,7 @@ export default function TicketTable({
   const [activeTable, setActiveTable] = useState<'open' | 'paid'>('open');
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
+  const [showProfit, setShowProfit] = useState<boolean>(false);
 
   // Filter tickets by date range
   const dateFilteredTickets = tickets.filter(ticket => {
@@ -218,9 +219,18 @@ export default function TicketTable({
           <CheckCircle className="w-4 h-4" />
           Paid Tickets ({paidTicketsData.length})
         </button>
+        <div className="ml-auto flex items-center gap-2">
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={showProfit}
+              onChange={(e) => setShowProfit(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            Show Profit
+          </label>
+        </div>
       </div>
-
-      
 
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <div className="flex-1 relative">
@@ -283,29 +293,36 @@ export default function TicketTable({
                   />
                 </th>
               )}
+              {/* Account first */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('bookingDate')}
+                onClick={() => handleSort('account')}
               >
-                Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                Account {sortField === 'account' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
+              {/* Type */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('type')}
               >
                 Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
+              {/* Booking Date */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('bookingDate')}
+              >
+                Booking Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              {/* Passenger Name */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('passengerName')}
               >
-                Passenger {sortField === 'passengerName' && (sortDirection === 'asc' ? '↑' : '↓')}
+                Passenger Name {sortField === 'passengerName' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 PNR
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Account
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Place
@@ -344,14 +361,21 @@ export default function TicketTable({
                     />
                   </td>
                 )}
+                {/* Account */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(ticket.bookingDate)}
+                  {ticket.account}
                 </td>
+                {/* Type */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
                     {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
                   </span>
                 </td>
+                {/* Booking Date */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {formatDate(ticket.bookingDate)}
+                </td>
+                {/* Passenger Name */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div>
                     {ticket.passengerName}
@@ -365,9 +389,6 @@ export default function TicketTable({
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                   {ticket.pnr}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {ticket.account}
-                </td>
                 <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
                   {ticket.place}
                 </td>
@@ -375,7 +396,7 @@ export default function TicketTable({
                   ₹{ticket.amount.toLocaleString()}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                  ₹{ticket.profit.toLocaleString()}
+                  {showProfit ? `₹${ticket.profit.toLocaleString()}` : ''}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex items-center gap-2">

@@ -1,12 +1,12 @@
-import { Calendar, DollarSign, Download } from 'lucide-react';
+import { Calendar, DollarSign, Download, Plane, Train, Bus } from 'lucide-react';
 import React, { useState } from 'react';
+import { useDateRange } from '../context/useDateRange';
 import { ApiPayment, ApiTicket } from '../services/api';
 
 interface PaymentTrackerProps {
   payments: ApiPayment[];
   tickets: ApiTicket[];
   onAddPayment: (payment: Omit<ApiPayment, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  dateRange: { from: string; to: string };
   loading?: boolean;
 }
 
@@ -14,9 +14,9 @@ export default function PaymentTracker({
   payments,
   tickets,
   onAddPayment,
-  dateRange,
   loading = false
 }: PaymentTrackerProps) {
+  const { dateRange } = useDateRange();
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string>('all');
@@ -36,6 +36,8 @@ export default function PaymentTracker({
     if (toDate && ticketDate > toDate) return false;
     return true;
   });
+
+  // Payments are listed below; top-level totals moved to Dashboard
 
   // Get unique accounts from tickets
   const accounts = Array.from(new Set(dateFilteredTickets.map(ticket => ticket.account)));
@@ -58,25 +60,16 @@ export default function PaymentTracker({
 
   const accountTotals = getAccountTotals();
 
-  // Filter data based on selected account
-  const getFilteredTotals = () => {
-    if (selectedAccount === 'all') {
-      return {
-        totalAmount: dateFilteredTickets.reduce((sum, ticket) => sum + ticket.amount, 0),
-        totalProfit: dateFilteredTickets.reduce((sum, ticket) => sum + ticket.profit, 0),
-        ticketCount: dateFilteredTickets.length
-      };
-    } else {
-      const accountTickets = dateFilteredTickets.filter(ticket => ticket.account === selectedAccount);
-      return {
-        totalAmount: accountTickets.reduce((sum, ticket) => sum + ticket.amount, 0),
-        totalProfit: accountTickets.reduce((sum, ticket) => sum + ticket.profit, 0),
-        ticketCount: accountTickets.length
-      };
-    }
-  };
-
-  const filteredTotals = getFilteredTotals();
+  // Filter data based on selected account for profit-only KPI
+  const filteredTotals = React.useMemo(() => {
+    const set = selectedAccount === 'all'
+      ? dateFilteredTickets
+      : dateFilteredTickets.filter(t => t.account === selectedAccount);
+    return {
+      totalProfit: set.reduce((sum, t) => sum + (t.profit - (t.refundAmount || 0)), 0),
+      ticketCount: set.length,
+    };
+  }, [selectedAccount, dateFilteredTickets]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,8 +91,15 @@ export default function PaymentTracker({
     }
   };
 
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const remaining = filteredTotals.totalProfit - totalPaid;
+  // Totals for payments are now shown on Dashboard
+
+  // Profit by type for selected account scope
+  const filteredForAccount = selectedAccount === 'all' ? dateFilteredTickets : dateFilteredTickets.filter(t => t.account === selectedAccount);
+  const typeProfit = {
+    train: filteredForAccount.filter(t => t.type === 'train').reduce((s, t) => s + (t.profit - (t.refundAmount || 0)), 0),
+    bus: filteredForAccount.filter(t => t.type === 'bus').reduce((s, t) => s + (t.profit - (t.refundAmount || 0)), 0),
+    flight: filteredForAccount.filter(t => t.type === 'flight').reduce((s, t) => s + (t.profit - (t.refundAmount || 0)), 0),
+  };
 
   const getNext15DayDate = () => {
     const date = new Date();
@@ -163,23 +163,36 @@ export default function PaymentTracker({
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-purple-600">Total Amount</h3>
-          <p className="text-2xl font-bold text-purple-900">₹{filteredTotals.totalAmount.toLocaleString()}</p>
-          <p className="text-xs text-purple-600">{filteredTotals.ticketCount} tickets</p>
-        </div>
+  <div className="grid grid-cols-1 gap-4 mb-6">
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-blue-600">Total Profit</h3>
           <p className="text-2xl font-bold text-blue-900">₹{filteredTotals.totalProfit.toLocaleString()}</p>
+          <p className="text-xs text-blue-600">{filteredTotals.ticketCount} tickets</p>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-green-600">Total Paid</h3>
-          <p className="text-2xl font-bold text-green-900">₹{totalPaid.toLocaleString()}</p>
+      </div>
+
+      {/* Profit by Type (moved from Dashboard) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-blue-600">Train Profit</h3>
+            <p className="text-2xl font-bold text-blue-900">₹{typeProfit.train.toLocaleString()}</p>
+          </div>
+          <Train className="w-6 h-6 text-blue-600" />
         </div>
-        <div className="bg-orange-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-orange-600">Remaining</h3>
-          <p className="text-2xl font-bold text-orange-900">₹{remaining.toLocaleString()}</p>
+        <div className="bg-green-50 p-4 rounded-lg flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-green-600">Bus Profit</h3>
+            <p className="text-2xl font-bold text-green-900">₹{typeProfit.bus.toLocaleString()}</p>
+          </div>
+          <Bus className="w-6 h-6 text-green-600" />
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-purple-600">Flight Profit</h3>
+            <p className="text-2xl font-bold text-purple-900">₹{typeProfit.flight.toLocaleString()}</p>
+          </div>
+          <Plane className="w-6 h-6 text-purple-600" />
         </div>
       </div>
 
