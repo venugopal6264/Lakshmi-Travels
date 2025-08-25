@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const ticketSchema = new mongoose.Schema({
-  amount: {
+  ticketAmount: {
     type: Number,
     required: true
   },
@@ -38,7 +38,7 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  fare: {
+  bookingAmount: {
     type: Number,
     required: true
   },

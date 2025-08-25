@@ -2,7 +2,7 @@ import { BarChart3, Calendar, Download, TrendingUp, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
-import { downloadCSV, generateCSVReport } from '../utils/reportGenerator';
+import { downloadPDFReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
 import TicketForm from './TicketForm';
 
@@ -12,7 +12,7 @@ interface DashboardProps {
     onAddTicket: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onDeleteTicket: (id: string) => Promise<void>;
     onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
-    onProcessRefund: (id: string, refundData: { refundAmount: number; refundDate: string; refundReason: string }) => Promise<void>;
+    onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
     onMarkAsPaid: (ticketId: string) => Promise<void>;
     onBulkMarkAsPaid: (ticketIds: string[]) => Promise<void>;
     loading: boolean;
@@ -67,19 +67,19 @@ export default function Dashboard({
     const openTickets = dateFilteredTickets.filter(t => !paidTicketIds.includes(t._id || ''));
 
     // KPI totals for OPEN tickets in the selected range
-    const totalBookingAmount = openTickets.reduce((sum, t) => sum + t.amount, 0);
-    const totalFare = openTickets.reduce((sum, t) => sum + t.fare, 0);
-    const totalProfitAfterRefunds = openTickets.reduce((sum, t) => sum + (t.profit - (t.refundAmount || 0)), 0);
+    const totalBookingAmount = openTickets.reduce((sum, t) => sum + (t.ticketAmount || 0), 0);
+    const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0);
+    const totalProfitAfterRefunds = openTickets.reduce((sum, t) => sum + (t.profit - (t.refund || 0)), 0);
 
     // Calculate account breakdown
     const getAccountBreakdown = () => {
-        const accountTotals: Record<string, { amount: number; profit: number; count: number }> = {};
+    const accountTotals: Record<string, { amount: number; profit: number; count: number }> = {};
 
         dateFilteredTickets.forEach(ticket => {
             if (!accountTotals[ticket.account]) {
                 accountTotals[ticket.account] = { amount: 0, profit: 0, count: 0 };
             }
-            accountTotals[ticket.account].amount += ticket.amount;
+            accountTotals[ticket.account].amount += (ticket.ticketAmount || 0);
             accountTotals[ticket.account].profit += ticket.profit;
             accountTotals[ticket.account].count += 1;
         });
@@ -97,7 +97,7 @@ export default function Dashboard({
         'bg-pink-50', 'bg-rose-50'
     ];
 
-    const exportReport = () => {
+    const exportReport = async () => {
         if (tickets.length === 0) {
             alert('No tickets to export');
             return;
@@ -110,8 +110,6 @@ export default function Dashboard({
             alert('No tickets to export for the selected account/date range');
             return;
         }
-        // Prepare filtered tickets for export; CSV includes Fare only (as per generator)
-        const csvContent = generateCSVReport(filteredForExport);
         // Build filename: Account-BookingStartDate-EndDate
         const accounts = Array.from(new Set(filteredForExport.map(t => t.account)));
         const accountLabel = accountFilter !== 'all'
@@ -126,8 +124,13 @@ export default function Dashboard({
             .slice(-1)[0] : '';
         const startLabel = start ? start.split('T')[0] : 'ALL';
         const endLabel = end ? end.split('T')[0] : 'ALL';
-        const filename = `${accountLabel}-${startLabel}-${endLabel}.csv`;
-        downloadCSV(csvContent, filename);
+        const filename = `${accountLabel}-${startLabel}-${endLabel}.pdf`;
+        await downloadPDFReport(filteredForExport, {
+            accountLabel,
+            startLabel,
+            endLabel,
+            filename,
+        });
     };
 
     // Suggestions for TicketForm
@@ -246,7 +249,7 @@ export default function Dashboard({
                     <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
                 </div>
                 <div className="bg-indigo-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-indigo-600">Total Fare</h3>
+                    <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
                     <p className="text-2xl font-bold text-indigo-900">₹{totalFare.toLocaleString()}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">

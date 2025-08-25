@@ -53,7 +53,7 @@ export function useTickets() {
     }
   };
 
-  const processRefund = async (id: string, refundData: { refundAmount: number; refundDate: string; refundReason: string }) => {
+  const processRefund = async (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => {
     try {
       const updatedTicket = await apiService.processRefund(id, refundData);
       setTickets(prev => prev.map(ticket => 

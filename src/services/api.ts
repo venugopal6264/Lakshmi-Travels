@@ -6,7 +6,7 @@ const API_URL: string = import.meta.env?.VITE_API_URL || "http://localhost:5050/
 console.log('API_URL:', API_URL);
 export interface ApiTicket {
   _id?: string;
-  amount: number;
+  ticketAmount: number;
   profit: number;
   type: 'train' | 'bus' | 'flight';
   service: string;
@@ -15,10 +15,9 @@ export interface ApiTicket {
   passengerName: string;
   place: string;
   pnr: string;
-  fare: number;
+  bookingAmount: number;
   refund: number;
   // Optional refund details (present when a refund is processed)
-  refundAmount?: number;
   refundDate?: string;
   refundReason?: string;
   remarks: string;
@@ -121,7 +120,7 @@ class ApiService {
     });
   }
 
-  async processRefund(id: string, refundData: { refundAmount: number; refundDate: string; refundReason: string }): Promise<ApiTicket> {
+  async processRefund(id: string, refundData: { refund: number; refundDate: string; refundReason: string }): Promise<ApiTicket> {
     return this.request<ApiTicket>(`/tickets/${id}/refund`, {
       method: 'PUT',
       body: JSON.stringify(refundData),

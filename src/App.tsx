@@ -118,7 +118,7 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     await updateTicket(id, ticketData);
   };
 
-  const handleProcessRefund = async (id: string, refundData: { refundAmount: number; refundDate: string; refundReason: string }) => {
+  const handleProcessRefund = async (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => {
     await processRefund(id, refundData);
   };
 

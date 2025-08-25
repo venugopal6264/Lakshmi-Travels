@@ -8,7 +8,7 @@ interface EditTicketModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (ticketData: Partial<ApiTicket>) => Promise<void>;
-    onRefund: (refundData: { refundAmount: number; refundDate: string; refundReason: string }) => Promise<void>;
+    onRefund: (refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
     onDelete: () => Promise<void>;
     existingAccounts?: string[];
     existingServices?: string[];
@@ -28,7 +28,7 @@ export default function EditTicketModal({
     const [loading, setLoading] = useState(false);
 
     const [refundData, setRefundData] = useState({
-        refundAmount: ticket.refundAmount?.toString() || '',
+        refund: (ticket.refund ?? 0).toString(),
         refundDate: ticket.refundDate || new Date().toISOString().split('T')[0],
         refundReason: ticket.refundReason || ''
     });
@@ -51,7 +51,7 @@ export default function EditTicketModal({
         try {
             setLoading(true);
             await onRefund({
-                refundAmount: parseFloat(refundData.refundAmount),
+                refund: parseFloat(refundData.refund),
                 refundDate: refundData.refundDate,
                 refundReason: refundData.refundReason
             });
@@ -145,8 +145,8 @@ export default function EditTicketModal({
                                     </label>
                                     <input
                                         type="number"
-                                        value={refundData.refundAmount}
-                                        onChange={(e) => setRefundData(prev => ({ ...prev, refundAmount: e.target.value }))}
+                                        value={refundData.refund}
+                                        onChange={(e) => setRefundData(prev => ({ ...prev, refund: e.target.value }))}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Enter refund amount"
                                     />
@@ -187,7 +187,7 @@ export default function EditTicketModal({
                                 </button>
                                 <button
                                     onClick={handleRefund}
-                                    disabled={loading || !refundData.refundAmount || !refundData.refundReason}
+                                    disabled={loading || !refundData.refund || !refundData.refundReason}
                                     className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 transition duration-200 flex items-center gap-2 disabled:opacity-50"
                                 >
                                     <RefreshCw className="w-4 h-4" />

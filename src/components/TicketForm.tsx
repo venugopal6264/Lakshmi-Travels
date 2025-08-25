@@ -24,7 +24,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   };
 
   type TicketFormState = {
-    amount: string;
+    ticketAmount: string;
     profit: string;
     type: 'train' | 'bus' | 'flight';
     service: string;
@@ -33,13 +33,13 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     passengerName: string;
     place: string;
     pnr: string;
-    fare: string;
+  bookingAmount: string;
     refund: string;
     remarks: string;
   };
 
   const initialFormState: TicketFormState = {
-    amount: '',
+    ticketAmount: '',
     profit: '',
     type: 'train',
     service: '',
@@ -48,7 +48,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     passengerName: '',
     place: '',
     pnr: '',
-    fare: '',
+  bookingAmount: '',
     refund: '',
     remarks: ''
   };
@@ -59,8 +59,10 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   // When editing, seed form with initial ticket values
   useEffect(() => {
     if (mode === 'edit' && initial) {
+      type LegacyOrNew = Partial<ApiTicket> & { amount?: number; fare?: number } & { ticketAmount?: number; bookingAmount?: number };
+      const src = initial as LegacyOrNew;
       const seed: TicketFormState = {
-        amount: initial.amount != null ? String(initial.amount) : '',
+        ticketAmount: src.ticketAmount != null ? String(src.ticketAmount) : (src.amount != null ? String(src.amount) : ''),
         profit: initial.profit != null ? String(initial.profit) : '',
         type: (initial.type as TicketFormState['type']) || 'train',
         service: initial.service || '',
@@ -69,7 +71,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
         passengerName: initial.passengerName || '',
         place: initial.place || '',
         pnr: initial.pnr || '',
-        fare: initial.fare != null ? String(initial.fare) : '',
+        bookingAmount: src.bookingAmount != null ? String(src.bookingAmount) : (src.fare != null ? String(src.fare) : ''),
         refund: typeof (initial as Partial<ApiTicket> & { refund?: number }).refund === 'number'
           ? String((initial as Partial<ApiTicket> & { refund?: number }).refund)
           : '',
@@ -101,7 +103,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
 
     const newErrors: Record<string, string> = {};
 
-    if (!formData.amount) newErrors.amount = 'Amount is required';
+  if (!formData.ticketAmount) newErrors.ticketAmount = 'Ticket amount is required';
     if (!formData.profit) newErrors.profit = 'Profit is required';
     if (!formData.service) newErrors.service = 'Service is required';
     if (!formData.account) newErrors.account = 'Account is required';
@@ -109,7 +111,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     if (!formData.passengerName) newErrors.passengerName = 'Passenger name is required';
     if (!formData.place) newErrors.place = 'Place is required';
     if (!formData.pnr) newErrors.pnr = 'PNR is required';
-    if (!formData.fare) newErrors.fare = 'Fare is required';
+  if (!formData.bookingAmount) newErrors.bookingAmount = 'Booking amount is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -120,7 +122,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
       setSubmitting(true);
       if (mode === 'edit' && onSave) {
         await onSave({
-          amount: parseFloat(formData.amount),
+          ticketAmount: parseFloat(formData.ticketAmount),
           profit: parseFloat(formData.profit),
           type: formData.type,
           service: formData.service,
@@ -129,13 +131,13 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           passengerName: formData.passengerName,
           place: formData.place,
           pnr: formData.pnr,
-          fare: parseFloat(formData.fare),
+          bookingAmount: parseFloat(formData.bookingAmount),
           refund: parseFloat(formData.refund) || 0,
           remarks: formData.remarks
         });
       } else if (onAddTicket) {
         await onAddTicket({
-          amount: parseFloat(formData.amount),
+          ticketAmount: parseFloat(formData.ticketAmount),
           profit: parseFloat(formData.profit),
           type: formData.type,
           service: formData.service,
@@ -144,7 +146,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           passengerName: formData.passengerName,
           place: formData.place,
           pnr: formData.pnr,
-          fare: parseFloat(formData.fare),
+          bookingAmount: parseFloat(formData.bookingAmount),
           refund: parseFloat(formData.refund) || 0,
           remarks: formData.remarks
         });
@@ -163,11 +165,11 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
       const next = { ...prev, [name]: value } as typeof prev;
 
       // Parse numbers safely
-      const fare = parseFloat(next.fare);
-      const amount = parseFloat(next.amount);
+  const fare = parseFloat(next.bookingAmount);
+  const amount = parseFloat(next.ticketAmount);
       const profit = parseFloat(next.profit);
-      const hasFare = next.fare !== '' && !Number.isNaN(fare);
-      const hasAmount = next.amount !== '' && !Number.isNaN(amount);
+  const hasFare = next.bookingAmount !== '' && !Number.isNaN(fare);
+  const hasAmount = next.ticketAmount !== '' && !Number.isNaN(amount);
       const hasProfit = next.profit !== '' && !Number.isNaN(profit);
 
       // Calculation precedence rules:
@@ -176,19 +178,19 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
       // - If user edits fare:
       //   * If amount present => derive profit
       //   * Else if profit present => derive amount
-      if (name === 'amount' && hasFare && !Number.isNaN(amount)) {
+      if (name === 'ticketAmount' && hasFare && !Number.isNaN(amount)) {
         const p = amount - fare;
         next.profit = Number.isFinite(p) ? (Math.round(p * 100) / 100).toString() : next.profit;
       } else if (name === 'profit' && hasFare && !Number.isNaN(profit)) {
         const a = fare + profit;
-        next.amount = Number.isFinite(a) ? (Math.round(a * 100) / 100).toString() : next.amount;
-      } else if (name === 'fare' && hasFare) {
+        next.ticketAmount = Number.isFinite(a) ? (Math.round(a * 100) / 100).toString() : next.ticketAmount;
+      } else if (name === 'bookingAmount' && hasFare) {
         if (hasAmount) {
           const p = amount - fare;
           next.profit = Number.isFinite(p) ? (Math.round(p * 100) / 100).toString() : next.profit;
         } else if (hasProfit) {
           const a = fare + profit;
-          next.amount = Number.isFinite(a) ? (Math.round(a * 100) / 100).toString() : next.amount;
+          next.ticketAmount = Number.isFinite(a) ? (Math.round(a * 100) / 100).toString() : next.ticketAmount;
         }
       }
 
@@ -343,34 +345,34 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
 
            <div data-testId="booking-fare-input">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Booking Fare *
+              Booking Amount *
             </label>
             <input
               type="number"
-              name="fare"
-              value={formData.fare}
+              name="bookingAmount"
+              value={formData.bookingAmount}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.fare ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.bookingAmount ? 'border-red-500' : 'border-gray-300'
                 }`}
-              placeholder="Ticket fare"
+              placeholder="Base booking amount"
             />
-            {errors.fare && <p className="text-red-500 text-xs mt-1">{errors.fare}</p>}
+            {errors.bookingAmount && <p className="text-red-500 text-xs mt-1">{errors.bookingAmount}</p>}
           </div>
 
           <div data-testId="amount-input">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount(With Profit) *
+              Ticket Amount (Booking + Profit) *
             </label>
             <input
               type="number"
-              name="amount"
-              value={formData.amount}
+              name="ticketAmount"
+              value={formData.ticketAmount}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.amount ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ticketAmount ? 'border-red-500' : 'border-gray-300'
                 }`}
-              placeholder="Enter amount"
+              placeholder="Enter ticket amount"
             />
-            {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
+            {errors.ticketAmount && <p className="text-red-500 text-xs mt-1">{errors.ticketAmount}</p>}
           </div>
 
           <div data-testId="profit-input">

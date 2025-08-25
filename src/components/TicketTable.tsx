@@ -8,7 +8,7 @@ interface TicketTableProps {
   paidTickets: string[];
   onDeleteTicket: (id: string) => Promise<void>;
   onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
-  onProcessRefund: (id: string, refundData: { refundAmount: number; refundDate: string; refundReason: string }) => Promise<void>;
+  onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
   onMarkAsPaid: (ticketId: string) => Promise<void>;
   onBulkMarkAsPaid: (ticketIds: string[]) => Promise<void>;
   loading?: boolean;
@@ -178,7 +178,7 @@ export default function TicketTable({
   };
 
   const isRefunded = (ticket: ApiTicket) => {
-    return ticket.refundAmount && ticket.refundAmount > 0;
+    return Number(ticket.refund || 0) > 0;
   };
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -355,12 +355,12 @@ export default function TicketTable({
               </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('amount')}
+                onClick={() => handleSort('ticketAmount')}
               >
-                Amount {sortField === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
+                Ticket Amount {sortField === 'ticketAmount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Fare
+                Booking Amount
               </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -410,7 +410,7 @@ export default function TicketTable({
                     {ticket.passengerName}
                     {isRefunded(ticket) && (
                       <div className="text-xs text-red-600 font-medium">
-                        Refunded: ₹{ticket.refundAmount}
+                        Refunded: ₹{ticket.refund}
                       </div>
                     )}
                   </div>
@@ -422,10 +422,10 @@ export default function TicketTable({
                   {ticket.place}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ₹{ticket.amount.toLocaleString()}
+                  ₹{Number(ticket.ticketAmount || 0).toLocaleString()}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ₹{Number(ticket.fare || 0).toLocaleString()}
+                  ₹{Number(ticket.bookingAmount || 0).toLocaleString()}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                   {showProfit ? `₹${ticket.profit.toLocaleString()}` : ''}
@@ -487,7 +487,7 @@ export default function TicketTable({
               {`Account: ${confirmDeleteTicket.account} | Type: ${confirmDeleteTicket.type}
 Booking: ${formatDate(confirmDeleteTicket.bookingDate)} | Passenger: ${confirmDeleteTicket.passengerName}
 PNR: ${confirmDeleteTicket.pnr} | Place: ${confirmDeleteTicket.place}
-Amount: \u20B9${confirmDeleteTicket.amount.toLocaleString()} | Fare: \u20B9${Number(confirmDeleteTicket.fare || 0).toLocaleString()} | Profit: \u20B9${confirmDeleteTicket.profit.toLocaleString()}${confirmDeleteTicket.refundAmount ? ` | Refunded: \u20B9${confirmDeleteTicket.refundAmount}` : ''}`}
+Amount: \u20B9${Number(confirmDeleteTicket.ticketAmount || 0).toLocaleString()} | Booking: \u20B9${Number(confirmDeleteTicket.bookingAmount || 0).toLocaleString()} | Profit: \u20B9${confirmDeleteTicket.profit.toLocaleString()}${confirmDeleteTicket.refund ? ` | Refunded: \u20B9${confirmDeleteTicket.refund}` : ''}`}
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button

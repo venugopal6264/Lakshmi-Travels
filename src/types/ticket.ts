@@ -12,7 +12,6 @@ export interface Ticket {
   fare: number;
   refund: number;
   remarks: string;
-  refundAmount?: number;
   refundDate?: string;
   refundReason?: string;
   createdAt?: string;

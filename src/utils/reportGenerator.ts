@@ -8,7 +8,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     'Names',
     'PNR',
     'Place',
-    'Fare',
+  'Booking Amount',
     'Refund',
     'Remarks'
   ];
@@ -20,15 +20,15 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     ticket.passengerName,
     ticket.pnr,
     ticket.place,
-    ticket.fare.toString(),
+  ticket.bookingAmount.toString(),
     ticket.refund.toString(),
     ticket.remarks || ''
   ]);
 
   // Totals
-  const totalFare = tickets.reduce((sum, t) => sum + (Number(t.fare) || 0), 0);
+  const totalBooking = tickets.reduce((sum, t) => sum + (Number(t.bookingAmount) || 0), 0);
   const totalRefund = tickets.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
-  const totalDue = totalFare - totalRefund;
+  const totalDue = totalBooking - totalRefund;
 
   // Summary rows aligned to headers: put values in Fare and Refund columns
   const blankRow = Array(headers.length).fill('');
@@ -38,8 +38,8 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
-    'Total',
-    totalFare.toFixed(2), // Fare column
+  'Total',
+  totalBooking.toFixed(2), // Booking Amount column
     totalRefund.toFixed(2), // Refund column
     ''
   ];
@@ -50,8 +50,8 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
-    'Total Due',
-    totalDue.toFixed(2), // Place due in Fare column for visibility
+  'Total Due',
+  totalDue.toFixed(2), // Place due in Booking Amount column for visibility
     '',
     ''
   ];
@@ -77,4 +77,147 @@ export const downloadCSV = (content: string, filename: string) => {
   document.body.removeChild(link);
 
   URL.revokeObjectURL(url);
+};
+
+// Load an image URL (from public/) as a data URL for embedding in PDF
+const loadImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const res = await fetch(url, { cache: 'no-cache' });
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('Logo load failed, continuing without logo:', e);
+    return null;
+  }
+};
+
+export const downloadPDFReport = async (
+  tickets: ApiTicket[],
+  opts?: { accountLabel?: string; startLabel?: string; endLabel?: string; filename?: string }
+) => {
+  if (!tickets || tickets.length === 0) return;
+  // Dynamically import heavy libs to keep initial bundle small
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+
+  const headers = [
+    'Booking Date',
+    'Type',
+    'Names',
+    'PNR',
+    'Place',
+  'Ticket Amount',
+    'Refund',
+  ];
+
+  const rows = tickets.map(t => [
+    t.bookingDate?.split('T')[0],
+    t.type.charAt(0).toUpperCase() + t.type.slice(1),
+    t.passengerName,
+    t.pnr,
+    t.place,
+  (Number(t.ticketAmount) || 0).toFixed(2),
+    (Number(t.refund) || 0).toFixed(2),
+  ]);
+
+  const totalTicketAmount = tickets.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
+  const totalRefund = tickets.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
+  const totalDue = totalTicketAmount - totalRefund;
+  const hasRefundFlags = tickets.map(t => (Number(t.refund) || 0) > 0);
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+
+  // Header with logo and title (repeat per page)
+  const logoDataUrl = await loadImageAsDataUrl('/logo.png');
+  const title = 'Lakshmi Travels';
+  const subtitle = 'Tickets Report';
+  const account = opts?.accountLabel || 'All Accounts';
+  const period = `${opts?.startLabel || 'ALL'} to ${opts?.endLabel || 'ALL'}`;
+
+  const drawHeader = (page: number) => {
+    const startX = 40;
+    const y = 40;
+    if (logoDataUrl) {
+      try {
+        doc.addImage(logoDataUrl, 'PNG', startX, y, 40, 40, undefined, 'FAST');
+      } catch (e) {
+        // Ignore image errors and continue
+        console.warn('Failed to draw logo:', e);
+      }
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(title, startX + 50, y + 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(subtitle, startX + 50, y + 36);
+    doc.setFontSize(10);
+    doc.text(`Account: ${account}`, startX + 300, y + 18, { align: 'left' });
+    doc.text(`Period: ${period}`, startX + 300, y + 36, { align: 'left' });
+    // Footer page number
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(9);
+    doc.text(`Page ${page}`, pageWidth - 40, pageHeight - 20, { align: 'right' });
+  };
+
+  // Use didDrawPage to repeat header/footer
+  let pageNumber = 1;
+  drawHeader(pageNumber);
+
+  autoTable(doc, {
+    head: [headers],
+    body: rows,
+    startY: 100,
+    styles: { fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // blue header
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    didParseCell: (data: unknown) => {
+      const d = data as { section: 'head' | 'body' | 'foot'; row: { index: number }; cell: { styles: { textColor?: unknown } } };
+      // Color entire row red when refund > 0
+      if (d.section === 'body') {
+        const rowIdx = d.row.index;
+        if (hasRefundFlags[rowIdx]) {
+          (d.cell.styles as { textColor?: unknown }).textColor = [220, 38, 38] as unknown; // red-600
+        }
+      }
+    },
+    didDrawPage: () => {
+      drawHeader(pageNumber);
+      pageNumber++;
+    },
+    margin: { top:20, left: 20, right: 20, bottom: 20 },
+    theme: 'grid',
+  });
+
+  // Totals table
+  autoTable(doc, {
+    body: [
+  // For 7 columns: [Date, Type, Names, PNR, Place, Fare, Refund]
+  [' ', ' ', ' ', ' ', 'Total', totalTicketAmount.toFixed(2), totalRefund.toFixed(2)],
+  [' ', ' ', ' ', ' ', 'Total Due', totalDue.toFixed(2), ' ']
+    ],
+    startY: (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
+      ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
+      : 120,
+    styles: { fontSize: 10, cellPadding: 4 },
+    bodyStyles: { fillColor: [255, 255, 255] },
+    theme: 'grid',
+    margin: { left: 20, right: 20 },
+    columnStyles: {
+  4: { fontStyle: 'bold' }, // label column (Place)
+  5: { fontStyle: 'bold' }, // Fare / Due value
+  6: { fontStyle: 'bold' }, // Refund value on the first row
+    },
+  });
+
+  const filename = opts?.filename || `${account}-${(opts?.startLabel || 'ALL')}-${(opts?.endLabel || 'ALL')}.pdf`;
+  doc.save(filename);
 };

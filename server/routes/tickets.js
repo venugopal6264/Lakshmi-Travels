@@ -46,11 +46,13 @@ router.put('/:id', async (req, res) => {
 // Process refund for a ticket
 router.put('/:id/refund', async (req, res) => {
   try {
-    const { refundAmount, refundDate, refundReason } = req.body;
+  const { refund, refundDate, refundReason } = req.body;
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       { 
-        refundAmount: refundAmount || 0,
+    // Keep legacy refundAmount updated for backward compatibility
+    refund: refund || 0,
+    refundAmount: refund || 0,
         refundDate: refundDate || new Date(),
         refundReason: refundReason || ''
       },

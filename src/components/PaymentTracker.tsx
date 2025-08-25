@@ -67,8 +67,8 @@ export default function PaymentTracker({
     const addTicket = (map: Record<string, Agg>, t: ApiTicket) => {
       const a = t.account;
       if (!map[a]) map[a] = empty();
-      map[a].booking += t.amount;
-      map[a].profit += (t.profit - (t.refundAmount || 0));
+  map[a].booking += (t.ticketAmount || 0);
+  map[a].profit += (t.profit - (t.refund || 0));
       map[a].count += 1;
     };
 
@@ -134,9 +134,9 @@ export default function PaymentTracker({
   // Profit by type for selected account scope
   const filteredForAccount = selectedAccount === 'all' ? dateFilteredTickets : dateFilteredTickets.filter(t => t.account === selectedAccount);
   const typeProfit = {
-    train: filteredForAccount.filter(t => t.type === 'train').reduce((s, t) => s + (t.profit - (t.refundAmount || 0)), 0),
-    bus: filteredForAccount.filter(t => t.type === 'bus').reduce((s, t) => s + (t.profit - (t.refundAmount || 0)), 0),
-    flight: filteredForAccount.filter(t => t.type === 'flight').reduce((s, t) => s + (t.profit - (t.refundAmount || 0)), 0),
+    train: filteredForAccount.filter(t => t.type === 'train').reduce((s, t) => s + (t.profit - (t.refund || 0)), 0),
+    bus: filteredForAccount.filter(t => t.type === 'bus').reduce((s, t) => s + (t.profit - (t.refund || 0)), 0),
+    flight: filteredForAccount.filter(t => t.type === 'flight').reduce((s, t) => s + (t.profit - (t.refund || 0)), 0),
   };
 
   const getNext15DayDate = () => {
