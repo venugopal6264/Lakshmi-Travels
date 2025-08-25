@@ -97,12 +97,22 @@ export default function FuelTracker() {
     }
   };
 
+  const ringClass = form.vehicle === 'car' ? 'focus:ring-blue-500' : 'focus:ring-green-500';
+  const primaryBtn = form.vehicle === 'car'
+    ? 'bg-blue-600 hover:bg-blue-700'
+    : 'bg-green-600 hover:bg-green-700';
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <Fuel className="w-5 h-5" />
-        Fuel Tracker
-      </h2>
+    <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
+      {/* Colorful header */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <Fuel className="w-5 h-5" />
+          Fuel Tracker
+          <span className={`ml-2 inline-flex items-center rounded-full text-xs px-2 py-0.5 bg-white/20 text-white capitalize`}>{form.vehicle}</span>
+        </h2>
+      </div>
+      <div className="p-6">
 
   <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -116,7 +126,7 @@ export default function FuelTracker() {
               name="date"
               value={form.date}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.date ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.date ? 'border-red-500' : 'border-gray-300'}`}
             />
             {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
           </div>
@@ -127,7 +137,7 @@ export default function FuelTracker() {
               name="vehicle"
               value={form.vehicle}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.vehicle ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.vehicle ? 'border-red-500' : 'border-gray-300'}`}
             >
               <option value="car">Car</option>
               <option value="bike">Bike</option>
@@ -141,7 +151,7 @@ export default function FuelTracker() {
               name="entryType"
               value={form.entryType}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
             >
               <option value="refueling">Refueling</option>
               <option value="service">Service</option>
@@ -155,7 +165,7 @@ export default function FuelTracker() {
               name="odometer"
               value={form.odometer}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
               placeholder="e.g., 45210"
             />
           </div>
@@ -168,7 +178,7 @@ export default function FuelTracker() {
               name="liters"
               value={form.liters}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.liters ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.liters ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="e.g., 7.5"
               step="0.01"
               min="0"
@@ -185,7 +195,7 @@ export default function FuelTracker() {
               name="pricePerLiter"
               value={form.pricePerLiter}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="e.g., 106.8"
               step="0.01"
               min="0"
@@ -202,7 +212,7 @@ export default function FuelTracker() {
               name="total"
               value={computedTotal || form.total}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
               placeholder="Auto-calculated"
               step="0.01"
               min="0"
@@ -218,7 +228,7 @@ export default function FuelTracker() {
               name="total"
               value={form.total}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="e.g., 1500"
               step="0.01"
               min="0"
@@ -233,7 +243,7 @@ export default function FuelTracker() {
               value={form.notes}
               onChange={handleChange}
               rows={1}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
               placeholder="Refueling place, work done, etc."
             />
           </div>
@@ -250,7 +260,7 @@ export default function FuelTracker() {
           <button
             type="submit"
             disabled={submitting}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${primaryBtn} text-white px-6 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <Plus className="w-4 h-4" />
             {submitting ? 'Saving...' : 'Save Entry'}
@@ -262,46 +272,48 @@ export default function FuelTracker() {
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Recent Entries</h3>
 
-          {/* Car table */}
+      {/* Car table */}
           <div className="mb-8">
-            <h4 className="font-medium text-gray-700 mb-2">Car</h4>
+            <h4 className="font-medium text-blue-700 mb-2">Car</h4>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-blue-200">
+                <thead className="bg-blue-600">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odometer</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Liters</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/L</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage (km/L)</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📅 Date</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🏷️ Type</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📏 Odometer</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">⛽ Liters</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">💲 Price/L</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🧾 Total</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🛣️ Mileage (km/L)</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📝 Notes</th>
                   </tr>
                 </thead>
-                <FuelTableBody items={fuel} vehicle="car" />
+        <FuelTableBody items={fuel} vehicle="car" />
+        <FuelTableFooter items={fuel} vehicle="car" />
               </table>
             </div>
           </div>
 
-          {/* Bike table */}
+      {/* Bike table */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-2">Bike</h4>
+      <h4 className="font-medium text-green-700 mb-2">Bike</h4>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-green-200">
+                <thead className="bg-green-600">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odometer</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Liters</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/L</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mileage (km/L)</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📅 Date</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🏷️ Type</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📏 Odometer</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">⛽ Liters</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">💲 Price/L</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🧾 Total</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🛣️ Mileage (km/L)</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📝 Notes</th>
                   </tr>
                 </thead>
-                <FuelTableBody items={fuel} vehicle="bike" />
+        <FuelTableBody items={fuel} vehicle="bike" />
+        <FuelTableFooter items={fuel} vehicle="bike" />
               </table>
             </div>
           </div>
@@ -309,6 +321,7 @@ export default function FuelTracker() {
       )}
 
       <FuelSummarySection />
+    </div>
     </div>
   );
 }
@@ -347,8 +360,11 @@ function FuelSummarySection() {
       <h4 className="font-semibold text-gray-800 mb-3">{title}</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(['car', 'bike'] as const).map(v => (
-          <div key={v} className="bg-gray-50 rounded p-3">
-            <h5 className="font-medium text-gray-700 mb-2 capitalize">{v}</h5>
+          <div
+            key={v}
+            className={`rounded p-3 border-l-4 ${v === 'car' ? 'bg-blue-50 border-blue-400' : 'bg-green-50 border-green-400'}`}
+          >
+            <h5 className={`font-medium mb-2 capitalize ${v === 'car' ? 'text-blue-800' : 'text-green-800'}`}>{v}</h5>
             <ul className="text-sm text-gray-700 space-y-1">
               <li>Total Liters: {fmt(bucket[v].liters)}</li>
               <li>Fuel Spend: ₹{fmt(bucket[v].fuelSpend)}</li>
@@ -378,8 +394,8 @@ function FuelSummarySection() {
     return (
       <div className="bg-white border rounded-md p-4 shadow-sm">
         <h4 className="font-semibold text-gray-800 mb-3">{title}</h4>
-        {bar(carVal, 'Car', '#3b82f6')}
-        {bar(bikeVal, 'Bike', '#f59e0b')}
+  {bar(carVal, 'Car', '#3b82f6')}
+  {bar(bikeVal, 'Bike', '#10b981')}
       </div>
     );
   };
@@ -437,12 +453,23 @@ function FuelTableBody({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' | 
     return out;
   }, [list]);
 
+  const tbodyClass = vehicle === 'car'
+    ? 'divide-y divide-blue-100'
+    : 'divide-y divide-green-100';
+  const rowClass = vehicle === 'car'
+    ? 'odd:bg-blue-50 even:bg-blue-100 hover:bg-blue-200'
+    : 'odd:bg-green-50 even:bg-green-100 hover:bg-green-200';
+  const typeBadge = (t: ApiFuel['entryType']) =>
+    t === 'refueling'
+      ? 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800'
+      : 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800';
+
   return (
-    <tbody className="bg-white divide-y divide-gray-200">
+    <tbody className={tbodyClass}>
       {list.map((e, idx) => (
-        <tr key={e._id}>
+        <tr key={e._id} className={rowClass}>
           <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
-          <td className="px-4 py-2 whitespace-nowrap capitalize">{e.entryType}</td>
+          <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
           <td className="px-4 py-2 whitespace-nowrap">{e.odometer ?? ''}</td>
           <td className="px-4 py-2 whitespace-nowrap">{e.liters ?? ''}</td>
           <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter ?? ''}</td>
@@ -452,6 +479,43 @@ function FuelTableBody({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' | 
         </tr>
       ))}
     </tbody>
+  );
+}
+
+function FuelTableFooter({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' | 'bike' }) {
+  const { fuelTotal, serviceTotal } = React.useMemo(() => {
+    let fuelTotal = 0;
+    let serviceTotal = 0;
+    for (const e of items) {
+      if (e.vehicle !== vehicle) continue;
+      if (typeof e.total === 'number') {
+        if (e.entryType === 'refueling') fuelTotal += e.total;
+        else if (e.entryType === 'service') serviceTotal += e.total;
+      }
+    }
+    return { fuelTotal, serviceTotal };
+  }, [items, vehicle]);
+
+  const fmt = (n: number) => (Math.round(n * 100) / 100).toLocaleString();
+  const tClass = vehicle === 'car' ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900';
+  const badge = vehicle === 'car' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+
+  // 8 columns total; place summary in the Total column, span across remaining
+  return (
+    <tfoot>
+      <tr className={tClass}>
+        <td className="px-4 py-2" colSpan={5}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge}`}>Totals</span>
+        </td>
+        <td className="px-4 py-2 whitespace-nowrap align-top">
+          <div className="text-xs space-y-1">
+            <div>Fuel: ₹{fmt(fuelTotal)}</div>
+            <div>Service: ₹{fmt(serviceTotal)}</div>
+          </div>
+        </td>
+        <td className="px-4 py-2" colSpan={2}></td>
+      </tr>
+    </tfoot>
   );
 }
 

@@ -1,6 +1,7 @@
-import { Calendar, CreditCard, MapPin, RefreshCw, Save, Trash2, User, X } from 'lucide-react';
+import { RefreshCw, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { ApiTicket } from '../services/api';
+import TicketForm from './TicketForm';
 
 interface EditTicketModalProps {
     ticket: ApiTicket;
@@ -9,6 +10,8 @@ interface EditTicketModalProps {
     onSave: (ticketData: Partial<ApiTicket>) => Promise<void>;
     onRefund: (refundData: { refundAmount: number; refundDate: string; refundReason: string }) => Promise<void>;
     onDelete: () => Promise<void>;
+    existingAccounts?: string[];
+    existingServices?: string[];
 }
 
 export default function EditTicketModal({
@@ -17,25 +20,12 @@ export default function EditTicketModal({
     onClose,
     onSave,
     onRefund,
-    onDelete
+    onDelete,
+    existingAccounts = [],
+    existingServices = []
 }: EditTicketModalProps) {
     const [activeTab, setActiveTab] = useState<'edit' | 'refund'>('edit');
     const [loading, setLoading] = useState(false);
-
-    const [editData, setEditData] = useState({
-        amount: ticket.amount.toString(),
-        profit: ticket.profit.toString(),
-        type: ticket.type,
-        service: ticket.service,
-        account: ticket.account,
-        bookingDate: ticket.bookingDate,
-        passengerName: ticket.passengerName,
-        place: ticket.place,
-        pnr: ticket.pnr,
-        fare: ticket.fare.toString(),
-        refund: ticket.refund.toString(),
-        remarks: ticket.remarks
-    });
 
     const [refundData, setRefundData] = useState({
         refundAmount: ticket.refundAmount?.toString() || '',
@@ -45,23 +35,10 @@ export default function EditTicketModal({
 
     if (!isOpen) return null;
 
-    const handleSave = async () => {
+    const handleSave = async (data: Partial<ApiTicket>) => {
         try {
             setLoading(true);
-            await onSave({
-                amount: parseFloat(editData.amount),
-                profit: parseFloat(editData.profit),
-                type: editData.type as 'train' | 'bus' | 'flight',
-                service: editData.service,
-                account: editData.account,
-                bookingDate: editData.bookingDate,
-                passengerName: editData.passengerName,
-                place: editData.place,
-                pnr: editData.pnr,
-                fare: parseFloat(editData.fare),
-                refund: parseFloat(editData.refund) || 0,
-                remarks: editData.remarks
-            });
+            await onSave(data);
             onClose();
         } catch (error) {
             console.error('Failed to save ticket:', error);
@@ -139,160 +116,16 @@ export default function EditTicketModal({
                 <div className="p-6">
                     {activeTab === 'edit' ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Amount *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={editData.amount}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, amount: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Profit *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={editData.profit}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, profit: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Type *
-                                    </label>
-                                    <select
-                                        value={editData.type}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, type: e.target.value as 'train' | 'bus' | 'flight' }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="train">Train</option>
-                                        <option value="bus">Bus</option>
-                                        <option value="flight">Flight</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Service *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editData.service}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, service: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Account *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editData.account}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, account: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        <Calendar className="w-4 h-4 inline mr-1" />
-                                        Booking Date *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={editData.bookingDate}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, bookingDate: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        <User className="w-4 h-4 inline mr-1" />
-                                        Passenger Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editData.passengerName}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, passengerName: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        <MapPin className="w-4 h-4 inline mr-1" />
-                                        Place *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editData.place}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, place: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        <CreditCard className="w-4 h-4 inline mr-1" />
-                                        PNR *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editData.pnr}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, pnr: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Fare *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={editData.fare}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, fare: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Refund
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={editData.refund}
-                                        onChange={(e) => setEditData(prev => ({ ...prev, refund: e.target.value }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Remarks
-                                </label>
-                                <textarea
-                                    value={editData.remarks}
-                                    onChange={(e) => setEditData(prev => ({ ...prev, remarks: e.target.value }))}
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            <div className="flex justify-between pt-4">
+                            <TicketForm
+                                mode="edit"
+                                initial={ticket}
+                                onSave={handleSave}
+                                loading={loading}
+                                heading={`Edit Ticket - ${ticket.pnr}`}
+                                existingAccounts={existingAccounts}
+                                existingServices={existingServices}
+                            />
+                            <div className="flex justify-start">
                                 <button
                                     onClick={handleDelete}
                                     disabled={loading}
@@ -300,14 +133,6 @@ export default function EditTicketModal({
                                 >
                                     <Trash2 className="w-4 h-4" />
                                     Delete
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={loading}
-                                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    <Save className="w-4 h-4" />
-                                    {loading ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
                         </div>

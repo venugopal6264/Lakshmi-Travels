@@ -1,5 +1,5 @@
 import { CheckCircle, Clock, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ApiTicket } from '../services/api';
 import EditTicketModal from './EditTicketModal';
 
@@ -14,6 +14,8 @@ interface TicketTableProps {
   loading?: boolean;
   dateRange: { from: string; to: string };
   // Date range is controlled by parent; no handler here
+  accountFilter?: string;
+  onAccountFilterChange?: (value: string) => void;
 }
 
 export default function TicketTable({
@@ -25,11 +27,19 @@ export default function TicketTable({
   onBulkMarkAsPaid,
   loading = false,
   dateRange,
+  accountFilter: accountFilterProp,
+  onAccountFilterChange,
   // date handler removed
 }: TicketTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  const [accountFilter, setAccountFilter] = useState<string>('all');
+  const [accountFilter, setAccountFilter] = useState<string>(accountFilterProp ?? 'all');
+  // Keep internal state in sync with controlled prop if provided
+  useEffect(() => {
+    if (accountFilterProp !== undefined && accountFilterProp !== accountFilter) {
+      setAccountFilter(accountFilterProp);
+    }
+  }, [accountFilterProp, accountFilter]);
   const [sortField, setSortField] = useState<keyof ApiTicket>('bookingDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -66,6 +76,7 @@ export default function TicketTable({
 
   // Get unique accounts for filter dropdown
   const uniqueAccounts = Array.from(new Set(tickets.map(ticket => ticket.account)));
+  const uniqueServices = Array.from(new Set(tickets.map(ticket => ticket.service)));
 
   const filteredTickets = currentTickets.filter(ticket => {
     const matchesSearch =
@@ -192,7 +203,7 @@ export default function TicketTable({
               )}
             </button>
           )}
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-green-600">
             {sortedTickets.length} of {currentTickets.length} tickets
           </span>
         </div>
@@ -203,7 +214,7 @@ export default function TicketTable({
         <button
           onClick={() => setActiveTable('open')}
           className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'open'
-            ? 'bg-orange-100 text-orange-700 border border-orange-300'
+            ? 'bg-blue-100 text-blue-700 border border-blue-300'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
         >
@@ -221,12 +232,12 @@ export default function TicketTable({
           Paid Tickets ({paidTicketsData.length})
         </button>
         <div className="ml-auto flex items-center gap-2">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+          <label className="inline-flex items-center gap-2 text-sm text-blue-700">
             <input
               type="checkbox"
               checked={showProfit}
               onChange={(e) => setShowProfit(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-blue-300 accent-blue-600 focus:ring-blue-500"
             />
             Show Profit
           </label>
@@ -271,7 +282,11 @@ export default function TicketTable({
           {activeTable === 'open' && (
             <select
               value={accountFilter}
-              onChange={(e) => setAccountFilter(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setAccountFilter(v);
+                onAccountFilterChange?.(v);
+              }}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Accounts</option>
@@ -458,6 +473,8 @@ export default function TicketTable({
           onSave={(ticketData) => onUpdateTicket(editingTicket._id!, ticketData)}
           onRefund={(refundData) => onProcessRefund(editingTicket._id!, refundData)}
           onDelete={() => onDeleteTicket(editingTicket._id!)}
+          existingAccounts={uniqueAccounts}
+          existingServices={uniqueServices}
         />
       )}
 

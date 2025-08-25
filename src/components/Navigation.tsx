@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, FileText, Fuel, LogOut, User2 } from 'lucide-react';
+import { BarChart3, DollarSign, Fuel, LogOut, User2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface NavigationProps {
@@ -24,12 +24,17 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
     };
 
     return (
-        <nav className="bg-white shadow-sm border-b">
+        <nav className="bg-gradient-to-r from-blue-700 via-indigo-600 to-emerald-600 shadow-md">
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-3">
-                        <FileText className="w-8 h-8 text-blue-600" />
-                        <h1 className="text-xl font-bold text-gray-900">Lakshmi Travels</h1>
+                        {/* Place your logo file at public/logo.png */}
+                        <img
+                            src="/logo.png"
+                            alt="Lakshmi Travels logo"
+                            className="h-8 w-8 object-contain bg-white rounded-md p-0.5 ring-1 ring-white/30 shadow-sm"
+                        />
+                        <h1 className="text-xl font-bold text-white">Lakshmi Travels</h1>
                     </div>
 
                     <div className="flex items-center space-x-1">
@@ -44,8 +49,8 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                                     href={href}
                                     onClick={(e) => handleClick(e, item.id)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${isActive
-                                        ? 'bg-blue-100 text-blue-700 font-medium'
-                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                        ? 'bg-white text-blue-700 font-medium'
+                                        : 'text-white/90 hover:text-white hover:bg-white/10'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -53,19 +58,19 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                                 </a>
                             );
                         })}
-                                                {/* Show logout only when authenticated; no login button in the header */}
-                                                {!loading && user && (
-                                                    <div className="ml-3 pl-3 border-l border-gray-200 flex items-center">
-                                                        {user.picture ? (
-                                                            <img src={user.picture} alt="avatar" className="w-6 h-6 rounded-full mr-2" />
-                                                        ) : (
-                                                            <User2 className="w-5 h-5 text-gray-500 mr-2" />
-                                                        )}
-                                                        <button onClick={logout} className="flex items-center gap-1 px-3 py-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                                                            <LogOut className="w-4 h-4" /> Logout
-                                                        </button>
-                                                    </div>
-                                                )}
+                        {/* Show logout only when authenticated; no login button in the header */}
+                        {!loading && user && (
+                            <div className="ml-3 pl-3 border-l border-white/20 flex items-center">
+                                {user.picture ? (
+                                    <img src={user.picture} alt="avatar" className="w-6 h-6 rounded-full mr-2 ring-2 ring-white/30" />
+                                ) : (
+                                    <User2 className="w-5 h-5 text-white/90 mr-2" />
+                                )}
+                                <button onClick={logout} className="flex items-center gap-1 px-3 py-2 rounded-md text-white/90 hover:text-white hover:bg-white/10">
+                                    <LogOut className="w-4 h-4" /> Logout
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

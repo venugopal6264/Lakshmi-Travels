@@ -1,15 +1,19 @@
-import { Calendar, CreditCard, MapPin, Plus, User } from 'lucide-react';
-import React, { useState } from 'react';
+import { Calendar, CreditCard, MapPin, Plus, Save, User } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ApiTicket } from '../services/api';
 
 interface TicketFormProps {
-  onAddTicket: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onAddTicket?: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onSave?: (ticketData: Partial<ApiTicket>) => Promise<void>;
+  mode?: 'create' | 'edit';
+  initial?: Partial<ApiTicket> | null;
+  heading?: string;
   loading?: boolean;
   existingAccounts?: string[];
   existingServices?: string[];
 }
 
-export default function TicketForm({ onAddTicket, loading = false, existingAccounts = [], existingServices = [] }: TicketFormProps) {
+export default function TicketForm({ onAddTicket, onSave, mode = 'create', initial = null, heading, loading = false, existingAccounts = [], existingServices = [] }: TicketFormProps) {
   // Helper to get today's date in YYYY-MM-DD (local) for <input type="date"/>
   const getToday = () => {
     const d = new Date();
@@ -50,15 +54,44 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
   };
 
   const [formData, setFormData] = useState<TicketFormState>(initialFormState);
+  const initialEdit = useRef<TicketFormState | null>(null);
+
+  // When editing, seed form with initial ticket values
+  useEffect(() => {
+    if (mode === 'edit' && initial) {
+      const seed: TicketFormState = {
+        amount: initial.amount != null ? String(initial.amount) : '',
+        profit: initial.profit != null ? String(initial.profit) : '',
+        type: (initial.type as TicketFormState['type']) || 'train',
+        service: initial.service || '',
+        account: initial.account || '',
+        bookingDate: initial.bookingDate ? initial.bookingDate.slice(0, 10) : getToday(),
+        passengerName: initial.passengerName || '',
+        place: initial.place || '',
+        pnr: initial.pnr || '',
+        fare: initial.fare != null ? String(initial.fare) : '',
+        refund: typeof (initial as Partial<ApiTicket> & { refund?: number }).refund === 'number'
+          ? String((initial as Partial<ApiTicket> & { refund?: number }).refund)
+          : '',
+        remarks: initial.remarks || ''
+      };
+      setFormData(seed);
+      initialEdit.current = seed;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, initial?._id]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   // Removed PDF upload UI
 
   const resetForm = () => {
-    setFormData({ ...initialFormState, bookingDate: getToday() });
+    if (mode === 'edit' && initialEdit.current) {
+      setFormData(initialEdit.current);
+    } else {
+      setFormData({ ...initialFormState, bookingDate: getToday() });
+    }
     setErrors({});
-  // no-op
   };
 
   // Removed PDF extraction handler
@@ -85,22 +118,38 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
 
     try {
       setSubmitting(true);
-      await onAddTicket({
-        amount: parseFloat(formData.amount),
-        profit: parseFloat(formData.profit),
-        type: formData.type,
-        service: formData.service,
-        account: formData.account,
-        bookingDate: formData.bookingDate,
-        passengerName: formData.passengerName,
-        place: formData.place,
-        pnr: formData.pnr,
-        fare: parseFloat(formData.fare),
-        refund: parseFloat(formData.refund) || 0,
-        remarks: formData.remarks
-      });
-
-  resetForm();
+      if (mode === 'edit' && onSave) {
+        await onSave({
+          amount: parseFloat(formData.amount),
+          profit: parseFloat(formData.profit),
+          type: formData.type,
+          service: formData.service,
+          account: formData.account,
+          bookingDate: formData.bookingDate,
+          passengerName: formData.passengerName,
+          place: formData.place,
+          pnr: formData.pnr,
+          fare: parseFloat(formData.fare),
+          refund: parseFloat(formData.refund) || 0,
+          remarks: formData.remarks
+        });
+      } else if (onAddTicket) {
+        await onAddTicket({
+          amount: parseFloat(formData.amount),
+          profit: parseFloat(formData.profit),
+          type: formData.type,
+          service: formData.service,
+          account: formData.account,
+          bookingDate: formData.bookingDate,
+          passengerName: formData.passengerName,
+          place: formData.place,
+          pnr: formData.pnr,
+          fare: parseFloat(formData.fare),
+          refund: parseFloat(formData.refund) || 0,
+          remarks: formData.remarks
+        });
+        resetForm();
+      }
     } catch (error) {
       console.error('Failed to add ticket:', error);
     } finally {
@@ -154,8 +203,8 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <Plus className="w-5 h-5" />
-        Add New Ticket
+        {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+        {heading || (mode === 'edit' ? 'Edit Ticket' : 'Add New Ticket')}
       </h2>
 
   <form onSubmit={handleSubmit} className="space-y-4">
@@ -384,8 +433,8 @@ export default function TicketForm({ onAddTicket, loading = false, existingAccou
             disabled={submitting || loading}
             className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="w-4 h-4" />
-            {submitting ? 'Saving...' : 'Save Ticket'}
+            {mode === 'edit' ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {submitting ? 'Saving...' : (mode === 'edit' ? 'Save Changes' : 'Save Ticket')}
           </button>
         </div>
       </form>

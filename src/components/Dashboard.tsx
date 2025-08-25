@@ -31,6 +31,7 @@ export default function Dashboard({
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [accountFilter, setAccountFilter] = useState<string>('all');
 
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
     const parseLocalDate = (s?: string) => {
@@ -88,20 +89,38 @@ export default function Dashboard({
 
     const accountBreakdown = getAccountBreakdown();
 
+    // Row background colors to rotate for Account Breakdown table
+    const rowBgClasses = [
+        'bg-red-50', 'bg-orange-50', 'bg-amber-50', 'bg-yellow-50', 'bg-lime-50',
+        'bg-green-50', 'bg-emerald-50', 'bg-teal-50', 'bg-cyan-50', 'bg-sky-50',
+        'bg-blue-50', 'bg-indigo-50', 'bg-violet-50', 'bg-purple-50', 'bg-fuchsia-50',
+        'bg-pink-50', 'bg-rose-50'
+    ];
+
     const exportReport = () => {
         if (tickets.length === 0) {
             alert('No tickets to export');
             return;
         }
+        // Apply account filter to export if a specific account is selected
+        const filteredForExport = accountFilter === 'all'
+            ? dateFilteredTickets
+            : dateFilteredTickets.filter(t => t.account === accountFilter);
+        if (filteredForExport.length === 0) {
+            alert('No tickets to export for the selected account/date range');
+            return;
+        }
         // Prepare filtered tickets for export; CSV includes Fare only (as per generator)
-        const csvContent = generateCSVReport(dateFilteredTickets);
+        const csvContent = generateCSVReport(filteredForExport);
         // Build filename: Account-BookingStartDate-EndDate
-        const accounts = Array.from(new Set(dateFilteredTickets.map(t => t.account)));
-        const accountLabel = accounts.length === 1 ? accounts[0] : 'AllAccounts';
-        const start = dateFilteredTickets.length > 0 ? dateFilteredTickets
+        const accounts = Array.from(new Set(filteredForExport.map(t => t.account)));
+        const accountLabel = accountFilter !== 'all'
+            ? accountFilter
+            : (accounts.length === 1 ? accounts[0] : 'AllAccounts');
+        const start = filteredForExport.length > 0 ? filteredForExport
             .map(t => t.bookingDate)
             .sort()[0] : '';
-        const end = dateFilteredTickets.length > 0 ? dateFilteredTickets
+        const end = filteredForExport.length > 0 ? filteredForExport
             .map(t => t.bookingDate)
             .sort()
             .slice(-1)[0] : '';
@@ -183,12 +202,12 @@ export default function Dashboard({
         <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+                    <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-[linear-gradient(90deg,#ef4444,#f97316,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899)]">Dashboard</h2>
                     <p className="text-gray-600 mt-1">Overview of your travel tickets and profits</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Compact Date Filter */}
-                    <div className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2">
+                    <div className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-900 transition duration-200 flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-white-1000" />
                         <select
                             value={quickRange}
@@ -246,6 +265,8 @@ export default function Dashboard({
                 onBulkMarkAsPaid={onBulkMarkAsPaid}
                 loading={loading}
                 dateRange={dateRange}
+                accountFilter={accountFilter}
+                onAccountFilterChange={setAccountFilter}
             />
 
             {/* Profit summary moved to Payment Tracker */}
@@ -272,9 +293,9 @@ export default function Dashboard({
                                 {/* Total Profit removed as requested */}
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {Object.entries(accountBreakdown).map(([account, totals]) => (
-                                <tr key={account} className="hover:bg-gray-50">
+                        <tbody className="divide-y divide-gray-200">
+                            {Object.entries(accountBreakdown).map(([account, totals], idx) => (
+                                <tr key={account} className={`transition-colors ${rowBgClasses[idx % rowBgClasses.length]}`}>
                                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {account}
                                     </td>
