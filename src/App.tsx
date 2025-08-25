@@ -106,6 +106,12 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
 
   const handleAddTicket = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
     await addTicket(ticketData);
+    // Navigate to dashboard and show basic success toast
+    window.history.pushState({}, '', '/dashboard');
+    // Simple feedback; can be replaced with a toast lib later
+    setTimeout(() => {
+      alert('Ticket has been registered successfully.');
+    }, 50);
   };
 
   const handleDeleteTicket = async (id: string) => {

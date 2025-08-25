@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, CreditCard, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ApiTicket } from '../services/api';
 import EditTicketModal from './EditTicketModal';
@@ -22,7 +22,6 @@ export default function TicketTable({
   onDeleteTicket,
   onUpdateTicket,
   onProcessRefund,
-  onMarkAsPaid,
   onBulkMarkAsPaid,
   loading = false,
   dateRange,
@@ -34,12 +33,14 @@ export default function TicketTable({
   const [sortField, setSortField] = useState<keyof ApiTicket>('bookingDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [confirmDeleteTicket, setConfirmDeleteTicket] = useState<ApiTicket | null>(null);
+  // per-row processing state removed as Mark as Paid button is hidden
   // Date filter is controlled in Dashboard header
   const [activeTable, setActiveTable] = useState<'open' | 'paid'>('open');
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [showProfit, setShowProfit] = useState<boolean>(false);
+  const [bulkLoading, setBulkLoading] = useState<boolean>(false);
 
   // Filter tickets by date range
   const dateFilteredTickets = tickets.filter(ticket => {
@@ -104,7 +105,6 @@ export default function TicketTable({
 
   const handleDelete = async (id: string) => {
     if (!id) return;
-
     try {
       setDeletingId(id);
       await onDeleteTicket(id);
@@ -115,25 +115,19 @@ export default function TicketTable({
     }
   };
 
-  const handleMarkAsPaid = async (ticketId: string) => {
-    try {
-      setProcessingId(ticketId);
-      await onMarkAsPaid(ticketId);
-    } catch (error) {
-      console.error('Failed to mark ticket as paid:', error);
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  // per-row mark-as-paid handler removed
 
   const handleBulkMarkAsPaid = async () => {
     if (selectedTickets.length === 0) return;
 
     try {
+      setBulkLoading(true);
       await onBulkMarkAsPaid(selectedTickets);
       setSelectedTickets([]);
     } catch (error) {
       console.error('Failed to mark tickets as paid:', error);
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -185,10 +179,17 @@ export default function TicketTable({
           {activeTable === 'open' && selectedTickets.length > 0 && (
             <button
               onClick={handleBulkMarkAsPaid}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
+              disabled={bulkLoading}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <DollarSign className="w-4 h-4" />
-              Mark as Paid ({selectedTickets.length})
+              {bulkLoading ? (
+                'Processing...'
+              ) : (
+                <>
+                  Mark as Paid (<span>{selectedTickets.length}</span>)
+                </>
+              )}
             </button>
           )}
           <span className="text-sm text-gray-500">
@@ -240,8 +241,18 @@ export default function TicketTable({
             placeholder="Search by passenger, PNR, or place..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-16 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+              aria-label="Clear search"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -413,26 +424,8 @@ export default function TicketTable({
                     >
                       <Edit className="w-4 h-4" />
                     </button>
-
-                    {activeTable === 'open' && (
-                      <>
-                        <button
-                          onClick={() => handleMarkAsPaid(ticket._id!)}
-                          disabled={processingId === ticket._id}
-                          className="text-green-600 hover:text-green-900 transition-colors disabled:opacity-50"
-                          title="Mark as paid"
-                        >
-                          {processingId === ticket._id ? (
-                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <CreditCard className="w-4 h-4" />
-                          )}
-                        </button>
-                      </>
-                    )}
-
                     <button
-                      onClick={() => handleDelete(ticket._id!)}
+                      onClick={() => setConfirmDeleteTicket(ticket)}
                       disabled={deletingId === ticket._id}
                       className="text-red-600 hover:text-red-900 transition-colors disabled:opacity-50"
                       title="Delete ticket"
@@ -466,6 +459,43 @@ export default function TicketTable({
           onRefund={(refundData) => onProcessRefund(editingTicket._id!, refundData)}
           onDelete={() => onDeleteTicket(editingTicket._id!)}
         />
+      )}
+
+      {confirmDeleteTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white w-full max-w-xl rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Confirm Delete</h3>
+            <p className="text-sm text-gray-700 mb-4">Are you sure you want to delete this ticket? This action cannot be undone.</p>
+            <div className="p-3 bg-gray-50 rounded border text-sm font-mono whitespace-pre-wrap break-words">
+              {`Account: ${confirmDeleteTicket.account} | Type: ${confirmDeleteTicket.type}
+Booking: ${formatDate(confirmDeleteTicket.bookingDate)} | Passenger: ${confirmDeleteTicket.passengerName}
+PNR: ${confirmDeleteTicket.pnr} | Place: ${confirmDeleteTicket.place}
+Amount: \u20B9${confirmDeleteTicket.amount.toLocaleString()} | Fare: \u20B9${Number(confirmDeleteTicket.fare || 0).toLocaleString()} | Profit: \u20B9${confirmDeleteTicket.profit.toLocaleString()}${confirmDeleteTicket.refundAmount ? ` | Refunded: \u20B9${confirmDeleteTicket.refundAmount}` : ''}`}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                onClick={() => setConfirmDeleteTicket(null)}
+                disabled={deletingId === confirmDeleteTicket._id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition disabled:opacity-50"
+                onClick={async () => {
+                  if (!confirmDeleteTicket?._id) return;
+                  await handleDelete(confirmDeleteTicket._id);
+                  setConfirmDeleteTicket(null);
+                }}
+                disabled={deletingId === confirmDeleteTicket._id}
+              >
+                {deletingId === confirmDeleteTicket._id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

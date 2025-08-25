@@ -13,6 +13,10 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  account: {
+    type: String,
+    default: ''
+  },
   tickets: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Ticket'

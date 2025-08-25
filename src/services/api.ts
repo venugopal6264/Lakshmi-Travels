@@ -31,6 +31,7 @@ export interface ApiPayment {
   date: string;
   amount: number;
   period: string;
+  account?: string;
   tickets: string[];
   createdAt?: string;
   updatedAt?: string;

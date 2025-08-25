@@ -23,7 +23,8 @@ export default function PaymentTracker({
   const [paymentData, setPaymentData] = useState({
     date: '',
     amount: '',
-    period: ''
+    period: '',
+    account: ''
   });
 
   // Filter tickets by date range
@@ -80,9 +81,10 @@ export default function PaymentTracker({
         date: paymentData.date,
         amount: parseFloat(paymentData.amount),
         period: paymentData.period,
+        account: paymentData.account || (selectedAccount === 'all' ? '' : selectedAccount),
         tickets: []
       });
-      setPaymentData({ date: '', amount: '', period: '' });
+      setPaymentData({ date: '', amount: '', period: '', account: '' });
       setShowAddPayment(false);
     } catch (error) {
       console.error('Failed to add payment:', error);
@@ -242,66 +244,79 @@ export default function PaymentTracker({
       )}
 
       {showAddPayment && (
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="text-lg font-medium mb-3">Add New Payment</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Date
-                </label>
-                <input
-                  type="date"
-                  value={paymentData.date}
-                  onChange={(e) => setPaymentData(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData(prev => ({ ...prev, amount: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="Enter amount"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Period
-                </label>
-                <input
-                  type="text"
-                  value={paymentData.period}
-                  onChange={(e) => setPaymentData(prev => ({ ...prev, period: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="e.g., Jan 1-15, 2025"
-                  required
-                />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Add New Payment</h3>
+              <button onClick={() => setShowAddPayment(false)} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAddPayment(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 disabled:opacity-50"
-              >
-                {submitting ? 'Adding...' : 'Add Payment'}
-              </button>
-            </div>
-          </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                  <input
+                    type="date"
+                    value={paymentData.date}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                  <input
+                    type="number"
+                    value={paymentData.amount}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, amount: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter amount"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
+                  <input
+                    type="text"
+                    value={paymentData.period}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, period: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="e.g., Jan 1-15, 2025"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                  <select
+                    value={paymentData.account || (selectedAccount !== 'all' ? selectedAccount : '')}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, account: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="" disabled>Select account</option>
+                    {accounts.map(account => (
+                      <option key={account} value={account}>{account}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPayment(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 disabled:opacity-50"
+                >
+                  {submitting ? 'Adding...' : 'Add Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
