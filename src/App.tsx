@@ -3,7 +3,6 @@ import { DateRangeProvider } from './context/DateRangeContext';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './components/LoginPage';
-import CreateTicketPage from './components/CreateTicketPage';
 import Dashboard from './components/Dashboard';
 import Navigation from './components/Navigation';
 import FuelTracker from './components/FuelTracker';
@@ -24,7 +23,6 @@ function InnerApp() {
     if (path.includes('login')) setCurrentPage('login');
     else if (path.includes('payment')) setCurrentPage('payments');
     else if (path.includes('fuel')) setCurrentPage('fuel');
-    else if (path.includes('create')) setCurrentPage('create');
     else setCurrentPage('dashboard');
 
     const onPop = () => {
@@ -32,7 +30,6 @@ function InnerApp() {
       if (p.includes('login')) setCurrentPage('login');
       else if (p.includes('payment')) setCurrentPage('payments');
       else if (p.includes('fuel')) setCurrentPage('fuel');
-      else if (p.includes('create')) setCurrentPage('create');
       else setCurrentPage('dashboard');
     };
     window.addEventListener('popstate', onPop);
@@ -46,7 +43,6 @@ function InnerApp() {
       : currentPage === 'login' ? '/login'
       : currentPage === 'payments' ? '/payment-tracker'
       : currentPage === 'fuel' ? '/fuel-dashboard'
-      : currentPage === 'create' ? '/create-ticket'
       : '/dashboard';
     const currentUrl = window.location.pathname;
     if (currentUrl !== basePath) {
@@ -157,20 +153,13 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
           <Dashboard
             tickets={tickets}
             payments={payments}
+            onAddTicket={handleAddTicket}
             onDeleteTicket={handleDeleteTicket}
             onUpdateTicket={handleUpdateTicket}
             onProcessRefund={handleProcessRefund}
             onMarkAsPaid={handleMarkAsPaid}
             onBulkMarkAsPaid={handleBulkMarkAsPaid}
             loading={ticketsLoading}
-          />
-        );
-      case 'create':
-        return (
-          <CreateTicketPage
-            onAddTicket={handleAddTicket}
-            loading={ticketsLoading}
-            tickets={tickets}
           />
         );
       case 'payments':

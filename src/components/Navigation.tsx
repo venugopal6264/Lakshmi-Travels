@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, FileText, Plus, Fuel, LogOut, User2 } from 'lucide-react';
+import { BarChart3, DollarSign, FileText, Fuel, LogOut, User2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface NavigationProps {
@@ -10,7 +10,6 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
     const { user, loading, logout } = useAuth();
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-        { id: 'create', label: 'Create Ticket', icon: Plus, path: '/create-ticket' },
         { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
         { id: 'fuel', label: 'Fuel Tracker', icon: Fuel, path: '/fuel-dashboard' },
     ];

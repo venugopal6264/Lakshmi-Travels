@@ -1,13 +1,15 @@
-import { BarChart3, Calendar, Download, TrendingUp } from 'lucide-react';
+import { BarChart3, Calendar, Download, TrendingUp, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
 import { downloadCSV, generateCSVReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
+import TicketForm from './TicketForm';
 
 interface DashboardProps {
     tickets: ApiTicket[];
     payments: ApiPayment[];
+    onAddTicket: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onDeleteTicket: (id: string) => Promise<void>;
     onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
     onProcessRefund: (id: string, refundData: { refundAmount: number; refundDate: string; refundReason: string }) => Promise<void>;
@@ -19,6 +21,7 @@ interface DashboardProps {
 export default function Dashboard({
     tickets,
     payments,
+    onAddTicket,
     onDeleteTicket,
     onUpdateTicket,
     onProcessRefund,
@@ -27,6 +30,7 @@ export default function Dashboard({
     loading
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
     const parseLocalDate = (s?: string) => {
@@ -56,22 +60,15 @@ export default function Dashboard({
         return true;
     });
 
-    // Filter payments by date range for KPIs
-    const dateFilteredPayments = payments.filter(p => {
-        const payDate = parseLocalDate(p.date) || new Date(p.date);
-        const fromDate = parseLocalDate(dateRange.from);
-        const toDate = parseLocalDate(dateRange.to);
-        if (fromDate && payDate < fromDate) return false;
-        if (toDate && payDate > toDate) return false;
-        return true;
-    });
+    // Payments are not used in Dashboard KPIs (open tickets only)
 
-    // KPI totals for the selected range
-    const totalBookingAmount = dateFilteredTickets.reduce((sum, t) => sum + t.amount, 0);
-    const totalFare = dateFilteredTickets.reduce((sum, t) => sum + t.fare, 0);
-    const totalProfitAfterRefunds = dateFilteredTickets.reduce((sum, t) => sum + (t.profit - (t.refundAmount || 0)), 0);
-    const totalPaid = dateFilteredPayments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = totalProfitAfterRefunds - totalPaid;
+    // Only OPEN tickets (unpaid per-ticket) should drive Dashboard widgets
+    const openTickets = dateFilteredTickets.filter(t => !paidTicketIds.includes(t._id || ''));
+
+    // KPI totals for OPEN tickets in the selected range
+    const totalBookingAmount = openTickets.reduce((sum, t) => sum + t.amount, 0);
+    const totalFare = openTickets.reduce((sum, t) => sum + t.fare, 0);
+    const totalProfitAfterRefunds = openTickets.reduce((sum, t) => sum + (t.profit - (t.refundAmount || 0)), 0);
 
     // Calculate account breakdown
     const getAccountBreakdown = () => {
@@ -112,6 +109,15 @@ export default function Dashboard({
         const endLabel = end ? end.split('T')[0] : 'ALL';
         const filename = `${accountLabel}-${startLabel}-${endLabel}.csv`;
         downloadCSV(csvContent, filename);
+    };
+
+    // Suggestions for TicketForm
+    const existingAccounts = Array.from(new Set((tickets || []).map(t => t.account).filter(Boolean)));
+    const existingServices = Array.from(new Set((tickets || []).map(t => t.service).filter(Boolean)));
+
+    const handleAddTicketFromModal = async (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
+        await onAddTicket(ticket);
+        setShowCreateModal(false);
     };
 
     // Local quick range selection, synced with context
@@ -173,6 +179,7 @@ export default function Dashboard({
     };
 
     return (
+        <>
         <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -196,6 +203,13 @@ export default function Dashboard({
                         </select>
                     </div>
                     <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Create Ticket
+                    </button>
+                    <button
                         onClick={exportReport}
                         className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2"
                     >
@@ -205,24 +219,20 @@ export default function Dashboard({
                 </div>
             </div>
 
-            {/* Top-level KPIs moved from Payment Tracker */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Dashboard widgets: OPEN tickets only */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-purple-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-purple-600">Total Booking Amount</h3>
                     <p className="text-2xl font-bold text-purple-900">₹{totalBookingAmount.toLocaleString()}</p>
-                    <p className="text-xs text-purple-600">{dateFilteredTickets.length} tickets</p>
+                    <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
                 </div>
                 <div className="bg-indigo-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-indigo-600">Total Fare</h3>
                     <p className="text-2xl font-bold text-indigo-900">₹{totalFare.toLocaleString()}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-green-600">Total Paid</h3>
-                    <p className="text-2xl font-bold text-green-900">₹{totalPaid.toLocaleString()}</p>
-                </div>
-                <div className="bg-orange-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-orange-600">Remaining</h3>
-                    <p className="text-2xl font-bold text-orange-900">₹{remaining.toLocaleString()}</p>
+                    <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
+                    <p className="text-2xl font-bold text-green-900">₹{totalProfitAfterRefunds.toLocaleString()}</p>
                 </div>
             </div>
 
@@ -240,11 +250,11 @@ export default function Dashboard({
 
             {/* Profit summary moved to Payment Tracker */}
 
-            {/* Account Breakdown */}
+        {/* Account Breakdown (OPEN tickets only) */}
             <div className="bg-white rounded-lg shadow-md p-6">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <TrendingUp className="w-5 h-5" />
-                    Account Breakdown
+            Account Breakdown (Open Tickets)
                 </h3>
                 <div className="overflow-x-auto">
                     <table className="w-full table-auto">
@@ -296,5 +306,23 @@ export default function Dashboard({
                 </div>
             )}
         </div>
+        {/* Create Ticket Modal */}
+        {showCreateModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white w-full max-w-5xl rounded-lg shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-medium">Create New Ticket</h3>
+                        <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                    </div>
+                    <TicketForm
+                        onAddTicket={handleAddTicketFromModal}
+                        loading={loading}
+                        existingAccounts={existingAccounts}
+                        existingServices={existingServices}
+                    />
+                </div>
+            </div>
+        )}
+        </>
     );
 }

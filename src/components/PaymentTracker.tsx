@@ -27,50 +27,86 @@ export default function PaymentTracker({
     account: ''
   });
 
+  // Prepare date boundaries once
+  const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+  const toDate = dateRange.to ? new Date(dateRange.to) : null;
+
   // Filter tickets by date range
   const dateFilteredTickets = tickets.filter(ticket => {
     const ticketDate = new Date(ticket.bookingDate);
-    const fromDate = dateRange.from ? new Date(dateRange.from) : null;
-    const toDate = dateRange.to ? new Date(dateRange.to) : null;
-
     if (fromDate && ticketDate < fromDate) return false;
     if (toDate && ticketDate > toDate) return false;
     return true;
   });
 
-  // Payments are listed below; top-level totals moved to Dashboard
+  // Filter payments by date range for paid aggregates
+  const dateFilteredPayments = payments.filter(p => {
+    const payDate = new Date(p.date);
+    if (fromDate && payDate < fromDate) return false;
+    if (toDate && payDate > toDate) return false;
+    return true;
+  });
+
+  // Payments are listed below; add per-account widgets
 
   // Get unique accounts from tickets
   const accounts = Array.from(new Set(dateFilteredTickets.map(ticket => ticket.account)));
 
-  // Calculate totals by account
-  const getAccountTotals = () => {
-    const accountTotals: Record<string, { amount: number; profit: number; count: number }> = {};
+  // Helper: compute aggregates by account
+  const aggregates = React.useMemo(() => {
+    type Agg = { booking: number; profit: number; paid: number; due: number; count: number };
+    const empty = (): Agg => ({ booking: 0, profit: 0, paid: 0, due: 0, count: 0 });
 
-    dateFilteredTickets.forEach(ticket => {
-      if (!accountTotals[ticket.account]) {
-        accountTotals[ticket.account] = { amount: 0, profit: 0, count: 0 };
-      }
-      accountTotals[ticket.account].amount += ticket.amount;
-      accountTotals[ticket.account].profit += ticket.profit;
-      accountTotals[ticket.account].count += 1;
+    const paidTicketIds = new Set<string>(dateFilteredPayments.flatMap(p => p.tickets));
+    const openTickets = dateFilteredTickets.filter(t => !paidTicketIds.has(t._id || ''));
+    const closedTickets = dateFilteredTickets.filter(t => paidTicketIds.has(t._id || ''));
+
+    const openByAccount: Record<string, Agg> = {};
+    const closedByAccount: Record<string, Agg> = {};
+
+    const addTicket = (map: Record<string, Agg>, t: ApiTicket) => {
+      const a = t.account;
+      if (!map[a]) map[a] = empty();
+      map[a].booking += t.amount;
+      map[a].profit += (t.profit - (t.refundAmount || 0));
+      map[a].count += 1;
+    };
+
+    openTickets.forEach(t => addTicket(openByAccount, t));
+    closedTickets.forEach(t => addTicket(closedByAccount, t));
+
+    // Sum payments by account
+    const paidByAccount: Record<string, number> = {};
+    dateFilteredPayments.forEach(p => {
+      const a = p.account || '';
+      if (!a) return;
+      paidByAccount[a] = (paidByAccount[a] || 0) + p.amount;
     });
 
-    return accountTotals;
-  };
+    // For open accounts, paid is 0; due = profit
+    Object.values(openByAccount).forEach(v => { v.paid = 0; v.due = v.profit; });
+    // For closed accounts, paid comes from payments; due = profit - paid
+    Object.entries(closedByAccount).forEach(([a, v]) => {
+      v.paid = paidByAccount[a] || 0;
+      v.due = v.profit - v.paid;
+    });
 
-  const accountTotals = getAccountTotals();
+    // Totals
+    const sumAgg = (vals: Agg[]) => vals.reduce((acc, v) => ({
+      booking: acc.booking + v.booking,
+      profit: acc.profit + v.profit,
+      paid: acc.paid + v.paid,
+      due: acc.due + v.due,
+      count: acc.count + v.count,
+    }), empty());
 
-  // Filter data based on selected account for profit-only KPI
-  const filteredTotals = React.useMemo(() => {
-    const set = selectedAccount === 'all'
-      ? dateFilteredTickets
-      : dateFilteredTickets.filter(t => t.account === selectedAccount);
-    return {
-      totalProfit: set.reduce((sum, t) => sum + (t.profit - (t.refundAmount || 0)), 0),
-      ticketCount: set.length,
-    };
-  }, [selectedAccount, dateFilteredTickets]);
+    const totalsOpen = sumAgg(Object.values(openByAccount));
+    const totalsClosed = sumAgg(Object.values(closedByAccount));
+
+    return { openByAccount, closedByAccount, totalsOpen, totalsClosed };
+  }, [dateFilteredTickets, dateFilteredPayments]);
+
+  // Removed unused legacy totals in favor of per-account aggregates
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,11 +201,25 @@ export default function PaymentTracker({
         </select>
       </div>
 
-  <div className="grid grid-cols-1 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-600">Total Profit</h3>
-          <p className="text-2xl font-bold text-blue-900">₹{filteredTotals.totalProfit.toLocaleString()}</p>
-          <p className="text-xs text-blue-600">{filteredTotals.ticketCount} tickets</p>
+      {/* Open Accounts Totals */}
+      <div className="mb-4">
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Open Accounts Totals</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-indigo-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-indigo-600">Booking</h4><p className="text-2xl font-bold text-indigo-900">₹{aggregates.totalsOpen.booking.toLocaleString()}</p></div>
+          <div className="bg-green-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-green-600">Profit</h4><p className="text-2xl font-bold text-green-900">₹{aggregates.totalsOpen.profit.toLocaleString()}</p></div>
+          <div className="bg-blue-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-blue-600">Paid</h4><p className="text-2xl font-bold text-blue-900">₹{aggregates.totalsOpen.paid.toLocaleString()}</p></div>
+          <div className="bg-orange-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-orange-600">Due</h4><p className="text-2xl font-bold text-orange-900">₹{aggregates.totalsOpen.due.toLocaleString()}</p></div>
+        </div>
+      </div>
+
+      {/* Closed Accounts Totals */}
+      <div className="mb-6">
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Closed Accounts Totals</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-indigo-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-indigo-600">Booking</h4><p className="text-2xl font-bold text-indigo-900">₹{aggregates.totalsClosed.booking.toLocaleString()}</p></div>
+          <div className="bg-green-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-green-600">Profit</h4><p className="text-2xl font-bold text-green-900">₹{aggregates.totalsClosed.profit.toLocaleString()}</p></div>
+          <div className="bg-blue-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-blue-600">Paid</h4><p className="text-2xl font-bold text-blue-900">₹{aggregates.totalsClosed.paid.toLocaleString()}</p></div>
+          <div className="bg-orange-50 p-4 rounded-lg"><h4 className="text-sm font-medium text-orange-600">Due</h4><p className="text-2xl font-bold text-orange-900">₹{aggregates.totalsClosed.due.toLocaleString()}</p></div>
         </div>
       </div>
 
@@ -198,49 +248,72 @@ export default function PaymentTracker({
         </div>
       </div>
 
-      {/* Account Breakdown Table */}
+      {/* Account widgets: show Open and Closed sections separately when viewing all */}
       {selectedAccount === 'all' && (
-        <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-3">Account Breakdown</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full table-auto border-collapse">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
-                    Account
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
-                    Tickets
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
-                    Total Amount
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
-                    Total Profit
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Object.entries(accountTotals).map(([account, totals]) => (
-                  <tr key={account} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border">
-                      {account}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 border">
-                      {totals.count}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 border">
-                      ₹{totals.amount.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600 border">
-                      ₹{totals.profit.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-3">Open Accounts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {Object.entries(aggregates.openByAccount).map(([account, v]) => (
+                <div key={account} className="border rounded-lg p-4 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-800">{account}</h4>
+                    <span className="text-xs text-gray-500">{v.count} tickets</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-indigo-50 p-3 rounded">
+                      <div className="text-indigo-600">Booking</div>
+                      <div className="text-indigo-900 font-bold">₹{v.booking.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded">
+                      <div className="text-green-600">Profit</div>
+                      <div className="text-green-900 font-bold">₹{v.profit.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="text-blue-600">Paid</div>
+                      <div className="text-blue-900 font-bold">₹{v.paid.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded">
+                      <div className="text-orange-600">Due</div>
+                      <div className="text-orange-900 font-bold">₹{v.due.toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-3">Closed Accounts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {Object.entries(aggregates.closedByAccount).map(([account, v]) => (
+                <div key={account} className="border rounded-lg p-4 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-800">{account}</h4>
+                    <span className="text-xs text-gray-500">{v.count} tickets</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-indigo-50 p-3 rounded">
+                      <div className="text-indigo-600">Booking</div>
+                      <div className="text-indigo-900 font-bold">₹{v.booking.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded">
+                      <div className="text-green-600">Profit</div>
+                      <div className="text-green-900 font-bold">₹{v.profit.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="text-blue-600">Paid</div>
+                      <div className="text-blue-900 font-bold">₹{v.paid.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded">
+                      <div className="text-orange-600">Due</div>
+                      <div className="text-orange-900 font-bold">₹{v.due.toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
       )}
 
       {showAddPayment && (
