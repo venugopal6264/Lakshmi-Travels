@@ -71,19 +71,18 @@ export default function Dashboard({
     const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0);
     const totalProfitAfterRefunds = openTickets.reduce((sum, t) => sum + (t.profit - (t.refund || 0)), 0);
 
-    // Calculate account breakdown
+    // Calculate account breakdown (OPEN tickets only)
     const getAccountBreakdown = () => {
-    const accountTotals: Record<string, { amount: number; profit: number; count: number }> = {};
-
-        dateFilteredTickets.forEach(ticket => {
+        const accountTotals: Record<string, { amount: number; profit: number; count: number }> = {};
+        openTickets.forEach(ticket => {
             if (!accountTotals[ticket.account]) {
                 accountTotals[ticket.account] = { amount: 0, profit: 0, count: 0 };
             }
+            // amount: total Ticket Amount for open tickets
             accountTotals[ticket.account].amount += (ticket.ticketAmount || 0);
-            accountTotals[ticket.account].profit += ticket.profit;
+            accountTotals[ticket.account].profit += (ticket.profit - (ticket.refund || 0));
             accountTotals[ticket.account].count += 1;
         });
-
         return accountTotals;
     };
 
@@ -208,14 +207,14 @@ export default function Dashboard({
                     <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-[linear-gradient(90deg,#ef4444,#f97316,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899)]">Dashboard</h2>
                     <p className="text-gray-600 mt-1">Overview of your travel tickets and profits</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                     {/* Compact Date Filter */}
-                    <div className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-900 transition duration-200 flex items-center gap-2">
+                    <div className="bg-purple-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-purple-900 transition duration-200 flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-white-1000" />
                         <select
                             value={quickRange}
                             onChange={(e) => handleQuickRangeChange(e.target.value)}
-                            className="bg-transparent text-md text-white focus:outline-none"
+                            className="bg-transparent text-sm sm:text-md text-white focus:outline-none"
                             aria-label="Date Range"
                         >
                             <option value="all">All Time</option>
@@ -226,14 +225,14 @@ export default function Dashboard({
                     </div>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
+                        className="bg-green-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
                     >
                         <Plus className="w-4 h-4" />
                         Create Ticket
                     </button>
                     <button
                         onClick={exportReport}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2"
+                        className="bg-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" />
                         Export Report
@@ -280,35 +279,21 @@ export default function Dashboard({
                     <TrendingUp className="w-5 h-5" />
             Account Breakdown (Open Tickets)
                 </h3>
-                <div className="overflow-x-auto">
-                    <table className="w-full table-auto">
-                        <thead>
+                <div className="overflow-x-auto max-h-[50vh] relative">
+                    <table className="w-full table-auto text-sm">
+                        <thead className="sticky top-0 bg-white z-10">
                             <tr className="bg-gray-50">
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Account
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Tickets
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Total Amount
-                                </th>
-                                {/* Total Profit removed as requested */}
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Account</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Tickets</th>
+                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Total Amount</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {Object.entries(accountBreakdown).map(([account, totals], idx) => (
                                 <tr key={account} className={`transition-colors ${rowBgClasses[idx % rowBgClasses.length]}`}>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {account}
-                                    </td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {totals.count}
-                                    </td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        ₹{totals.amount.toLocaleString()}
-                                    </td>
-                                    {/* Profit column removed */}
+                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">{account}</td>
+                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
+                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">₹{totals.amount.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>

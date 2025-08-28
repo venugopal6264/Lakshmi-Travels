@@ -1,5 +1,5 @@
 import { CheckCircle, Clock, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiTicket } from '../services/api';
 import EditTicketModal from './EditTicketModal';
 
@@ -51,6 +51,43 @@ export default function TicketTable({
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [showProfit, setShowProfit] = useState<boolean>(false);
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
+  // Resizable "Place" column width (md+ only)
+  const [placeColWidth, setPlaceColWidth] = useState<number>(240);
+  const isResizingRef = useRef(false);
+
+  // Theming: colorful styles for Open vs Paid tables
+  const isOpenView = activeTable === 'open';
+  const headerGradient = isOpenView
+    ? 'bg-gradient-to-r from-amber-50 to-orange-100'
+    : 'bg-gradient-to-r from-emerald-50 to-green-100';
+  const headerBorder = isOpenView ? 'border-b border-orange-200' : 'border-b border-green-200';
+  const titleColor = isOpenView ? 'text-orange-700' : 'text-green-700';
+  const hoverRow = isOpenView ? 'hover:bg-orange-50/60' : 'hover:bg-green-50/60';
+  const rowLeftBorder = isOpenView ? 'border-l-4 border-orange-400' : 'border-l-4 border-green-400';
+  const totalsBg = isOpenView ? 'bg-orange-50' : 'bg-green-50';
+
+  const startResizePlace = (e: React.MouseEvent) => {
+    // Start horizontal drag to resize the Place column
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = placeColWidth;
+    isResizingRef.current = true;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const delta = ev.clientX - startX;
+      const next = Math.max(120, Math.min(800, startWidth + delta));
+      setPlaceColWidth(next);
+    };
+    const onMouseUp = () => {
+      isResizingRef.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
 
   // Filter tickets by date range
   const dateFilteredTickets = tickets.filter(ticket => {
@@ -104,6 +141,19 @@ export default function TicketTable({
 
     return 0;
   });
+
+  const totals = useMemo(() => {
+    return filteredTickets.reduce(
+      (acc, t) => {
+        acc.count += 1;
+        acc.ticketAmount += Number(t.ticketAmount || 0);
+        acc.bookingAmount += Number(t.bookingAmount || 0);
+        acc.profit += Number(t.profit || 0) - Number(t.refund || 0);
+        return acc;
+      },
+      { count: 0, ticketAmount: 0, bookingAmount: 0, profit: 0 }
+    );
+  }, [filteredTickets]);
 
   const handleSort = (field: keyof ApiTicket) => {
     if (sortField === field) {
@@ -181,12 +231,12 @@ export default function TicketTable({
     return Number(ticket.refund || 0) > 0;
   };
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">
+  <div className={`bg-white rounded-lg shadow-md p-6 ${isOpenView ? 'border-t-4 border-orange-400' : 'border-t-4 border-green-500'}`}>
+  <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-4">
+    <h2 className={`text-xl font-semibold ${titleColor}`}>
           {activeTable === 'open' ? 'Open Tickets' : 'Paid Tickets'}
         </h2>
-        <div className="flex items-center gap-4">
+  <div className="flex items-center gap-2 sm:gap-4">
           {activeTable === 'open' && selectedTickets.length > 0 && (
             <button
               onClick={handleBulkMarkAsPaid}
@@ -210,7 +260,7 @@ export default function TicketTable({
       </div>
 
       {/* Table Toggle */}
-      <div className="flex gap-2 mb-4">
+  <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={() => setActiveTable('open')}
           className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'open'
@@ -244,7 +294,7 @@ export default function TicketTable({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+  <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -252,7 +302,7 @@ export default function TicketTable({
             placeholder="Search by passenger, PNR, or place..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-16 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-16 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
           {searchTerm && (
             <button
@@ -271,7 +321,7 @@ export default function TicketTable({
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="all">All Types</option>
             <option value="train">Train</option>
@@ -287,7 +337,7 @@ export default function TicketTable({
                 setAccountFilter(v);
                 onAccountFilterChange?.(v);
               }}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="all">All Accounts</option>
               {uniqueAccounts.map(account => (
@@ -298,7 +348,7 @@ export default function TicketTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+  <div className="overflow-x-auto max-h-[60vh] relative">
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -306,9 +356,9 @@ export default function TicketTable({
           </div>
         )}
 
-        <table className="w-full table-auto">
-          <thead>
-            <tr className="bg-gray-50">
+        <table className="w-full table-auto text-sm">
+          <thead className={`sticky top-0 z-10 ${headerGradient} ${headerBorder}`}>
+            <tr>
               {activeTable === 'open' && (
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
@@ -326,13 +376,6 @@ export default function TicketTable({
               >
                 Account {sortField === 'account' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              {/* Type */}
-              <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('type')}
-              >
-                Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
               {/* Booking Date */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -347,38 +390,63 @@ export default function TicketTable({
               >
                 Passenger Name {sortField === 'passengerName' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                PNR
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Place
-              </th>
+              {/* Ticket Amount prominent */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('ticketAmount')}
               >
                 Ticket Amount {sortField === 'ticketAmount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* Booking Amount (hide on xs) */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                 Booking Amount
               </th>
+              {/* Profit (hide on xs) */}
+              {showProfit && (
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden sm:table-cell"
+                  onClick={() => handleSort('profit')}
+                >
+                  Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+              )}
+              {/* Type (hide on xs) */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('profit')}
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden sm:table-cell"
+                onClick={() => handleSort('type')}
               >
-                Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
+                Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* PNR (hide on xs) */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                PNR
+              </th>
+              {/* Place (resizable on md+) */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell relative select-none"
+                style={{ width: placeColWidth, minWidth: placeColWidth }}
+              >
+                <div className="pr-3">Place</div>
+                {/* Resize handle */}
+                <div
+                  role="separator"
+                  aria-label="Resize Place column"
+                  onMouseDown={startResizePlace}
+                  className="absolute top-0 right-0 h-full w-2 cursor-col-resize hover:bg-gray-200/60"
+                />
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-white divide-y divide-gray-200">
             {sortedTickets.map((ticket) => (
               <tr
                 key={ticket._id}
-                className={`hover:bg-gray-50 transition-colors ${isRefunded(ticket) ? 'bg-red-50' : ''
-                  }`}
+        className={`${hoverRow} ${rowLeftBorder} transition-colors ${isRefunded(ticket) ? 'bg-red-50' : ''}`}
               >
                 {activeTable === 'open' && (
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -393,12 +461,6 @@ export default function TicketTable({
                 {/* Account */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   {ticket.account}
-                </td>
-                {/* Type */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
-                    {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
-                  </span>
                 </td>
                 {/* Booking Date */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -415,20 +477,37 @@ export default function TicketTable({
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                  {ticket.pnr}
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
-                  {ticket.place}
-                </td>
+                {/* Ticket Amount */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   ₹{Number(ticket.ticketAmount || 0).toLocaleString()}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                {/* Booking Amount (hidden on xs) */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                   ₹{Number(ticket.bookingAmount || 0).toLocaleString()}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                  {showProfit ? `₹${ticket.profit.toLocaleString()}` : ''}
+                {/* Profit (hidden on xs) */}
+                {showProfit && (
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600 hidden sm:table-cell">
+                    ₹{(ticket.profit - (ticket.refund || 0)).toLocaleString()}
+                  </td>
+                )}
+                {/* Type (hidden on xs) */}
+                <td className="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
+                    {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
+                  </span>
+                </td>
+                {/* PNR (hidden md-) */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono hidden md:table-cell">
+                  {ticket.pnr}
+                </td>
+                {/* Place (hidden md-) */}
+                <td
+                  className="px-4 py-4 text-sm text-gray-900 truncate hidden md:table-cell"
+                  style={{ width: placeColWidth, minWidth: placeColWidth, maxWidth: placeColWidth }}
+                  title={ticket.place}
+                >
+                  {ticket.place}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex items-center gap-2">
@@ -455,6 +534,20 @@ export default function TicketTable({
                 </td>
               </tr>
             ))}
+            {/* Totals Row */}
+            <tr className={`${totalsBg} font-semibold`}>
+              {activeTable === 'open' && <td className="px-4 py-3"></td>}
+              <td className="px-4 py-3" colSpan={2}>Totals ({totals.count} tickets)</td>
+              <td className="px-4 py-3">₹{totals.ticketAmount.toLocaleString()}</td>
+              <td className="px-4 py-3 hidden sm:table-cell">₹{totals.bookingAmount.toLocaleString()}</td>
+              {showProfit && (
+                <td className="px-4 py-3 hidden sm:table-cell">₹{totals.profit.toLocaleString()}</td>
+              )}
+              <td className="px-4 py-3 hidden sm:table-cell"></td>
+              <td className="px-4 py-3 hidden md:table-cell"></td>
+              <td className="px-4 py-3 hidden md:table-cell"></td>
+              <td className="px-4 py-3"></td>
+            </tr>
           </tbody>
         </table>
 
