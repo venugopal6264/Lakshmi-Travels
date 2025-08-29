@@ -369,7 +369,18 @@ export default function TicketTable({
                   />
                 </th>
               )}
-              {/* Account first */}
+              {/* Service (first column, hide on xs) */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                Service
+              </th>
+              {/* Type (second column, hide on xs) */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden sm:table-cell"
+                onClick={() => handleSort('type')}
+              >
+                Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              {/* Account */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('account')}
@@ -410,13 +421,7 @@ export default function TicketTable({
                   Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
               )}
-              {/* Type (hide on xs) */}
-              <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden sm:table-cell"
-                onClick={() => handleSort('type')}
-              >
-                Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
+              {/* PNR (hide on xs) */}
               {/* PNR (hide on xs) */}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                 PNR
@@ -458,6 +463,16 @@ export default function TicketTable({
                     />
                   </td>
                 )}
+                {/* Service (hidden on xs) */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                  {ticket.service || '-'}
+                </td>
+                {/* Type (hidden on xs) */}
+                <td className="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
+                    {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
+                  </span>
+                </td>
                 {/* Account */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   {ticket.account}
@@ -491,12 +506,6 @@ export default function TicketTable({
                     ₹{(ticket.profit - (ticket.refund || 0)).toLocaleString()}
                   </td>
                 )}
-                {/* Type (hidden on xs) */}
-                <td className="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
-                    {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
-                  </span>
-                </td>
                 {/* PNR (hidden md-) */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono hidden md:table-cell">
                   {ticket.pnr}
@@ -537,13 +546,16 @@ export default function TicketTable({
             {/* Totals Row */}
             <tr className={`${totalsBg} font-semibold`}>
               {activeTable === 'open' && <td className="px-4 py-3"></td>}
+              {/* Service placeholder */}
+              <td className="px-4 py-3 hidden sm:table-cell"></td>
+              {/* Type placeholder */}
+              <td className="px-4 py-3 hidden sm:table-cell"></td>
               <td className="px-4 py-3" colSpan={2}>Totals ({totals.count} tickets)</td>
               <td className="px-4 py-3">₹{totals.ticketAmount.toLocaleString()}</td>
               <td className="px-4 py-3 hidden sm:table-cell">₹{totals.bookingAmount.toLocaleString()}</td>
               {showProfit && (
                 <td className="px-4 py-3 hidden sm:table-cell">₹{totals.profit.toLocaleString()}</td>
               )}
-              <td className="px-4 py-3 hidden sm:table-cell"></td>
               <td className="px-4 py-3 hidden md:table-cell"></td>
               <td className="px-4 py-3 hidden md:table-cell"></td>
               <td className="px-4 py-3"></td>

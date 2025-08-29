@@ -101,10 +101,12 @@ export default function Dashboard({
             alert('No tickets to export');
             return;
         }
+        // Export only OPEN tickets (exclude paid)
+        const onlyOpen = openTickets;
         // Apply account filter to export if a specific account is selected
         const filteredForExport = accountFilter === 'all'
-            ? dateFilteredTickets
-            : dateFilteredTickets.filter(t => t.account === accountFilter);
+            ? onlyOpen
+            : onlyOpen.filter(t => t.account === accountFilter);
         if (filteredForExport.length === 0) {
             alert('No tickets to export for the selected account/date range');
             return;

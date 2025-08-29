@@ -1,5 +1,22 @@
 import { ApiTicket } from '../services/api';
 
+// Format a booking date string (ISO) as DD-MMM-YYYY using local date without TZ shift
+const formatExportDate = (iso?: string): string => {
+  if (!iso) return '';
+  const ymd = iso.split('T')[0] || '';
+  const parts = ymd.split('-').map(Number);
+  if (parts.length < 3) return '';
+  const [y, m, d] = parts as [number, number, number];
+  if (!y || !m || !d) return '';
+  const dt = new Date(y, m - 1, d);
+  const day = String(d).padStart(2, '0');
+  const mon = dt.toLocaleString('en-US', { month: 'short' }); // e.g., Aug
+  return `${day}-${mon}-${y}`;
+};
+
+// Helper to get sortable YYYY-MM-DD key without TZ shifts
+const ymdKey = (iso?: string): string => (iso ? (iso.split('T')[0] || '') : '');
+
 export const generateCSVReport = (tickets: ApiTicket[]) => {
   const headers = [
     'Account',
@@ -13,9 +30,12 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     'Remarks'
   ];
 
-  const rows = tickets.map(ticket => [
+  // Sort by booking date ascending for CSV as well
+  const csvSorted = [...tickets].sort((a, b) => ymdKey(a.bookingDate).localeCompare(ymdKey(b.bookingDate)));
+
+  const rows = csvSorted.map(ticket => [
     ticket.account,
-    ticket.bookingDate?.split('T')[0],
+    formatExportDate(ticket.bookingDate),
     ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1),
     ticket.passengerName,
     ticket.pnr,
@@ -117,20 +137,23 @@ export const downloadPDFReport = async (
     'Refund',
   ];
 
-  const rows = tickets.map(t => [
-    t.bookingDate?.split('T')[0],
+  // Sort tickets by booking date ascending for export
+  const sorted = [...tickets].sort((a, b) => ymdKey(a.bookingDate).localeCompare(ymdKey(b.bookingDate)));
+
+  const rows = sorted.map(t => [
+    formatExportDate(t.bookingDate),
     t.type.charAt(0).toUpperCase() + t.type.slice(1),
     t.passengerName,
     t.pnr,
     t.place,
-  (Number(t.ticketAmount) || 0).toFixed(2),
+    (Number(t.ticketAmount) || 0).toFixed(2),
     (Number(t.refund) || 0).toFixed(2),
   ]);
 
-  const totalTicketAmount = tickets.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
-  const totalRefund = tickets.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
+  const totalTicketAmount = sorted.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
+  const totalRefund = sorted.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
   const totalDue = totalTicketAmount - totalRefund;
-  const hasRefundFlags = tickets.map(t => (Number(t.refund) || 0) > 0);
+  const hasRefundFlags = sorted.map(t => (Number(t.refund) || 0) > 0);
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
