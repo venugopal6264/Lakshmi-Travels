@@ -47,8 +47,18 @@ export default function Dashboard({
         const dd = String(d.getDate()).padStart(2, '0');
         return `${yyyy}-${mm}-${dd}`;
     };
-    // Get paid ticket IDs from payments
-    const paidTicketIds = payments.flatMap(payment => payment.tickets);
+        // Get paid ticket IDs from payments
+        const paidTicketIds = payments.flatMap(payment => payment.tickets);
+        // Map ticketId -> latest paid date
+        const paidDates: Record<string, string> = {};
+        payments.forEach(p => {
+            const d = p.date;
+            (p.tickets || []).forEach(id => {
+                if (!paidDates[id] || (new Date(d) > new Date(paidDates[id]))) {
+                    paidDates[id] = d;
+                }
+            });
+        });
 
     // Filter tickets by date range for account breakdown
     const dateFilteredTickets = tickets.filter(ticket => {
@@ -262,6 +272,7 @@ export default function Dashboard({
             <TicketTable
                 tickets={tickets}
                 paidTickets={paidTicketIds}
+                paidDates={paidDates}
                 onDeleteTicket={onDeleteTicket}
                 onUpdateTicket={onUpdateTicket}
                 onProcessRefund={onProcessRefund}
@@ -319,18 +330,20 @@ export default function Dashboard({
         </div>
         {/* Create Ticket Modal */}
         {showCreateModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                <div className="bg-white w-full max-w-5xl rounded-lg shadow-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
+            <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto">
+                <div className="bg-white w-full max-w-5xl rounded-lg shadow-lg p-0 sm:p-0 m-4 my-8 max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
                         <h3 className="text-lg font-medium">Create New Ticket</h3>
                         <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
                     </div>
-                    <TicketForm
-                        onAddTicket={handleAddTicketFromModal}
-                        loading={loading}
-                        existingAccounts={existingAccounts}
-                        existingServices={existingServices}
-                    />
+                    <div className="px-4 sm:px-6 py-4">
+                      <TicketForm
+                          onAddTicket={handleAddTicketFromModal}
+                          loading={loading}
+                          existingAccounts={existingAccounts}
+                          existingServices={existingServices}
+                      />
+                    </div>
                 </div>
             </div>
         )}

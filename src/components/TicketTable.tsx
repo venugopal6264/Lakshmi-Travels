@@ -6,6 +6,7 @@ import EditTicketModal from './EditTicketModal';
 interface TicketTableProps {
   tickets: ApiTicket[];
   paidTickets: string[];
+  paidDates?: Record<string, string>;
   onDeleteTicket: (id: string) => Promise<void>;
   onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
   onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
@@ -21,6 +22,7 @@ interface TicketTableProps {
 export default function TicketTable({
   tickets,
   paidTickets,
+  paidDates,
   onDeleteTicket,
   onUpdateTicket,
   onProcessRefund,
@@ -51,6 +53,7 @@ export default function TicketTable({
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [showProfit, setShowProfit] = useState<boolean>(false);
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
+  const [showConfirmBulk, setShowConfirmBulk] = useState<boolean>(false);
   // Resizable "Place" column width (md+ only)
   const [placeColWidth, setPlaceColWidth] = useState<number>(240);
   const isResizingRef = useRef(false);
@@ -237,9 +240,9 @@ export default function TicketTable({
           {activeTable === 'open' ? 'Open Tickets' : 'Paid Tickets'}
         </h2>
   <div className="flex items-center gap-2 sm:gap-4">
-          {activeTable === 'open' && selectedTickets.length > 0 && (
+      {activeTable === 'open' && selectedTickets.length > 0 && (
             <button
-              onClick={handleBulkMarkAsPaid}
+        onClick={() => setShowConfirmBulk(true)}
               disabled={bulkLoading}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -370,12 +373,12 @@ export default function TicketTable({
                 </th>
               )}
               {/* Service (first column, hide on xs) */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Service
               </th>
               {/* Type (second column, hide on xs) */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden sm:table-cell"
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('type')}
               >
                 Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -401,6 +404,12 @@ export default function TicketTable({
               >
                 Passenger Name {sortField === 'passengerName' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
+              {/* Paid Date (only on Paid view) */}
+              {activeTable === 'paid' && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Paid Date
+                </th>
+              )}
               {/* Ticket Amount prominent */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -409,26 +418,25 @@ export default function TicketTable({
                 Ticket Amount {sortField === 'ticketAmount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Booking Amount (hide on xs) */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Booking Amount
               </th>
               {/* Profit (hide on xs) */}
               {showProfit && (
                 <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden sm:table-cell"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('profit')}
                 >
                   Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
               )}
-              {/* PNR (hide on xs) */}
-              {/* PNR (hide on xs) */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+              {/* PNR */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 PNR
               </th>
               {/* Place (resizable on md+) */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell relative select-none"
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative select-none"
                 style={{ width: placeColWidth, minWidth: placeColWidth }}
               >
                 <div className="pr-3">Place</div>
@@ -463,12 +471,12 @@ export default function TicketTable({
                     />
                   </td>
                 )}
-                {/* Service (hidden on xs) */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                {/* Service */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   {ticket.service || '-'}
                 </td>
-                {/* Type (hidden on xs) */}
-                <td className="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
+                {/* Type */}
+                <td className="px-4 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
                     {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
                   </span>
@@ -492,27 +500,35 @@ export default function TicketTable({
                     )}
                   </div>
                 </td>
+                {/* Paid Date (only on Paid view) */}
+                {activeTable === 'paid' && (
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {ticket._id && paidDates?.[ticket._id]
+                      ? new Date(paidDates[ticket._id]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                      : '-'}
+                  </td>
+                )}
                 {/* Ticket Amount */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   ₹{Number(ticket.ticketAmount || 0).toLocaleString()}
                 </td>
-                {/* Booking Amount (hidden on xs) */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                {/* Booking Amount */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   ₹{Number(ticket.bookingAmount || 0).toLocaleString()}
                 </td>
-                {/* Profit (hidden on xs) */}
+                {/* Profit */}
                 {showProfit && (
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600 hidden sm:table-cell">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                     ₹{(ticket.profit - (ticket.refund || 0)).toLocaleString()}
                   </td>
                 )}
-                {/* PNR (hidden md-) */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono hidden md:table-cell">
+                {/* PNR */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                   {ticket.pnr}
                 </td>
-                {/* Place (hidden md-) */}
+                {/* Place */}
                 <td
-                  className="px-4 py-4 text-sm text-gray-900 truncate hidden md:table-cell"
+                  className="px-4 py-4 text-sm text-gray-900 truncate"
                   style={{ width: placeColWidth, minWidth: placeColWidth, maxWidth: placeColWidth }}
                   title={ticket.place}
                 >
@@ -547,17 +563,21 @@ export default function TicketTable({
             <tr className={`${totalsBg} font-semibold`}>
               {activeTable === 'open' && <td className="px-4 py-3"></td>}
               {/* Service placeholder */}
-              <td className="px-4 py-3 hidden sm:table-cell"></td>
+              <td className="px-4 py-3"></td>
               {/* Type placeholder */}
-              <td className="px-4 py-3 hidden sm:table-cell"></td>
+              <td className="px-4 py-3"></td>
               <td className="px-4 py-3" colSpan={2}>Totals ({totals.count} tickets)</td>
+              {/* Passenger Name placeholder */}
+              <td className="px-4 py-3"></td>
+              {/* Paid Date placeholder for Paid view */}
+              {activeTable === 'paid' && <td className="px-4 py-3"></td>}
               <td className="px-4 py-3">₹{totals.ticketAmount.toLocaleString()}</td>
-              <td className="px-4 py-3 hidden sm:table-cell">₹{totals.bookingAmount.toLocaleString()}</td>
+              <td className="px-4 py-3">₹{totals.bookingAmount.toLocaleString()}</td>
               {showProfit && (
-                <td className="px-4 py-3 hidden sm:table-cell">₹{totals.profit.toLocaleString()}</td>
+                <td className="px-4 py-3">₹{totals.profit.toLocaleString()}</td>
               )}
-              <td className="px-4 py-3 hidden md:table-cell"></td>
-              <td className="px-4 py-3 hidden md:table-cell"></td>
+              <td className="px-4 py-3"></td>
+              <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
             </tr>
           </tbody>
@@ -614,6 +634,85 @@ Amount: \u20B9${Number(confirmDeleteTicket.ticketAmount || 0).toLocaleString()} 
                 disabled={deletingId === confirmDeleteTicket._id}
               >
                 {deletingId === confirmDeleteTicket._id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk confirm modal */}
+      {showConfirmBulk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Confirm Mark as Paid</h3>
+            <p className="text-sm text-gray-700 mb-4">The following accounts will be marked as paid based on your selection.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">Account</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">Total Tickets</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">Total Ticket Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const byId: Record<string, ApiTicket> = Object.fromEntries(tickets.map(t => [t._id!, t]));
+                    const selected = selectedTickets.map(id => byId[id]).filter(Boolean);
+                    const grouped: Record<string, { count: number; amount: number }> = {};
+                    for (const t of selected) {
+                      const acc = t.account || 'Unknown';
+                      if (!grouped[acc]) grouped[acc] = { count: 0, amount: 0 };
+                      grouped[acc].count += 1;
+                      grouped[acc].amount += Number(t.ticketAmount || 0);
+                    }
+                    const rows = Object.entries(grouped);
+                    if (rows.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-3 text-center text-gray-500">No tickets selected.</td>
+                        </tr>
+                      );
+                    }
+                    return (
+                      <>
+                        {rows.map(([acc, v]) => (
+                          <tr key={acc} className="border-t">
+                            <td className="px-3 py-2">{acc}</td>
+                            <td className="px-3 py-2">{v.count}</td>
+                            <td className="px-3 py-2">₹{v.amount.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                        <tr className="border-t bg-gray-50 font-medium">
+                          <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
+                          <td className="px-3 py-2">₹{rows.reduce((s, [, v]) => s + v.amount, 0).toLocaleString()}</td>
+                        </tr>
+                      </>
+                    );
+                  })()}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                onClick={() => setShowConfirmBulk(false)}
+                disabled={bulkLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition disabled:opacity-50"
+                onClick={async () => {
+                  setShowConfirmBulk(false);
+                  await handleBulkMarkAsPaid();
+                }}
+                disabled={bulkLoading}
+              >
+                {bulkLoading ? 'Processing…' : 'Mark as Paid'}
               </button>
             </div>
           </div>

@@ -203,7 +203,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+  <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
         {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         {heading || (mode === 'edit' ? 'Edit Ticket' : 'Add New Ticket')}
@@ -420,7 +420,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4">
+  <div className="flex items-center justify-between pt-4 sticky bottom-0 bg-white border-t mt-6 py-4 z-10">
           <div className="flex items-center gap-2">
             <button
               type="button"

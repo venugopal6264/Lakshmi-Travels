@@ -128,22 +128,34 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     const today = new Date().toISOString().split('T')[0];
     await addPayment({
       date: today,
-      amount: ticket.profit,
+      amount: Number(ticket.ticketAmount || 0),
       period: `Payment for ticket ${ticket.pnr}`,
+      account: ticket.account,
       tickets: [ticketId]
     });
   };
 
   const handleBulkMarkAsPaid = async (ticketIds: string[]) => {
     const selectedTickets = tickets.filter(t => ticketIds.includes(t._id!));
-    const totalAmount = selectedTickets.reduce((sum, ticket) => sum + ticket.profit, 0);
     const today = new Date().toISOString().split('T')[0];
-    await addPayment({
-      date: today,
-      amount: totalAmount,
-      period: `Bulk payment for ${ticketIds.length} tickets`,
-      tickets: ticketIds
-    });
+    // Group by account and create one payment per account using ticketAmount sum
+    const byAccount = selectedTickets.reduce((acc, t) => {
+      const key = t.account || 'Unknown';
+      if (!acc[key]) acc[key] = { amount: 0, ids: [] as string[] };
+      acc[key].amount += Number(t.ticketAmount || 0);
+      acc[key].ids.push(t._id!);
+      return acc;
+    }, {} as Record<string, { amount: number; ids: string[] }>);
+
+    for (const [account, info] of Object.entries(byAccount)) {
+      await addPayment({
+        date: today,
+        amount: info.amount,
+        period: `Bulk payment for ${info.ids.length} tickets`,
+        account,
+        tickets: info.ids
+      });
+    }
   };
 
   const render = () => {

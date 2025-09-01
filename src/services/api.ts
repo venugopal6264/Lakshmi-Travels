@@ -3,7 +3,6 @@
 // Resolve API base URL from Vite env. Must be prefixed with VITE_ to be exposed to the client.
 // Fallback to local server when not provided.
 const API_URL: string = import.meta.env?.VITE_API_URL || "http://localhost:5050/api";
-console.log('API_URL:', API_URL);
 export interface ApiTicket {
   _id?: string;
   ticketAmount: number;

@@ -215,6 +215,24 @@ export default function PaymentTracker({
     return { rows, totals };
   }, [dateFilteredTickets]);
 
+  // Map ticket id -> ticket for deriving account when missing on old payments
+  const ticketById = React.useMemo(() => {
+    const m: Record<string, ApiTicket> = {};
+    for (const t of tickets) {
+      if (t._id) m[t._id] = t;
+    }
+    return m;
+  }, [tickets]);
+
+  // Sort payment history by date descending (most recent first)
+  const sortedPayments = React.useMemo(() => {
+    return [...dateFilteredPayments].sort((a, b) => {
+      const ad = new Date(a.date).getTime();
+      const bd = new Date(b.date).getTime();
+      return bd - ad;
+    });
+  }, [dateFilteredPayments]);
+
 
   const exportPaymentReport = () => {
     const csvContent = [
@@ -518,24 +536,52 @@ export default function PaymentTracker({
             <p className="mt-2 text-gray-600">Loading payments...</p>
           </div>
         )}
-        {dateFilteredPayments.length === 0 ? (
+        {sortedPayments.length === 0 ? (
           <p className="text-gray-500 text-center py-4">No payments recorded yet.</p>
         ) : (
-          <div className="space-y-2">
-            {dateFilteredPayments.map((payment, i) => (
-              <div key={payment._id} className={`flex justify-between items-center p-3 rounded-md border ${i % 2 === 0 ? 'bg-gradient-to-r from-blue-50 to-sky-50 border-blue-100' : 'bg-gradient-to-r from-emerald-50 to-green-50 border-green-100'}`}>
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <p className="font-medium">{new Date(payment.date).toLocaleDateString()}</p>
-                    <p className="text-sm text-gray-600">{payment.period}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-700">₹{payment.amount.toLocaleString()}</p>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto max-h-[50vh] relative rounded-md">
+            <table className="w-full table-auto text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received Date</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">No. of Tickets</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Tickets Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white">
+                {sortedPayments.map((p, idx) => {
+                  // Derive account if missing
+                  let accLabel: string = p.account || '';
+                  if (!accLabel) {
+                    const accs = new Set<string>();
+                    for (const id of p.tickets || []) {
+                      const t = ticketById[id];
+                      if (t?.account) accs.add(t.account);
+                    }
+                    if (accs.size === 1) accLabel = Array.from(accs)[0];
+                    else if (accs.size > 1) accLabel = 'Multiple';
+                    else accLabel = '—';
+                  }
+                  const rowBg = idx % 2 === 0 ? 'bg-green-50' : 'bg-emerald-50';
+                  return (
+                    <tr key={p._id || idx} className={`${rowBg} hover:brightness-95`}>
+                      <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
+                      <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{(p.tickets || []).length}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Number(p.amount || 0).toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+                {/* Totals row */}
+                <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold">
+                  <td className="px-3 py-2">Totals</td>
+                  <td className="px-3 py-2"></td>
+                  <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + (p.tickets?.length || 0), 0)}</td>
+                  <td className="px-3 py-2 text-green-700">₹{sortedPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         )}
       </div>
