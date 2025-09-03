@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, Fuel, Plus } from 'lucide-react';
+import { Calendar, Fuel, Plus, Wrench, CreditCard, Gauge } from 'lucide-react';
 import { ApiFuel, FuelSummaryBucket, FuelSummaryResponse, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
 
@@ -102,6 +102,14 @@ export default function FuelTracker() {
     ? 'bg-blue-600 hover:bg-blue-700'
     : 'bg-green-600 hover:bg-green-700';
 
+  // NEW: Vehicle tab state
+  const [activeVehicle, setActiveVehicle] = useState<VehicleType>('car');
+
+  // Keep vehicle tabs in sync with form selection
+  React.useEffect(() => {
+    if (form.vehicle !== activeVehicle) setActiveVehicle(form.vehicle);
+  }, [form.vehicle, activeVehicle]);
+
   return (
     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
       {/* Colorful header */}
@@ -109,221 +117,431 @@ export default function FuelTracker() {
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <Fuel className="w-5 h-5" />
           Fuel Tracker
-          <span className={`ml-2 inline-flex items-center rounded-full text-xs px-2 py-0.5 bg-white/20 text-white capitalize`}>{form.vehicle}</span>
+          <span className="ml-2 inline-flex items-center rounded-full text-xs px-2 py-0.5 bg-white/20 text-white capitalize">
+            {form.vehicle}
+          </span>
         </h2>
       </div>
       <div className="p-6">
+        {/* Entry form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Date *
+              </label>
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.date ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
+            </div>
 
-  <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Calendar className="w-4 h-4 inline mr-1" />
-              Date *
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.date ? 'border-red-500' : 'border-gray-300'}`}
-            />
-            {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle *</label>
+              <select
+                name="vehicle"
+                value={form.vehicle}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.vehicle ? 'border-red-500' : 'border-gray-300'}`}
+              >
+                <option value="car">Car</option>
+                <option value="bike">Bike</option>
+              </select>
+              {errors.vehicle && <p className="text-red-500 text-xs mt-1">{errors.vehicle}</p>}
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle *</label>
-            <select
-              name="vehicle"
-              value={form.vehicle}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.vehicle ? 'border-red-500' : 'border-gray-300'}`}
-            >
-              <option value="car">Car</option>
-              <option value="bike">Bike</option>
-            </select>
-            {errors.vehicle && <p className="text-red-500 text-xs mt-1">{errors.vehicle}</p>}
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+              <select
+                name="entryType"
+                value={form.entryType}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
+              >
+                <option value="refueling">Refueling</option>
+                <option value="service">Service</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-            <select
-              name="entryType"
-              value={form.entryType}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
-            >
-              <option value="refueling">Refueling</option>
-              <option value="service">Service</option>
-            </select>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Odometer (km)</label>
+              <input
+                type="number"
+                name="odometer"
+                value={form.odometer}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
+                placeholder="e.g., 45210"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Odometer (km)</label>
-            <input
-              type="number"
-              name="odometer"
-              value={form.odometer}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
-              placeholder="e.g., 45210"
-            />
-          </div>
+            {form.entryType === 'refueling' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Liters *</label>
+                <input
+                  type="number"
+                  name="liters"
+                  value={form.liters}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.liters ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="e.g., 7.5"
+                  step="0.01"
+                  min="0"
+                />
+                {errors.liters && <p className="text-red-500 text-xs mt-1">{errors.liters}</p>}
+              </div>
+            )}
 
-          {form.entryType === 'refueling' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Liters *</label>
-            <input
-              type="number"
-              name="liters"
-              value={form.liters}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.liters ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="e.g., 7.5"
-              step="0.01"
-              min="0"
-            />
-            {errors.liters && <p className="text-red-500 text-xs mt-1">{errors.liters}</p>}
-          </div>
-          )}
+            {form.entryType === 'refueling' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price / Liter (₹) *</label>
+                <input
+                  type="number"
+                  name="pricePerLiter"
+                  value={form.pricePerLiter}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="e.g., 106.8"
+                  step="0.01"
+                  min="0"
+                />
+                {errors.pricePerLiter && <p className="text-red-500 text-xs mt-1">{errors.pricePerLiter}</p>}
+              </div>
+            )}
 
-          {form.entryType === 'refueling' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Price / Liter (₹) *</label>
-            <input
-              type="number"
-              name="pricePerLiter"
-              value={form.pricePerLiter}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="e.g., 106.8"
-              step="0.01"
-              min="0"
-            />
-            {errors.pricePerLiter && <p className="text-red-500 text-xs mt-1">{errors.pricePerLiter}</p>}
-          </div>
-          )}
+            {form.entryType === 'refueling' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total (₹)</label>
+                <input
+                  type="number"
+                  name="total"
+                  value={computedTotal || form.total}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
+                  placeholder="Auto-calculated"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            )}
 
-          {form.entryType === 'refueling' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Total (₹)</label>
-            <input
-              type="number"
-              name="total"
-              value={computedTotal || form.total}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
-              placeholder="Auto-calculated"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          )}
+            {form.entryType === 'service' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Service Amount (₹) *</label>
+                <input
+                  type="number"
+                  name="total"
+                  value={form.total}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="e.g., 1500"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            )}
 
-          {form.entryType === 'service' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Service Amount (₹) *</label>
-            <input
-              type="number"
-              name="total"
-              value={form.total}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${ringClass} ${errors.pricePerLiter ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="e.g., 1500"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          )}
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              name="notes"
-              value={form.notes}
-              onChange={handleChange}
-              rows={1}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
-              placeholder="Refueling place, work done, etc."
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-4">
-          <button
-            type="button"
-            onClick={resetForm}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition duration-200"
-          >
-            Reset
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className={`${primaryBtn} text-white px-6 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <Plus className="w-4 h-4" />
-            {submitting ? 'Saving...' : 'Save Entry'}
-          </button>
-        </div>
-      </form>
-
-  {fuel.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Recent Entries</h3>
-
-      {/* Car table */}
-          <div className="mb-8">
-            <h4 className="font-medium text-blue-700 mb-2">Car</h4>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-blue-200">
-                <thead className="bg-blue-600">
-                  <tr>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📅 Date</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🏷️ Type</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📏 Odometer</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">⛽ Liters</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">💲 Price/L</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🧾 Total</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🛣️ Mileage (km/L)</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📝 Notes</th>
-                  </tr>
-                </thead>
-        <FuelTableBody items={fuel} vehicle="car" />
-        <FuelTableFooter items={fuel} vehicle="car" />
-              </table>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                rows={1}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${ringClass}`}
+                placeholder="Refueling place, work done, etc."
+              />
             </div>
           </div>
 
-      {/* Bike table */}
+          <div className="flex items-center justify-between pt-4">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition duration-200"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className={`${primaryBtn} text-white px-6 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <Plus className="w-4 h-4" />
+              {submitting ? 'Saving...' : 'Save Entry'}
+            </button>
+          </div>
+        </form>
+
+        {/* VEHICLE TABS (Car | Bike) */}
+        {fuel.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 border-b">
+              {(['car', 'bike'] as const).map(v => {
+                const active = activeVehicle === v;
+                const color = v === 'car' ? 'text-blue-600' : 'text-green-600';
+                const underline = v === 'car' ? 'bg-blue-600' : 'bg-green-600';
+                return (
+                  <button
+                    key={v}
+                    onClick={() => setActiveVehicle(v)}
+                    className={`relative px-4 py-2 text-sm font-medium capitalize ${active ? color : 'text-gray-500'} hover:text-gray-800`}
+                  >
+                    {v}
+                    {active && <span className={`absolute left-0 -bottom-px h-0.5 w-full ${underline}`} />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Per-vehicle dashboard with inner tabs */}
+            <VehicleDash vehicle={activeVehicle} items={fuel} />
+          </div>
+        )}
+
+        <FuelSummarySection />
+      </div>
+    </div>
+  );
+}
+
+/** Per-vehicle dashboard: tabs General | Refueling | Service */
+function VehicleDash({ vehicle, items }: { vehicle: VehicleType; items: ApiFuel[] }) {
+  const [tab, setTab] = useState<'general' | 'refueling' | 'service'>('general');
+
+  const list = useMemo(() => items.filter(i => i.vehicle === vehicle), [items, vehicle]);
+  const sorted = useMemo(
+    () => [...list].sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()),
+    [list]
+  );
+
+  // Totals and metrics
+  const totals = useMemo(() => {
+    let total = 0, refuel = 0, service = 0;
+    let distance = 0;
+    let prevOdo: number | null = null;
+
+    for (const e of sorted) {
+      const amt = typeof e.total === 'number' ? e.total : 0;
+      total += amt;
+      if (e.entryType === 'refueling') refuel += amt;
+      if (e.entryType === 'service') service += amt;
+
+      if (typeof e.odometer === 'number') {
+        if (prevOdo != null && e.odometer > prevOdo) distance += e.odometer - prevOdo;
+        prevOdo = e.odometer;
+      }
+    }
+    const income = 0;
+    const balance = total - income;
+    const firstDate = sorted[0]?.date ? new Date(sorted[0].date!) : null;
+    const lastDate = sorted[sorted.length - 1]?.date ? new Date(sorted[sorted.length - 1].date!) : null;
+    const rangeDays =
+      firstDate && lastDate ? Math.max(1, Math.ceil((+lastDate - +firstDate) / (1000 * 60 * 60 * 24)) + 1) : 0;
+    const byDay = rangeDays ? total / rangeDays : 0;
+    const byKm = distance ? total / distance : 0;
+    const pct = (p: number, t: number) => (t ? (p / t) * 100 : 0);
+
+    return {
+      total, refuel, service, income, balance, distance, byDay, byKm,
+      entriesCount: sorted.length,
+      firstDate, lastDate, rangeDays,
+      refuelPct: pct(refuel, total),
+      servicePct: pct(service, total),
+      expense: 0,
+      expensePct: 0
+    };
+  }, [sorted]);
+
+  const inr3 = (n = 0) =>
+    `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+
+  const colorBar = vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600';
+  const splitIconRefuel = 'text-amber-500';
+  const splitIconService = 'text-stone-500';
+  const splitIconExpense = 'text-rose-500';
+  const distanceColor = 'text-sky-700';
+
+  return (
+    <section className="mt-4">
+      {/* Inner tabs */}
+      <div className="flex items-center gap-2 border-b mb-6">
+        {(['general', 'refueling', 'service'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`relative px-3 py-2 text-sm font-medium ${tab === t ? 'text-gray-800' : 'text-gray-500'}`}
+          >
+            {t === 'general' ? 'General' : t === 'refueling' ? 'Refueling' : 'Service'}
+            {tab === t && <span className={`absolute left-0 -bottom-px h-0.5 w-full ${colorBar}`} />}
+          </button>
+        ))}
+      </div>
+
+      {/* Header line: N entries (from - to) - Last X days */}
+      <div className="text-center text-sm text-gray-600 mb-6">
+        {totals.entriesCount} entries{' '}
+        {totals.firstDate && totals.lastDate
+          ? `(${fmtDate(totals.firstDate)} - ${fmtDate(totals.lastDate)}) - Last ${totals.rangeDays} days`
+          : ''}
+      </div>
+
+      {tab === 'general' && (
+        <div className="space-y-8">
+          {/* Balance / Cost / Income */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <MetricCard
+              title="Balance"
+              valueClass="text-red-600"
+              value={inr3(totals.balance)}
+              byDay={inr3(totals.byDay)}
+              byKm={inr3(totals.byKm)}
+            />
+            <MetricCard
+              title="Cost"
+              valueClass="text-red-600"
+              value={inr3(totals.total)}
+              byDay={inr3(totals.byDay)}
+              byKm={inr3(totals.byKm)}
+            />
+            <MetricCard
+              title="Income"
+              valueClass="text-green-600"
+              value={inr3(totals.income)}
+              byDay={inr3(0)}
+              byKm={inr3(0)}
+            />
+          </div>
+
+          {/* Cost split */}
           <div>
-      <h4 className="font-medium text-green-700 mb-2">Bike</h4>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-green-200">
-                <thead className="bg-green-600">
-                  <tr>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📅 Date</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🏷️ Type</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📏 Odometer</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">⛽ Liters</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">💲 Price/L</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🧾 Total</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🛣️ Mileage (km/L)</th>
-          <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📝 Notes</th>
-                  </tr>
-                </thead>
-        <FuelTableBody items={fuel} vehicle="bike" />
-        <FuelTableFooter items={fuel} vehicle="bike" />
-              </table>
+            <h4 className="text-gray-800 font-semibold mb-4">Cost split</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <SplitItem
+                icon={<Fuel className={`h-6 w-6 ${splitIconRefuel}`} />}
+                label="Refueling"
+                amount={inr3(totals.refuel)}
+                percent={`${totals.refuelPct.toFixed(2)}%`}
+              />
+              <SplitItem
+                icon={<Wrench className={`h-6 w-6 ${splitIconService}`} />}
+                label="Services"
+                amount={inr3(totals.service)}
+                percent={`${totals.servicePct.toFixed(2)}%`}
+              />
+              <SplitItem
+                icon={<CreditCard className={`h-6 w-6 ${splitIconExpense}`} />}
+                label="Expenses"
+                amount={inr3(totals.expense)}
+                percent={`${totals.expensePct.toFixed(2)}%`}
+              />
+            </div>
+          </div>
+
+          {/* Distance */}
+          <div>
+            <h4 className="text-gray-800 font-semibold mb-3">Distance</h4>
+            <div className="rounded-lg border p-4 bg-white">
+              <div className="text-sm text-gray-600">Total</div>
+              <div className={`text-3xl font-semibold ${distanceColor} flex items-center gap-2`}>
+                <Gauge className="h-5 w-5 text-sky-500" />
+                {totals.distance.toLocaleString()} km
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {Math.round((totals.distance / Math.max(1, totals.rangeDays)) * 100) / 100} km by day
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <FuelSummarySection />
-    </div>
+      {tab === 'refueling' && (
+        <div className="overflow-x-auto">
+          <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-blue-200' : 'divide-green-200'}`}>
+            <thead className={vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600'}>
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📅 Date</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🏷️ Type</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📏 Odometer</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">⛽ Liters</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">💲 Price/L</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🧾 Total</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🛣️ Mileage (km/L)</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📝 Notes</th>
+              </tr>
+            </thead>
+            <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" />
+            <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" />
+          </table>
+        </div>
+      )}
+
+      {tab === 'service' && (
+        <div className="overflow-x-auto">
+          <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-blue-200' : 'divide-green-200'}`}>
+            <thead className={vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600'}>
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📅 Date</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🏷️ Type</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📏 Odometer</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">⛽ Liters</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">💲 Price/L</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🧾 Total</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">🛣️ Mileage (km/L)</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">📝 Notes</th>
+              </tr>
+            </thead>
+            <FuelTableBody items={items} vehicle={vehicle} onlyType="service" />
+            <FuelTableFooter items={items} vehicle={vehicle} onlyType="service" />
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  valueClass,
+  byDay,
+  byKm
+}: { title: string; value: string; valueClass?: string; byDay: string; byKm: string }) {
+  return (
+    <div className="rounded-lg border p-4 bg-white">
+      <div className="text-sm text-gray-600">{title}</div>
+      <div className={`text-3xl font-semibold ${valueClass ?? 'text-gray-900'}`}>{value}</div>
+      <div className="text-xs text-gray-500 mt-1">{byDay} By day</div>
+      <div className="text-xs text-gray-500">{byKm} By km</div>
     </div>
   );
+}
+
+function SplitItem({ icon, label, amount, percent }: { icon: React.ReactNode; label: string; amount: string; percent: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center ring-1 ring-gray-200">
+        {icon}
+      </div>
+      <div>
+        <div className="text-sm text-gray-600">{label}</div>
+        <div className="text-lg font-semibold text-gray-900">{amount}</div>
+        <div className="text-xs text-amber-600">{percent}</div>
+      </div>
+    </div>
+  );
+}
+
+function fmtDate(d: Date) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function FuelSummarySection() {
@@ -394,8 +612,8 @@ function FuelSummarySection() {
     return (
       <div className="bg-white border rounded-md p-4 shadow-sm">
         <h4 className="font-semibold text-gray-800 mb-3">{title}</h4>
-  {bar(carVal, 'Car', '#3b82f6')}
-  {bar(bikeVal, 'Bike', '#10b981')}
+        {bar(carVal, 'Car', '#3b82f6')}
+        {bar(bikeVal, 'Bike', '#10b981')}
       </div>
     );
   };
@@ -431,9 +649,17 @@ function FuelSummarySection() {
   );
 }
 
-function FuelTableBody({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' | 'bike' }) {
+/** UPDATED: Body now supports optional onlyType filter (refueling | service) */
+function FuelTableBody({
+  items,
+  vehicle,
+  onlyType
+}: { items: ApiFuel[]; vehicle: 'car' | 'bike'; onlyType?: ApiFuel['entryType'] }) {
   // Filter once and compute mileage in O(n)
-  const list = React.useMemo(() => items.filter(i => i.vehicle === vehicle), [items, vehicle]);
+  const list = React.useMemo(
+    () => items.filter(i => i.vehicle === vehicle && (!onlyType || i.entryType === onlyType)),
+    [items, vehicle, onlyType]
+  );
   const mileageArr = React.useMemo(() => {
     const n = list.length;
     const olderOdo: Array<number | null> = new Array(n).fill(null);
@@ -482,8 +708,13 @@ function FuelTableBody({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' | 
   );
 }
 
-function FuelTableFooter({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' | 'bike' }) {
-  const { fuelTotal, serviceTotal } = React.useMemo(() => {
+/** UPDATED: Footer respects onlyType to show matching totals */
+function FuelTableFooter({
+  items,
+  vehicle,
+  onlyType
+}: { items: ApiFuel[]; vehicle: 'car' | 'bike'; onlyType?: ApiFuel['entryType'] }) {
+  const totals = React.useMemo(() => {
     let fuelTotal = 0;
     let serviceTotal = 0;
     for (const e of items) {
@@ -500,7 +731,6 @@ function FuelTableFooter({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' 
   const tClass = vehicle === 'car' ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900';
   const badge = vehicle === 'car' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 
-  // 8 columns total; place summary in the Total column, span across remaining
   return (
     <tfoot>
       <tr className={tClass}>
@@ -509,8 +739,14 @@ function FuelTableFooter({ items, vehicle }: { items: ApiFuel[]; vehicle: 'car' 
         </td>
         <td className="px-4 py-2 whitespace-nowrap align-top">
           <div className="text-xs space-y-1">
-            <div>Fuel: ₹{fmt(fuelTotal)}</div>
-            <div>Service: ₹{fmt(serviceTotal)}</div>
+            {!onlyType && (
+              <>
+                <div>Fuel: ₹{fmt(totals.fuelTotal)}</div>
+                <div>Service: ₹{fmt(totals.serviceTotal)}</div>
+              </>
+            )}
+            {onlyType === 'refueling' && <div>Fuel: ₹{fmt(totals.fuelTotal)}</div>}
+            {onlyType === 'service' && <div>Service: ₹{fmt(totals.serviceTotal)}</div>}
           </div>
         </td>
         <td className="px-4 py-2" colSpan={2}></td>
