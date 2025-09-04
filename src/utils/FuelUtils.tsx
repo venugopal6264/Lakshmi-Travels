@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ApiFuel, apiService, FuelSummaryResponse } from "../services/api";
-import { Fuel, Gauge, Wrench } from "lucide-react";
+import { Fuel, Gauge, Wrench, Pencil, Trash2 } from "lucide-react";
 
 export type VehicleType = 'car' | 'bike';
 
@@ -55,9 +56,11 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
 
   const maxTotal = useMemo(() => Math.max(1, ...data.map(d => d.total)), [data]);
 
-  const fuelColor = '#f59e0b';
-  // UPDATED: service color as requested
-  const serviceColor = 'rgb(121, 85, 72)';
+  // Playful, punchy: Fuchsia (Fuel) + Emerald (Service)
+  const fuelColor = '#d946ef';      // fuchsia-500
+  const fuelStroke = '#a21caf';     // fuchsia-700
+  const serviceColor = '#10b981';   // emerald-500
+  const serviceStroke = '#047857';  // emerald-700
 
   const barW = 28;
   const gap = 16;
@@ -98,6 +101,17 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
 
   return (
     <div ref={wrapperRef} className="relative">
+      {/* Legend */}
+      <div className="mb-2 flex items-center gap-4 text-xs text-gray-600">
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: fuelColor, border: `1px solid ${fuelStroke}` }} />
+          Fuel
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: serviceColor, border: `1px solid ${serviceStroke}` }} />
+          Service
+        </span>
+      </div>
       <div className="overflow-x-auto">
         <svg width={svgW} height={svgH}>
           <g transform={`translate(${padX}, ${padY})`}>
@@ -120,6 +134,8 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
                     width={w}
                     height={fuelH}
                     fill={fuelColor}
+                    stroke={fuelStroke}
+                    strokeWidth={0.75}
                     rx={2}
                     onMouseMove={(e) => onMove(e, `${d.label} • Fuel`, d.fuel)}
                     onMouseLeave={onLeave}
@@ -131,6 +147,8 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
                     width={w}
                     height={serviceH}
                     fill={serviceColor}
+                    stroke={serviceStroke}
+                    strokeWidth={0.75}
                     rx={2}
                     onMouseMove={(e) => onMove(e, `${d.label} • Service`, d.service)}
                     onMouseLeave={onLeave}
@@ -177,10 +195,15 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
 }
 
 /** Per-vehicle dashboard: tabs General | Refueling | Service */
-export function VehicleDash({ vehicle, items }: { vehicle: VehicleType; items: ApiFuel[] }) {
+export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, onDelete }: { vehicle: VehicleType; vehicleId?: string | null; vehicleName?: string | null; items: ApiFuel[]; onEdit?: (e: ApiFuel) => void; onDelete?: (e: ApiFuel) => void }) {
   const [tab, setTab] = useState<'general' | 'refueling' | 'service'>('general');
 
-  const list = useMemo(() => items.filter(i => i.vehicle === vehicle), [items, vehicle]);
+  const list = useMemo(() => items.filter(i => {
+    if (i.vehicle !== vehicle) return false;
+    if (vehicleId) return i.vehicleId === vehicleId;
+    if (vehicleName) return (i.vehicleName || '').toLowerCase() === vehicleName.toLowerCase();
+    return true;
+  }), [items, vehicle, vehicleId, vehicleName]);
   const sorted = useMemo(
     () => [...list].sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()),
     [list]
@@ -227,84 +250,78 @@ export function VehicleDash({ vehicle, items }: { vehicle: VehicleType; items: A
   const inr3 = (n = 0) =>
     `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 
-  const colorBar = vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600';
-  const splitIconRefuel = 'text-amber-500';
-  const splitIconService = 'text-stone-500';
-  const distanceColor = 'text-sky-700';
 
   return (
     <section className="mt-4">
-      {/* Inner tabs */}
-      <div className="flex items-center gap-2 border-b mb-6">
-        {(['general', 'refueling', 'service'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`relative px-3 py-2 text-sm font-medium ${tab === t ? 'text-gray-800' : 'text-gray-500'}`}
-          >
-            {t === 'general' ? 'General' : t === 'refueling' ? 'Refueling' : 'Service'}
-            {tab === t && <span className={`absolute left-0 -bottom-px h-0.5 w-full ${colorBar}`} />}
-          </button>
-        ))}
-      </div>
+      {/* Inner tabs - pill style with icons, cohesive colors */}
+      {(() => {
+        const isCar = vehicle === 'car';
+        const tabBase = 'flex-1 inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition';
+        const activeBg = isCar ? 'bg-blue-600 text-white shadow-sm' : 'bg-green-600 text-white shadow-sm';
+        const idleBg = isCar ? 'text-blue-700 hover:bg-blue-50' : 'text-green-700 hover:bg-green-50';
+        const tabCls = (t: 'general' | 'refueling' | 'service') => (tab === t ? `${tabBase} ${activeBg}` : `${tabBase} ${idleBg}`);
+        const iconCls = (t: 'general' | 'refueling' | 'service') => (tab === t ? 'h-4 w-4 text-white' : (isCar ? 'h-4 w-4 text-blue-600' : 'h-4 w-4 text-green-600'));
 
-      {/* Header line: N entries (from - to) - Last X days */}
-      <div className="text-center text-sm text-gray-600 mb-6">
-        {totals.entriesCount} entries{' '}
-        {totals.firstDate && totals.lastDate
-          ? `(${fmtDate(totals.firstDate)} - ${fmtDate(totals.lastDate)}) - Last ${totals.rangeDays} days`
-          : ''}
-      </div>
-
-      {tab === 'general' && (
-        <div className="space-y-8">
-          {/* Balance / Cost / Income */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MetricCard
-              title="Balance"
-              valueClass="text-red-600"
-              value={inr3(totals.balance)}
-              byDay={inr3(totals.byDay)}
-              byKm={inr3(totals.byKm)}
-            />
-            <MetricCard
-              title="Cost"
-              valueClass="text-red-600"
-              value={inr3(totals.total)}
-              byDay={inr3(totals.byDay)}
-              byKm={inr3(totals.byKm)}
-            />
-          </div>
-
-          {/* Cost split */}
-          <div>
-            <h4 className="text-gray-800 font-semibold mb-4">Cost split</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <SplitItem
-                icon={<Fuel className={`h-6 w-6 ${splitIconRefuel}`} />}
-                label="Refueling"
-                amount={inr3(totals.refuel)}
-                percent={`${totals.refuelPct.toFixed(2)}%`}
-              />
-              <SplitItem
-                icon={<Wrench className={`h-6 w-6 ${splitIconService}`} />}
-                label="Services"
-                amount={inr3(totals.service)}
-                percent={`${totals.servicePct.toFixed(2)}%`}
-              />
+        return (
+          <div className="mb-6">
+            <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-50 p-1 ring-1 ring-gray-200">
+              {(['general', 'refueling', 'service'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)} className={tabCls(t)}>
+                  {t === 'general' && <Gauge className={iconCls(t)} />}
+                  {t === 'refueling' && <Fuel className={iconCls(t)} />}
+                  {t === 'service' && <Wrench className={iconCls(t)} />}
+                  <span>{t === 'general' ? 'General' : t === 'refueling' ? 'Refueling' : 'Service'}</span>
+                </button>
+              ))}
             </div>
           </div>
+        );
+      })()}
 
-          {/* Distance */}
-          <div>
-            <h4 className="text-gray-800 font-semibold mb-3">Distance</h4>
-            <div className="rounded-lg border p-4 bg-white">
-              <div className="text-sm text-gray-600">Total</div>
-              <div className={`text-3xl font-semibold ${distanceColor} flex items-center gap-2`}>
-                <Gauge className="h-5 w-5 text-sky-500" />
-                {totals.distance.toLocaleString()} km
+      {tab === 'general' && (
+        <div>
+          {/* Single colorful row: Cost, Refueling, Services, Distance */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Cost */}
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-indigo-700">Cost</span>
               </div>
-              <div className="text-sm text-gray-500 mt-1">
+              <div className="mt-1 text-3xl font-semibold text-indigo-700">{inr3(totals.total)}</div>
+              <div className="text-xs text-indigo-600 mt-1">All time</div>
+            </div>
+
+            {/* Refueling */}
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-amber-700 inline-flex items-center gap-2">
+                  <Fuel className="h-4 w-4 text-amber-600" /> Refueling
+                </span>
+              </div>
+              <div className="mt-1 text-3xl font-semibold text-amber-700">{inr3(totals.refuel)}</div>
+              <div className="text-xs text-amber-600 mt-1">{totals.refuelPct.toFixed(2)}% of total</div>
+            </div>
+
+            {/* Services */}
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 border-fuchsia-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-fuchsia-700 inline-flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-fuchsia-600" /> Services
+                </span>
+              </div>
+              <div className="mt-1 text-3xl font-semibold text-fuchsia-700">{inr3(totals.service)}</div>
+              <div className="text-xs text-fuchsia-600 mt-1">{totals.servicePct.toFixed(2)}% of total</div>
+            </div>
+
+            {/* Distance */}
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-blue-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-sky-700 inline-flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-sky-600" /> Distance
+                </span>
+              </div>
+              <div className="mt-1 text-3xl font-semibold text-sky-700">{totals.distance.toLocaleString()} km</div>
+              <div className="text-xs text-sky-600 mt-1">
                 {Math.round((totals.distance / Math.max(1, totals.rangeDays)) * 100) / 100} km by day
               </div>
             </div>
@@ -325,9 +342,10 @@ export function VehicleDash({ vehicle, items }: { vehicle: VehicleType; items: A
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
+                {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" />
+            <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
             <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" />
           </table>
         </div>
@@ -346,9 +364,10 @@ export function VehicleDash({ vehicle, items }: { vehicle: VehicleType; items: A
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
+                {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
-            <FuelTableBody items={items} vehicle={vehicle} onlyType="service" />
+            <FuelTableBody items={items} vehicle={vehicle} onlyType="service" onEdit={onEdit} onDelete={onDelete} />
             <FuelTableFooter items={items} vehicle={vehicle} onlyType="service" />
           </table>
         </div>
@@ -396,7 +415,7 @@ export function FuelSummarySection(
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // NEW: source for monthly charts (prefer props, else best-effort fetch)
+  // Source for monthly charts (prefer props, else best-effort fetch)
   const [allItems, setAllItems] = useState<ApiFuel[] | null>(items ?? null);
   useEffect(() => { setAllItems(items ?? null); }, [items]);
   useEffect(() => {
@@ -405,8 +424,7 @@ export function FuelSummarySection(
         try {
           const res = await apiService.getFuel();
           setAllItems(res as ApiFuel[]);
-        } catch (ex) {
-          console.log('Failed to load all fuel entries', ex);
+        } catch {
           // ignore; monthly charts will be hidden if data unavailable
         }
       })();
@@ -429,12 +447,11 @@ export function FuelSummarySection(
     return () => { cancelled = true; };
   }, []);
 
-  // NEW (moved up): build monthly rows from the start of records
   const monthLabel = (y: number, mZero: number) =>
     new Date(y, mZero, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
 
   const monthlyRows: MonthRow[] = useMemo(() => {
-    const src = (allItems ?? []);
+    const src = allItems ?? [];
     if (!src.length) return [];
     const map = new Map<string, MonthRow>();
     for (const e of src) {
@@ -468,21 +485,19 @@ export function FuelSummarySection(
     );
   }, [allItems]);
 
-  // Early returns now happen after all hooks above
   if (loading) return null;
   if (error) return <p className="text-red-500 text-sm mt-6">{error}</p>;
   if (!summary) return null;
 
-  // Remove old TimelineChart and render the new stacked bar chart
   return (
-    <div className="mt-10 space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800">Summary</h3>
-
+    <div className="mt-10">
       {monthlyRows.length > 0 && (
-        <>
-          <h3 className="text-lg font-semibold text-gray-800">Monthly (since start)</h3>
-          <MonthlyFuelServiceBarChart rows={monthlyRows} />
-        </>
+        <div className="rounded-xl border border-blue-200/60 bg-gradient-to-br from-blue-50 to-green-50 p-4">
+          <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">Monthly Summary (All Time)</h3>
+          <div className="mt-3">
+            <MonthlyFuelServiceBarChart rows={monthlyRows} />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -492,13 +507,25 @@ export function FuelSummarySection(
 export function FuelTableBody({
   items,
   vehicle,
-  onlyType
-}: { items: ApiFuel[]; vehicle: 'car' | 'bike'; onlyType?: ApiFuel['entryType'] }) {
+  onlyType,
+  onEdit,
+  onDelete,
+  vehicleId,
+  vehicleName,
+}: { items: ApiFuel[]; vehicle: 'car' | 'bike'; onlyType?: ApiFuel['entryType']; onEdit?: (e: ApiFuel) => void; onDelete?: (e: ApiFuel) => void; vehicleId?: string | null; vehicleName?: string | null }) {
+  const [toDelete, setToDelete] = useState<ApiFuel | null>(null);
   // Filter once and compute mileage in O(n)
-  const list = useMemo(
-    () => items.filter(i => i.vehicle === vehicle && (!onlyType || i.entryType === onlyType)),
-    [items, vehicle, onlyType]
-  );
+  const list = useMemo(() => {
+    const filtered = items.filter(i => {
+      if (i.vehicle !== vehicle) return false;
+      if (onlyType && i.entryType !== onlyType) return false;
+      if (vehicleId) return i.vehicleId === vehicleId;
+      if (vehicleName) return (i.vehicleName || '').toLowerCase() === vehicleName.toLowerCase();
+      return true;
+    });
+    // Sort by date desc then createdAt desc for stability
+    return filtered.sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
+  }, [items, vehicle, onlyType, vehicleId, vehicleName]);
   const mileageArr = useMemo(() => {
     const n = list.length;
     const olderOdo: Array<number | null> = new Array(n).fill(null);
@@ -530,20 +557,90 @@ export function FuelTableBody({
       : 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800';
 
   return (
-    <tbody className={tbodyClass}>
-      {list.map((e, idx) => (
-        <tr key={e._id} className={rowClass}>
-          <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
-          <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
-          <td className="px-4 py-2 whitespace-nowrap">{e.odometer ?? ''}</td>
-          <td className="px-4 py-2 whitespace-nowrap">{e.liters ?? ''}</td>
-          <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter ?? ''}</td>
-          <td className="px-4 py-2 whitespace-nowrap">{e.total ?? ''}</td>
-          <td className="px-4 py-2 whitespace-nowrap">{mileageArr[idx]}</td>
-          <td className="px-4 py-2">{e.notes ?? ''}</td>
-        </tr>
-      ))}
-    </tbody>
+    <>
+      <tbody className={tbodyClass}>
+        {list.map((e, idx) => (
+          <tr key={e._id} className={rowClass}>
+            <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
+            <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.odometer ?? ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.liters ?? ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter ?? ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.total ?? ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{mileageArr[idx]}</td>
+            <td className="px-4 py-2">{e.notes ?? ''}</td>
+            {(onEdit || onDelete) && (
+              <td className="px-4 py-2 whitespace-nowrap">
+                <div className="flex items-center gap-1.5">
+                  {onEdit && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded p-1.5 text-indigo-600 hover:bg-indigo-50"
+                      title="Edit"
+                      aria-label="Edit"
+                      onClick={() => onEdit(e)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded p-1.5 text-red-600 hover:bg-red-50"
+                      title="Delete"
+                      aria-label="Delete"
+                      onClick={() => setToDelete(e)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+      {toDelete && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setToDelete(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-lg border bg-white shadow-lg">
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-800">Delete this entry?</h3>
+              <p className="text-sm text-gray-600">This action cannot be undone.</p>
+            </div>
+            <div className="p-4 text-sm text-gray-700 space-y-1">
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Date</div><div className="col-span-2">{toDelete.date?.slice(0, 10) || '-'}</div></div>
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Type</div><div className="col-span-2 capitalize">{toDelete.entryType}</div></div>
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Vehicle</div><div className="col-span-2">{toDelete.vehicleName || toDelete.vehicle}</div></div>
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Odometer</div><div className="col-span-2">{(toDelete.odometer as unknown as number) ?? '-'}</div></div>
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Liters</div><div className="col-span-2">{(toDelete.liters as unknown as number) ?? '-'}</div></div>
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Price/L</div><div className="col-span-2">{(toDelete.pricePerLiter as unknown as number) ?? '-'}</div></div>
+              <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Total</div><div className="col-span-2">{(toDelete.total as unknown as number) ?? '-'}</div></div>
+              {toDelete.notes && (
+                <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Notes</div><div className="col-span-2">{toDelete.notes}</div></div>
+              )}
+            </div>
+            <div className="p-4 border-t flex justify-end gap-3">
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={() => setToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+                onClick={() => { if (onDelete && toDelete) { onDelete(toDelete); } setToDelete(null); }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -594,10 +691,5 @@ export function FuelTableFooter({
   );
 }
 
-function fmtDate(d: Date) {
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
+// removed unused fmtDate
 

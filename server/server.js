@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import paymentsRouter from './routes/payments.js';
 import ticketsRouter from './routes/tickets.js';
 import fuelRouter from './routes/fuel.js';
+import vehiclesRouter from './routes/vehicles.js';
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 
@@ -187,13 +188,16 @@ mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('Connected to MongoDB'))
+.then(async () => {
+  console.log('Connected to MongoDB');
+})
 .catch((error) => console.error('MongoDB connection error:', error));
 
 // Protect APIs: require a valid session
 app.use('/api/tickets', verifySession, ticketsRouter);
 app.use('/api/payments', verifySession, paymentsRouter);
 app.use('/api/fuel', verifySession, fuelRouter);
+app.use('/api/vehicles', verifySession, vehiclesRouter);
 
 // --- Users API (removed admin management per request) ---
 

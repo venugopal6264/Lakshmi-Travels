@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, Fuel, LogOut, User2, Menu, X } from 'lucide-react';
+import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -13,7 +13,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
-        { id: 'fuel', label: 'Fuel Tracker', icon: Fuel, path: '/fuel-dashboard' },
+        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/fuel-dashboard' },
     ];
 
     const buildHref = (basePath: string) => basePath;

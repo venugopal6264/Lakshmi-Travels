@@ -47,6 +47,8 @@ export interface ApiFuel {
   _id?: string;
   date: string; // ISO date string
   vehicle: 'car' | 'bike';
+  vehicleId?: string | null;
+  vehicleName?: string | null;
   entryType: 'refueling' | 'service';
   odometer?: number | null;
   liters?: number | null;
@@ -175,6 +177,27 @@ class ApiService {
 
   async getFuelSummary(): Promise<FuelSummaryResponse> {
     return this.request<FuelSummaryResponse>('/fuel/summary');
+  }
+
+  // Vehicles API methods
+  async getVehicles(includeInactive = false): Promise<Array<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>> {
+    const q = includeInactive ? '?includeInactive=true' : '';
+    return this.request(`/vehicles${q}`);
+  }
+  async createVehicle(v: { name: string; type: 'car' | 'bike'; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }>
+  {
+    return this.request('/vehicles', { method: 'POST', body: JSON.stringify(v) });
+  }
+  async updateVehicle(id: string, patch: Partial<{ name: string; type: 'car' | 'bike'; active: boolean; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }>
+  {
+    return this.request(`/vehicles/${id}`, { method: 'PUT', body: JSON.stringify(patch) });
+  }
+  async deleteVehicle(id: string, mode: 'soft' | 'hard' = 'soft'): Promise<{ success: boolean; deleted?: boolean }> {
+    const q = mode === 'hard' ? '?mode=hard' : '';
+    return this.request(`/vehicles/${id}${q}`, { method: 'DELETE' });
+  }
+  async getVehicle(id: string) {
+    return this.request(`/vehicles/${id}`);
   }
 
   // Health check
