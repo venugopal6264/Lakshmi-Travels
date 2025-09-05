@@ -306,89 +306,89 @@ export default function PaymentTracker({
         <div className="bg-gradient-to-r from-blue-50 to-sky-100 p-4 rounded-lg flex items-center justify-between border border-blue-100">
           <div>
             <h3 className="text-sm font-medium text-blue-600">Train Profit</h3>
-            <p className="text-2xl font-bold text-blue-900">₹{typeProfit.train.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-900">₹{Math.round(typeProfit.train).toLocaleString()}</p>
           </div>
           <Train className="w-6 h-6 text-blue-600" />
         </div>
         <div className="bg-gradient-to-r from-green-50 to-emerald-100 p-4 rounded-lg flex items-center justify-between border border-green-100">
           <div>
             <h3 className="text-sm font-medium text-green-600">Bus Profit</h3>
-            <p className="text-2xl font-bold text-green-900">₹{typeProfit.bus.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-900">₹{Math.round(typeProfit.bus).toLocaleString()}</p>
           </div>
           <Bus className="w-6 h-6 text-green-600" />
         </div>
         <div className="bg-gradient-to-r from-purple-50 to-fuchsia-100 p-4 rounded-lg flex items-center justify-between border border-purple-100">
           <div>
             <h3 className="text-sm font-medium text-purple-600">Flight Profit</h3>
-            <p className="text-2xl font-bold text-purple-900">₹{typeProfit.flight.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-purple-900">₹{Math.round(typeProfit.flight).toLocaleString()}</p>
           </div>
           <Plane className="w-6 h-6 text-purple-600" />
         </div>
       </div>
 
-          {/* Combined Account Breakdown with scope toggle */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
-                  <Layers className="w-4 h-4" /> Account Breakdown
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    className={`px-3 py-1 rounded border ${breakdownScope === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300'}`}
-                    onClick={() => setBreakdownScope('all')}
-                  >All</button>
-                  <button
-                    className={`px-3 py-1 rounded border ${breakdownScope === 'open' ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-gray-700 border-gray-300'}`}
-                    onClick={() => setBreakdownScope('open')}
-                  >Open</button>
-                  <button
-                    className={`px-3 py-1 rounded border ${breakdownScope === 'paid' ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-700 border-gray-300'}`}
-                    onClick={() => setBreakdownScope('paid')}
-                  >Paid</button>
-                </div>
-              </div>
-              <div className="overflow-x-auto max-h-[60vh] relative rounded-md">
-                <table className="w-full table-auto text-sm">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Tickets</th>
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Booking Amount</th>
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Amount Paid</th>
-                      <th className="px-3 py-2 text-left font-semibold uppercase">Due Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white">
-                    {Object.entries(breakdowns[breakdownScope].byAccount).map(([account, v]) => (
-                      <tr key={account} className="odd:bg-blue-50 even:bg-emerald-50 hover:brightness-95">
-                        <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-800">{account}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">{v.count}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">₹{v.booking.toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">₹{v.ticket.toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-purple-900">₹{v.profit.toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-green-700 font-medium">₹{v.paid.toLocaleString()}</td>
-                        <td className={`px-3 py-2 whitespace-nowrap ${v.due > 0 ? 'text-orange-700 font-semibold' : 'text-green-700 font-semibold'}`}>₹{Math.max(0, v.due).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                    {/* Totals Row */}
-                    <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 font-semibold">
-                      <td className="px-3 py-2">Totals</td>
-                      <td className="px-3 py-2">{breakdowns[breakdownScope].totals.count}</td>
-                      <td className="px-3 py-2">₹{breakdowns[breakdownScope].totals.booking.toLocaleString()}</td>
-                      <td className="px-3 py-2">₹{breakdowns[breakdownScope].totals.ticket.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-purple-900">₹{breakdowns[breakdownScope].totals.profit.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-green-700">₹{breakdowns[breakdownScope].totals.paid.toLocaleString()}</td>
-                      <td className="px-3 py-2">₹{Math.max(0, breakdowns[breakdownScope].totals.due).toLocaleString()}</td>
-                    </tr>
-                  </tbody>
-                </table>
-                {Object.keys(breakdowns[breakdownScope].byAccount).length === 0 && (
-                  <div className="text-center py-6 text-gray-500">No accounts in range.</div>
-                )}
-              </div>
-            </div>
+      {/* Combined Account Breakdown with scope toggle */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
+            <Layers className="w-4 h-4" /> Account Breakdown
+          </h3>
+          <div className="flex gap-2">
+            <button
+              className={`px-3 py-1 rounded border ${breakdownScope === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300'}`}
+              onClick={() => setBreakdownScope('all')}
+            >All</button>
+            <button
+              className={`px-3 py-1 rounded border ${breakdownScope === 'open' ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-gray-700 border-gray-300'}`}
+              onClick={() => setBreakdownScope('open')}
+            >Open</button>
+            <button
+              className={`px-3 py-1 rounded border ${breakdownScope === 'paid' ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-700 border-gray-300'}`}
+              onClick={() => setBreakdownScope('paid')}
+            >Paid</button>
+          </div>
+        </div>
+        <div className="overflow-x-auto max-h-[60vh] relative rounded-md">
+          <table className="w-full table-auto text-sm">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
+                <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
+                <th className="px-3 py-2 text-left font-semibold uppercase">Tickets</th>
+                <th className="px-3 py-2 text-left font-semibold uppercase">Booking Amount</th>
+                <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
+                <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
+                <th className="px-3 py-2 text-left font-semibold uppercase">Amount Paid</th>
+                <th className="px-3 py-2 text-left font-semibold uppercase">Due Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white">
+              {Object.entries(breakdowns[breakdownScope].byAccount).map(([account, v]) => (
+                <tr key={account} className="odd:bg-blue-50 even:bg-emerald-50 hover:brightness-95">
+                  <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-800">{account}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{v.count}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(v.booking).toLocaleString()}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(v.ticket).toLocaleString()}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-purple-900">₹{Math.round(v.profit).toLocaleString()}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-green-700 font-medium">₹{Math.round(v.paid).toLocaleString()}</td>
+                  <td className={`px-3 py-2 whitespace-nowrap ${v.due > 0 ? 'text-orange-700 font-semibold' : 'text-green-700 font-semibold'}`}>₹{Math.round(Math.max(0, v.due)).toLocaleString()}</td>
+                </tr>
+              ))}
+              {/* Totals Row */}
+              <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 font-semibold">
+                <td className="px-3 py-2">Totals</td>
+                <td className="px-3 py-2">{breakdowns[breakdownScope].totals.count}</td>
+                <td className="px-3 py-2">₹{Math.round(breakdowns[breakdownScope].totals.booking).toLocaleString()}</td>
+                <td className="px-3 py-2">₹{Math.round(breakdowns[breakdownScope].totals.ticket).toLocaleString()}</td>
+                <td className="px-3 py-2 text-purple-900">₹{Math.round(breakdowns[breakdownScope].totals.profit).toLocaleString()}</td>
+                <td className="px-3 py-2 text-green-700">₹{Math.round(breakdowns[breakdownScope].totals.paid).toLocaleString()}</td>
+                <td className="px-3 py-2">₹{Math.round(Math.max(0, breakdowns[breakdownScope].totals.due)).toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+          {Object.keys(breakdowns[breakdownScope].byAccount).length === 0 && (
+            <div className="text-center py-6 text-gray-500">No accounts in range.</div>
+          )}
+        </div>
+      </div>
 
       {/* Monthly Performance */}
       <div className="bg-white rounded-lg shadow-md p-4 mt-6">
@@ -422,26 +422,26 @@ export default function PaymentTracker({
               {monthlyStats.rows.map((r, idx) => (
                 <tr key={r.key} className={`${idx % 2 === 0 ? 'bg-violet-50' : 'bg-purple-50'} hover:brightness-95`}>
                   <td className="px-3 py-2 font-semibold text-gray-800">{r.label}</td>
-                  <td className="px-3 py-2 text-purple-900 font-medium">₹{r.totalProfit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-purple-900 font-medium">₹{Math.round(r.totalProfit).toLocaleString()}</td>
                   <td className="px-3 py-2 font-medium">{r.totalTickets}</td>
                   <td className="px-3 py-2">{r.trainCount}</td>
-                  <td className="px-3 py-2 text-blue-900">₹{r.trainProfit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-blue-900">₹{Math.round(r.trainProfit).toLocaleString()}</td>
                   <td className="px-3 py-2">{r.flightCount}</td>
-                  <td className="px-3 py-2 text-purple-900">₹{r.flightProfit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-purple-900">₹{Math.round(r.flightProfit).toLocaleString()}</td>
                   <td className="px-3 py-2">{r.busCount}</td>
-                  <td className="px-3 py-2 text-emerald-900">₹{r.busProfit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-emerald-900">₹{Math.round(r.busProfit).toLocaleString()}</td>
                 </tr>
               ))}
               <tr className="bg-gradient-to-r from-violet-50 to-purple-50 font-semibold">
                 <td className="px-3 py-2">Totals</td>
-                <td className="px-3 py-2 text-purple-900">₹{monthlyStats.totals.totalProfit.toLocaleString()}</td>
+                <td className="px-3 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.totalProfit).toLocaleString()}</td>
                 <td className="px-3 py-2">{monthlyStats.totals.totalTickets}</td>
                 <td className="px-3 py-2">{monthlyStats.totals.trainCount}</td>
-                <td className="px-3 py-2 text-blue-900">₹{monthlyStats.totals.trainProfit.toLocaleString()}</td>
+                <td className="px-3 py-2 text-blue-900">₹{Math.round(monthlyStats.totals.trainProfit).toLocaleString()}</td>
                 <td className="px-3 py-2">{monthlyStats.totals.flightCount}</td>
-                <td className="px-3 py-2 text-purple-900">₹{monthlyStats.totals.flightProfit.toLocaleString()}</td>
+                <td className="px-3 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.flightProfit).toLocaleString()}</td>
                 <td className="px-3 py-2">{monthlyStats.totals.busCount}</td>
-                <td className="px-3 py-2 text-emerald-900">₹{monthlyStats.totals.busProfit.toLocaleString()}</td>
+                <td className="px-3 py-2 text-emerald-900">₹{Math.round(monthlyStats.totals.busProfit).toLocaleString()}</td>
               </tr>
             </tbody>
           </table>
@@ -569,7 +569,7 @@ export default function PaymentTracker({
                       <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
                       <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{(p.tickets || []).length}</td>
-                      <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Number(p.amount || 0).toLocaleString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(Number(p.amount || 0)).toLocaleString()}</td>
                     </tr>
                   );
                 })}
@@ -578,7 +578,7 @@ export default function PaymentTracker({
                   <td className="px-3 py-2">Totals</td>
                   <td className="px-3 py-2"></td>
                   <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + (p.tickets?.length || 0), 0)}</td>
-                  <td className="px-3 py-2 text-green-700">₹{sortedPayments.reduce((s, p) => s + Number(p.amount || 0), 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + Number(p.amount || 0), 0)).toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>

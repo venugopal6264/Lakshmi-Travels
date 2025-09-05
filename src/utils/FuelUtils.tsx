@@ -83,8 +83,7 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
   const svgH = padY * 2 + chartH + labelH;
 
   const [tip, setTip] = useState<{ x: number; y: number; title: string; value: string } | null>(null);
-  const fmt = (n: number) =>
-    `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+  const fmt = (n: number) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
 
   const onMove = (
     e: React.MouseEvent<SVGRectElement>,
@@ -247,8 +246,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
     };
   }, [sorted]);
 
-  const inr3 = (n = 0) =>
-    `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+  const inr3 = (n = 0) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
 
 
   return (
@@ -299,7 +297,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
                 </span>
               </div>
               <div className="mt-1 text-3xl font-semibold text-amber-700">{inr3(totals.refuel)}</div>
-              <div className="text-xs text-amber-600 mt-1">{totals.refuelPct.toFixed(2)}% of total</div>
+              <div className="text-xs text-amber-600 mt-1">{Math.round(totals.refuelPct)}% of total</div>
             </div>
 
             {/* Services */}
@@ -310,7 +308,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
                 </span>
               </div>
               <div className="mt-1 text-3xl font-semibold text-fuchsia-700">{inr3(totals.service)}</div>
-              <div className="text-xs text-fuchsia-600 mt-1">{totals.servicePct.toFixed(2)}% of total</div>
+              <div className="text-xs text-fuchsia-600 mt-1">{Math.round(totals.servicePct)}% of total</div>
             </div>
 
             {/* Distance */}
@@ -320,10 +318,8 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
                   <Gauge className="h-4 w-4 text-sky-600" /> Distance
                 </span>
               </div>
-              <div className="mt-1 text-3xl font-semibold text-sky-700">{totals.distance.toLocaleString()} km</div>
-              <div className="text-xs text-sky-600 mt-1">
-                {Math.round((totals.distance / Math.max(1, totals.rangeDays)) * 100) / 100} km by day
-              </div>
+              <div className="mt-1 text-3xl font-semibold text-sky-700">{Math.round(totals.distance).toLocaleString()} km</div>
+              <div className="text-xs text-sky-600 mt-1">{Math.round(totals.distance / Math.max(1, totals.rangeDays))} km by day</div>
             </div>
           </div>
         </div>
@@ -563,11 +559,11 @@ export function FuelTableBody({
           <tr key={e._id} className={rowClass}>
             <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
             <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.odometer ?? ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.liters ?? ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter ?? ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.total ?? ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{mileageArr[idx]}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.liters != null ? Math.round(Number(e.liters)).toLocaleString() : ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter != null ? Math.round(Number(e.pricePerLiter)).toLocaleString() : ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{e.total != null ? Math.round(Number(e.total)).toLocaleString() : ''}</td>
+            <td className="px-4 py-2 whitespace-nowrap">{mileageArr[idx] ? Math.round(Number(mileageArr[idx])).toString() : ''}</td>
             <td className="px-4 py-2">{e.notes ?? ''}</td>
             {(onEdit || onDelete) && (
               <td className="px-4 py-2 whitespace-nowrap">
@@ -663,7 +659,7 @@ export function FuelTableFooter({
     return { fuelTotal, serviceTotal };
   }, [items, vehicle]);
 
-  const fmt = (n: number) => (Math.round(n * 100) / 100).toLocaleString();
+  const fmt = (n: number) => Math.round(n).toLocaleString();
   const tClass = vehicle === 'car' ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900';
   const badge = vehicle === 'car' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 

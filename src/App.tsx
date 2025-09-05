@@ -5,7 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import Navigation from './components/Navigation';
-import FuelTracker from './components/FuelTracker';
+import VehicleDashboard from './components/VehicleDashboard';
 import PaymentTracker from './components/PaymentTracker';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket } from './services/api';
@@ -22,14 +22,14 @@ function InnerApp() {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('login')) setCurrentPage('login');
     else if (path.includes('payment')) setCurrentPage('payments');
-    else if (path.includes('fuel')) setCurrentPage('fuel');
+    else if (path.includes('vehicles')) setCurrentPage('fuel');
     else setCurrentPage('dashboard');
 
     const onPop = () => {
       const p = window.location.pathname.toLowerCase();
       if (p.includes('login')) setCurrentPage('login');
       else if (p.includes('payment')) setCurrentPage('payments');
-      else if (p.includes('fuel')) setCurrentPage('fuel');
+      else if (p.includes('vehicles')) setCurrentPage('fuel');
       else setCurrentPage('dashboard');
     };
     window.addEventListener('popstate', onPop);
@@ -40,10 +40,10 @@ function InnerApp() {
     // Push a readable path for the current page (no query params)
     const basePath =
       currentPage === 'dashboard' ? '/dashboard'
-      : currentPage === 'login' ? '/login'
-      : currentPage === 'payments' ? '/payment-tracker'
-      : currentPage === 'fuel' ? '/fuel-dashboard'
-      : '/dashboard';
+        : currentPage === 'login' ? '/login'
+          : currentPage === 'payments' ? '/payment-tracker'
+            : currentPage === 'fuel' ? '/vehicles'
+              : '/dashboard';
     const currentUrl = window.location.pathname;
     if (currentUrl !== basePath) {
       window.history.pushState({}, '', basePath);
@@ -70,11 +70,11 @@ function InnerApp() {
     if (!user) {
       return <LoginPage />;
     }
-  return <AuthedApp currentPage={currentPage} />;
+    return <AuthedApp currentPage={currentPage} />;
   };
   return (
     <div className="min-h-screen bg-gray-50">
-  <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
+      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
       <div className="container mx-auto px-4 py-8">
         {renderCurrentPage()}
       </div>
@@ -184,7 +184,7 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
           />
         );
       case 'fuel':
-        return <FuelTracker />;
+        return <VehicleDashboard />;
       default:
         return null;
     }

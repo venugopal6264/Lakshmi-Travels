@@ -73,9 +73,7 @@ export default function ProfitSummary({ tickets, dateRange, loading = false }: P
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ₹{card.value.toLocaleString()}
-                </p>
+                <p className="text-2xl font-bold text-gray-900">₹{Math.round(card.value).toLocaleString()}</p>
                 {card.title === 'Total Profit' && (
                   <p className="text-sm text-gray-500 mt-1">
                     From {totalTickets} tickets

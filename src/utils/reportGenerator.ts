@@ -59,8 +59,8 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
   'Total',
-  totalBooking.toFixed(2), // Booking Amount column
-    totalRefund.toFixed(2), // Refund column
+  Math.round(totalBooking).toString(), // Booking Amount column
+  Math.round(totalRefund).toString(), // Refund column
     ''
   ];
 
@@ -71,7 +71,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
   'Total Due',
-  totalDue.toFixed(2), // Place due in Booking Amount column for visibility
+  Math.round(totalDue).toString(), // Place due in Booking Amount column for visibility
     '',
     ''
   ];
@@ -146,8 +146,8 @@ export const downloadPDFReport = async (
     t.passengerName,
     t.pnr,
     t.place,
-    (Number(t.ticketAmount) || 0).toFixed(2),
-    (Number(t.refund) || 0).toFixed(2),
+  Math.round(Number(t.ticketAmount) || 0).toString(),
+  Math.round(Number(t.refund) || 0).toString(),
   ]);
 
   const totalTicketAmount = sorted.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
@@ -224,8 +224,8 @@ export const downloadPDFReport = async (
   autoTable(doc, {
     body: [
   // For 7 columns: [Date, Type, Names, PNR, Place, Fare, Refund]
-  [' ', ' ', ' ', ' ', 'Total', totalTicketAmount.toFixed(2), totalRefund.toFixed(2)],
-  [' ', ' ', ' ', ' ', 'Total Due', totalDue.toFixed(2), ' ']
+  [' ', ' ', ' ', ' ', 'Total', Math.round(totalTicketAmount).toString(), Math.round(totalRefund).toString()],
+  [' ', ' ', ' ', ' ', 'Total Due', Math.round(totalDue).toString(), ' ']
     ],
     startY: (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
       ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10

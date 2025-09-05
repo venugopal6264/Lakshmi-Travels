@@ -234,15 +234,15 @@ export default function TicketTable({
     return Number(ticket.refund || 0) > 0;
   };
   return (
-  <div className={`bg-white rounded-lg shadow-md p-6 ${isOpenView ? 'border-t-4 border-orange-400' : 'border-t-4 border-green-500'}`}>
-  <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-4">
-    <h2 className={`text-xl font-semibold ${titleColor}`}>
+    <div className={`bg-white rounded-lg shadow-md p-6 ${isOpenView ? 'border-t-4 border-orange-400' : 'border-t-4 border-green-500'}`}>
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-4">
+        <h2 className={`text-xl font-semibold ${titleColor}`}>
           {activeTable === 'open' ? 'Open Tickets' : 'Paid Tickets'}
         </h2>
-  <div className="flex items-center gap-2 sm:gap-4">
-      {activeTable === 'open' && selectedTickets.length > 0 && (
+        <div className="flex items-center gap-2 sm:gap-4">
+          {activeTable === 'open' && selectedTickets.length > 0 && (
             <button
-        onClick={() => setShowConfirmBulk(true)}
+              onClick={() => setShowConfirmBulk(true)}
               disabled={bulkLoading}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -263,7 +263,7 @@ export default function TicketTable({
       </div>
 
       {/* Table Toggle */}
-  <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={() => setActiveTable('open')}
           className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'open'
@@ -297,7 +297,7 @@ export default function TicketTable({
         </div>
       </div>
 
-  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -351,7 +351,7 @@ export default function TicketTable({
         </div>
       </div>
 
-  <div className="overflow-x-auto max-h-[60vh] relative">
+      <div className="overflow-x-auto max-h-[60vh] relative">
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -455,11 +455,11 @@ export default function TicketTable({
               </th>
             </tr>
           </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200">
             {sortedTickets.map((ticket) => (
               <tr
                 key={ticket._id}
-        className={`${hoverRow} ${rowLeftBorder} transition-colors ${isRefunded(ticket) ? 'bg-red-50' : ''}`}
+                className={`${hoverRow} ${rowLeftBorder} transition-colors ${isRefunded(ticket) ? 'bg-red-50' : ''}`}
               >
                 {activeTable === 'open' && (
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -510,16 +510,16 @@ export default function TicketTable({
                 )}
                 {/* Ticket Amount */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ₹{Number(ticket.ticketAmount || 0).toLocaleString()}
+                  ₹{Math.round(Number(ticket.ticketAmount || 0)).toLocaleString()}
                 </td>
                 {/* Booking Amount */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ₹{Number(ticket.bookingAmount || 0).toLocaleString()}
+                  ₹{Math.round(Number(ticket.bookingAmount || 0)).toLocaleString()}
                 </td>
                 {/* Profit */}
                 {showProfit && (
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                    ₹{(ticket.profit - (ticket.refund || 0)).toLocaleString()}
+                    ₹{Math.round(ticket.profit - (ticket.refund || 0)).toLocaleString()}
                   </td>
                 )}
                 {/* PNR */}
@@ -571,10 +571,10 @@ export default function TicketTable({
               <td className="px-4 py-3"></td>
               {/* Paid Date placeholder for Paid view */}
               {activeTable === 'paid' && <td className="px-4 py-3"></td>}
-              <td className="px-4 py-3">₹{totals.ticketAmount.toLocaleString()}</td>
-              <td className="px-4 py-3">₹{totals.bookingAmount.toLocaleString()}</td>
+              <td className="px-4 py-3">₹{Math.round(totals.ticketAmount).toLocaleString()}</td>
+              <td className="px-4 py-3">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
               {showProfit && (
-                <td className="px-4 py-3">₹{totals.profit.toLocaleString()}</td>
+                <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
               )}
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
@@ -612,7 +612,7 @@ export default function TicketTable({
               {`Account: ${confirmDeleteTicket.account} | Type: ${confirmDeleteTicket.type}
 Booking: ${formatDate(confirmDeleteTicket.bookingDate)} | Passenger: ${confirmDeleteTicket.passengerName}
 PNR: ${confirmDeleteTicket.pnr} | Place: ${confirmDeleteTicket.place}
-Amount: \u20B9${Number(confirmDeleteTicket.ticketAmount || 0).toLocaleString()} | Booking: \u20B9${Number(confirmDeleteTicket.bookingAmount || 0).toLocaleString()} | Profit: \u20B9${confirmDeleteTicket.profit.toLocaleString()}${confirmDeleteTicket.refund ? ` | Refunded: \u20B9${confirmDeleteTicket.refund}` : ''}`}
+Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLocaleString()} | Booking: \u20B9${Math.round(Number(confirmDeleteTicket.bookingAmount || 0)).toLocaleString()} | Profit: \u20B9${Math.round(confirmDeleteTicket.profit).toLocaleString()}${confirmDeleteTicket.refund ? ` | Refunded: \u20B9${Math.round(confirmDeleteTicket.refund)}` : ''}`}
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -680,13 +680,13 @@ Amount: \u20B9${Number(confirmDeleteTicket.ticketAmount || 0).toLocaleString()} 
                           <tr key={acc} className="border-t">
                             <td className="px-3 py-2">{acc}</td>
                             <td className="px-3 py-2">{v.count}</td>
-                            <td className="px-3 py-2">₹{v.amount.toLocaleString()}</td>
+                            <td className="px-3 py-2">₹{Math.round(v.amount).toLocaleString()}</td>
                           </tr>
                         ))}
                         <tr className="border-t bg-gray-50 font-medium">
                           <td className="px-3 py-2">Total</td>
                           <td className="px-3 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
-                          <td className="px-3 py-2">₹{rows.reduce((s, [, v]) => s + v.amount, 0).toLocaleString()}</td>
+                          <td className="px-3 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.amount, 0)).toLocaleString()}</td>
                         </tr>
                       </>
                     );

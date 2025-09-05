@@ -13,7 +13,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
-        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/fuel-dashboard' },
+        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' },
     ];
 
     const buildHref = (basePath: string) => basePath;

@@ -47,18 +47,18 @@ export default function Dashboard({
         const dd = String(d.getDate()).padStart(2, '0');
         return `${yyyy}-${mm}-${dd}`;
     };
-        // Get paid ticket IDs from payments
-        const paidTicketIds = payments.flatMap(payment => payment.tickets);
-        // Map ticketId -> latest paid date
-        const paidDates: Record<string, string> = {};
-        payments.forEach(p => {
-            const d = p.date;
-            (p.tickets || []).forEach(id => {
-                if (!paidDates[id] || (new Date(d) > new Date(paidDates[id]))) {
-                    paidDates[id] = d;
-                }
-            });
+    // Get paid ticket IDs from payments
+    const paidTicketIds = payments.flatMap(payment => payment.tickets);
+    // Map ticketId -> latest paid date
+    const paidDates: Record<string, string> = {};
+    payments.forEach(p => {
+        const d = p.date;
+        (p.tickets || []).forEach(id => {
+            if (!paidDates[id] || (new Date(d) > new Date(paidDates[id]))) {
+                paidDates[id] = d;
+            }
         });
+    });
 
     // Filter tickets by date range for account breakdown
     const dateFilteredTickets = tickets.filter(ticket => {
@@ -213,140 +213,140 @@ export default function Dashboard({
 
     return (
         <>
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-[linear-gradient(90deg,#ef4444,#f97316,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899)]">Dashboard</h2>
-                    <p className="text-gray-600 mt-1">Overview of your travel tickets and profits</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {/* Compact Date Filter */}
-                    <div className="bg-purple-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-purple-900 transition duration-200 flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-white-1000" />
-                        <select
-                            value={quickRange}
-                            onChange={(e) => handleQuickRangeChange(e.target.value)}
-                            className="bg-transparent text-sm sm:text-md text-white focus:outline-none"
-                            aria-label="Date Range"
-                        >
-                            <option value="all">All Time</option>
-                            <option value="thisMonth">This Month</option>
-                            <option value="lastMonth">Last Month</option>
-                            <option value="thisYear">This Year</option>
-                        </select>
+            <div className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 className="text-2xl font-extrabold bg-clip-text text-transparent bg-[linear-gradient(90deg,#ef4444,#f97316,#f59e0b,#10b981,#3b82f6,#8b5cf6,#ec4899)]">Dashboard</h2>
+                        <p className="text-gray-600 mt-1">Overview of your travel tickets and profits</p>
                     </div>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="bg-green-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Create Ticket
-                    </button>
-                    <button
-                        onClick={exportReport}
-                        className="bg-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export Report
-                    </button>
-                </div>
-            </div>
-
-            {/* Dashboard widgets: OPEN tickets only */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-purple-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-purple-600">Total Booking Amount</h3>
-                    <p className="text-2xl font-bold text-purple-900">₹{totalBookingAmount.toLocaleString()}</p>
-                    <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
-                </div>
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
-                    <p className="text-2xl font-bold text-indigo-900">₹{totalFare.toLocaleString()}</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
-                    <p className="text-2xl font-bold text-green-900">₹{totalProfitAfterRefunds.toLocaleString()}</p>
-                </div>
-            </div>
-
-            <TicketTable
-                tickets={tickets}
-                paidTickets={paidTicketIds}
-                paidDates={paidDates}
-                onDeleteTicket={onDeleteTicket}
-                onUpdateTicket={onUpdateTicket}
-                onProcessRefund={onProcessRefund}
-                onMarkAsPaid={onMarkAsPaid}
-                onBulkMarkAsPaid={onBulkMarkAsPaid}
-                loading={loading}
-                dateRange={dateRange}
-                accountFilter={accountFilter}
-                onAccountFilterChange={setAccountFilter}
-            />
-
-            {/* Profit summary moved to Payment Tracker */}
-
-        {/* Account Breakdown (OPEN tickets only) */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-            Account Breakdown (Open Tickets)
-                </h3>
-                <div className="overflow-x-auto max-h-[50vh] relative">
-                    <table className="w-full table-auto text-sm">
-                        <thead className="sticky top-0 bg-white z-10">
-                            <tr className="bg-gray-50">
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Account</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Tickets</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Total Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {Object.entries(accountBreakdown).map(([account, totals], idx) => (
-                                <tr key={account} className={`transition-colors ${rowBgClasses[idx % rowBgClasses.length]}`}>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">{account}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">₹{totals.amount.toLocaleString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {Object.keys(accountBreakdown).length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                            No tickets found for the selected date range.
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Compact Date Filter */}
+                        <div className="bg-purple-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-purple-900 transition duration-200 flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-white-1000" />
+                            <select
+                                value={quickRange}
+                                onChange={(e) => handleQuickRangeChange(e.target.value)}
+                                className="bg-transparent text-sm sm:text-md text-white focus:outline-none"
+                                aria-label="Date Range"
+                            >
+                                <option value="all">All Time</option>
+                                <option value="thisMonth">This Month</option>
+                                <option value="lastMonth">Last Month</option>
+                                <option value="thisYear">This Year</option>
+                            </select>
                         </div>
-                    )}
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="bg-green-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-green-700 transition duration-200 flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create Ticket
+                        </button>
+                        <button
+                            onClick={exportReport}
+                            className="bg-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-blue-900 transition duration-200 flex items-center gap-2"
+                        >
+                            <Download className="w-4 h-4" />
+                            Export Report
+                        </button>
+                    </div>
                 </div>
+
+                {/* Dashboard widgets: OPEN tickets only */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                        <h3 className="text-sm font-medium text-purple-600">Total Booking Amount</h3>
+                        <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalBookingAmount).toLocaleString()}</p>
+                        <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
+                    </div>
+                    <div className="bg-indigo-50 p-4 rounded-lg">
+                        <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
+                        <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalFare).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
+                        <p className="text-2xl font-bold text-green-900">₹{Math.round(totalProfitAfterRefunds).toLocaleString()}</p>
+                    </div>
+                </div>
+
+                <TicketTable
+                    tickets={tickets}
+                    paidTickets={paidTicketIds}
+                    paidDates={paidDates}
+                    onDeleteTicket={onDeleteTicket}
+                    onUpdateTicket={onUpdateTicket}
+                    onProcessRefund={onProcessRefund}
+                    onMarkAsPaid={onMarkAsPaid}
+                    onBulkMarkAsPaid={onBulkMarkAsPaid}
+                    loading={loading}
+                    dateRange={dateRange}
+                    accountFilter={accountFilter}
+                    onAccountFilterChange={setAccountFilter}
+                />
+
+                {/* Profit summary moved to Payment Tracker */}
+
+                {/* Account Breakdown (OPEN tickets only) */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Account Breakdown (Open Tickets)
+                    </h3>
+                    <div className="overflow-x-auto max-h-[50vh] relative">
+                        <table className="w-full table-auto text-sm">
+                            <thead className="sticky top-0 bg-white z-10">
+                                <tr className="bg-gray-50">
+                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Account</th>
+                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Tickets</th>
+                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {Object.entries(accountBreakdown).map(([account, totals], idx) => (
+                                    <tr key={account} className={`transition-colors ${rowBgClasses[idx % rowBgClasses.length]}`}>
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">{account}</td>
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">₹{Math.round(totals.amount).toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {Object.keys(accountBreakdown).length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                                No tickets found for the selected date range.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+
+                {tickets.length === 0 && !loading && (
+                    <div className="text-center py-12">
+                        <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets yet</h3>
+                        <p className="text-gray-600">Add your first travel ticket to get started</p>
+                    </div>
+                )}
             </div>
-
-
-            {tickets.length === 0 && !loading && (
-                <div className="text-center py-12">
-                    <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets yet</h3>
-                    <p className="text-gray-600">Add your first travel ticket to get started</p>
+            {/* Create Ticket Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto">
+                    <div className="bg-white w-full max-w-5xl rounded-lg shadow-lg p-0 sm:p-0 m-4 my-8 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
+                            <h3 className="text-lg font-medium">Create New Ticket</h3>
+                            <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                        </div>
+                        <div className="px-4 sm:px-6 py-4">
+                            <TicketForm
+                                onAddTicket={handleAddTicketFromModal}
+                                loading={loading}
+                                existingAccounts={existingAccounts}
+                                existingServices={existingServices}
+                            />
+                        </div>
+                    </div>
                 </div>
             )}
-        </div>
-        {/* Create Ticket Modal */}
-        {showCreateModal && (
-            <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto">
-                <div className="bg-white w-full max-w-5xl rounded-lg shadow-lg p-0 sm:p-0 m-4 my-8 max-h-[90vh] overflow-y-auto">
-                    <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
-                        <h3 className="text-lg font-medium">Create New Ticket</h3>
-                        <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
-                    </div>
-                    <div className="px-4 sm:px-6 py-4">
-                      <TicketForm
-                          onAddTicket={handleAddTicketFromModal}
-                          loading={loading}
-                          existingAccounts={existingAccounts}
-                          existingServices={existingServices}
-                      />
-                    </div>
-                </div>
-            </div>
-        )}
         </>
     );
 }
