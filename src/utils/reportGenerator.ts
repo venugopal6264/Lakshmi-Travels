@@ -164,7 +164,7 @@ export const downloadPDFReport = async (
   const account = opts?.accountLabel || 'All Accounts';
   const period = `${opts?.startLabel || 'ALL'} to ${opts?.endLabel || 'ALL'}`;
 
-  const drawHeader = (page: number) => {
+  const drawHeader = () => {
     const startX = 40;
     const y = 40;
     if (logoDataUrl) {
@@ -184,7 +184,9 @@ export const downloadPDFReport = async (
     doc.setFontSize(10);
     doc.text(`Account: ${account}`, startX + 300, y + 18, { align: 'left' });
     doc.text(`Period: ${period}`, startX + 300, y + 36, { align: 'left' });
-    // Footer page number
+  };
+
+  const drawFooter = (page: number) => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(9);
@@ -192,12 +194,11 @@ export const downloadPDFReport = async (
   };
 
   // Use didDrawPage to repeat header/footer
-  let pageNumber = 1;
-  drawHeader(pageNumber);
-
   autoTable(doc, {
     head: [headers],
     body: rows,
+    // Leave space for header on first page; subsequent pages won't draw the header
+    // but keeping a fixed startY ensures first page content starts below it.
     startY: 100,
     styles: { fontSize: 9, cellPadding: 4 },
     headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // blue header
@@ -212,9 +213,14 @@ export const downloadPDFReport = async (
         }
       }
     },
-    didDrawPage: () => {
-      drawHeader(pageNumber);
-      pageNumber++;
+    didDrawPage: (data: { pageNumber: number }) => {
+      const currentPage = data.pageNumber || 1;
+      if (currentPage === 1) {
+        // Draw full header only on the first page
+        drawHeader();
+      }
+      // Always draw footer page number
+      drawFooter(currentPage);
     },
     margin: { top:20, left: 20, right: 20, bottom: 20 },
     theme: 'grid',

@@ -203,13 +203,11 @@ export default function VehicleDashboard() {
                         </select>
                     </div>
                     <div className='md:col-span-1'>
-                        {/* Date range display at top */}
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Display Period</label>
                         {rangeInfo && (
-                            <div className="mb-4">
-                                <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-1 text-sm text-indigo-900 ring-1 ring-indigo-200">
-                                    {rangeInfo.entriesCount} entries {rangeInfo.firstDate && rangeInfo.lastDate ? `(${fmtDate(rangeInfo.firstDate)} - ${fmtDate(rangeInfo.lastDate)})` : ''} • Last {rangeInfo.rangeDays} days
-                                </span>
-                            </div>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-1 text-sm text-indigo-900 ring-1 ring-indigo-200">
+                                {rangeInfo.entriesCount} entries {rangeInfo.firstDate && rangeInfo.lastDate ? `(${fmtDate(rangeInfo.firstDate)} - ${fmtDate(rangeInfo.lastDate)})` : ''} • Last {rangeInfo.rangeDays} days
+                            </span>
                         )}
                     </div>
                 </div>
