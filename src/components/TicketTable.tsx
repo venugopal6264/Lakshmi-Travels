@@ -17,6 +17,8 @@ interface TicketTableProps {
   // Date range is controlled by parent; no handler here
   accountFilter?: string;
   onAccountFilterChange?: (value: string) => void;
+  // Control which table(s) to show: open, paid, or both (default)
+  view?: 'open' | 'paid' | 'both';
 }
 
 export default function TicketTable({
@@ -31,6 +33,7 @@ export default function TicketTable({
   dateRange,
   accountFilter: accountFilterProp,
   onAccountFilterChange,
+  view = 'both',
   // date handler removed
 }: TicketTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +51,12 @@ export default function TicketTable({
   const [confirmDeleteTicket, setConfirmDeleteTicket] = useState<ApiTicket | null>(null);
   // per-row processing state removed as Mark as Paid button is hidden
   // Date filter is controlled in Dashboard header
-  const [activeTable, setActiveTable] = useState<'open' | 'paid'>('open');
+  const [activeTable, setActiveTable] = useState<'open' | 'paid'>(view === 'paid' ? 'paid' : 'open');
+  // Keep activeTable aligned if parent fixes the view
+  useEffect(() => {
+    if (view === 'open') setActiveTable('open');
+    else if (view === 'paid') setActiveTable('paid');
+  }, [view]);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [showProfit, setShowProfit] = useState<boolean>(false);
@@ -57,6 +65,8 @@ export default function TicketTable({
   // Resizable "Place" column width (md+ only)
   const [placeColWidth, setPlaceColWidth] = useState<number>(240);
   const isResizingRef = useRef(false);
+  // Fixed width for Passenger Name column (wrap content)
+  const passengerColWidth = 160;
 
   // Theming: colorful styles for Open vs Paid tables
   const isOpenView = activeTable === 'open';
@@ -114,8 +124,8 @@ export default function TicketTable({
 
   const currentTickets = activeTable === 'open' ? openTickets : paidTicketsData;
 
-  // Get unique accounts for filter dropdown
-  const uniqueAccounts = Array.from(new Set(tickets.map(ticket => ticket.account)));
+  // Get unique accounts for filter dropdown based on the currently active table (open or paid)
+  const uniqueAccounts = Array.from(new Set(currentTickets.map(ticket => ticket.account)));
   const uniqueServices = Array.from(new Set(tickets.map(ticket => ticket.service)));
 
   const filteredTickets = currentTickets.filter(ticket => {
@@ -151,10 +161,12 @@ export default function TicketTable({
         acc.count += 1;
         acc.ticketAmount += Number(t.ticketAmount || 0);
         acc.bookingAmount += Number(t.bookingAmount || 0);
+        acc.refund += Number(t.refund || 0);
+        // profit after refund
         acc.profit += Number(t.profit || 0) - Number(t.refund || 0);
         return acc;
       },
-      { count: 0, ticketAmount: 0, bookingAmount: 0, profit: 0 }
+      { count: 0, ticketAmount: 0, bookingAmount: 0, profit: 0, refund: 0 }
     );
   }, [filteredTickets]);
 
@@ -262,40 +274,42 @@ export default function TicketTable({
         </div>
       </div>
 
-      {/* Table Toggle */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <button
-          onClick={() => setActiveTable('open')}
-          className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'open'
-            ? 'bg-blue-100 text-blue-700 border border-blue-300'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-        >
-          <Clock className="w-4 h-4" />
-          Open Tickets ({openTickets.length})
-        </button>
-        <button
-          onClick={() => setActiveTable('paid')}
-          className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'paid'
-            ? 'bg-green-100 text-green-700 border border-green-300'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-        >
-          <CheckCircle className="w-4 h-4" />
-          Paid Tickets ({paidTicketsData.length})
-        </button>
-        <div className="ml-auto flex items-center gap-2">
-          <label className="inline-flex items-center gap-2 text-sm text-blue-700">
-            <input
-              type="checkbox"
-              checked={showProfit}
-              onChange={(e) => setShowProfit(e.target.checked)}
-              className="rounded border-blue-300 accent-blue-600 focus:ring-blue-500"
-            />
-            Show Profit
-          </label>
+      {/* Table Toggle (hidden when view is fixed) */}
+      {view === 'both' && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setActiveTable('open')}
+            className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'open'
+              ? 'bg-blue-100 text-blue-700 border border-blue-300'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+          >
+            <Clock className="w-4 h-4" />
+            Open Tickets ({openTickets.length})
+          </button>
+          <button
+            onClick={() => setActiveTable('paid')}
+            className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${activeTable === 'paid'
+              ? 'bg-green-100 text-green-700 border border-green-300'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            Paid Tickets ({paidTicketsData.length})
+          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <label className="inline-flex items-center gap-2 text-sm text-blue-700">
+              <input
+                type="checkbox"
+                checked={showProfit}
+                onChange={(e) => setShowProfit(e.target.checked)}
+                className="rounded border-blue-300 accent-blue-600 focus:ring-blue-500"
+              />
+              Show Profit
+            </label>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex-1 relative">
@@ -332,26 +346,24 @@ export default function TicketTable({
             <option value="flight">Flight</option>
           </select>
 
-          {activeTable === 'open' && (
-            <select
-              value={accountFilter}
-              onChange={(e) => {
-                const v = e.target.value;
-                setAccountFilter(v);
-                onAccountFilterChange?.(v);
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="all">All Accounts</option>
-              {uniqueAccounts.map(account => (
-                <option key={account} value={account}>{account}</option>
-              ))}
-            </select>
-          )}
+          <select
+            value={accountFilter}
+            onChange={(e) => {
+              const v = e.target.value;
+              setAccountFilter(v);
+              onAccountFilterChange?.(v);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            <option value="all">All Accounts</option>
+            {uniqueAccounts.map(account => (
+              <option key={account} value={account}>{account}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <div className="overflow-x-auto max-h-[60vh] relative">
+      <div className={`overflow-x-auto overflow-y-auto ${activeTable === 'open' ? 'max-h-[78vh]' : 'max-h-[60vh]'} relative pb-12`}>
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -401,6 +413,7 @@ export default function TicketTable({
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('passengerName')}
+                style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
               >
                 Passenger Name {sortField === 'passengerName' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
@@ -420,6 +433,13 @@ export default function TicketTable({
               {/* Booking Amount (hide on xs) */}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Booking Amount
+              </th>
+              {/* Refund */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('refund')}
+              >
+                Refund {sortField === 'refund' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Profit (hide on xs) */}
               {showProfit && (
@@ -489,16 +509,12 @@ export default function TicketTable({
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   {formatDate(ticket.bookingDate)}
                 </td>
-                {/* Passenger Name */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <div>
-                    {ticket.passengerName}
-                    {isRefunded(ticket) && (
-                      <div className="text-xs text-red-600 font-medium">
-                        Refunded: ₹{ticket.refund}
-                      </div>
-                    )}
-                  </div>
+                {/* Passenger Name (wrap long names, fixed width) */}
+                <td
+                  className="px-4 py-4 text-sm text-gray-900 whitespace-normal break-words"
+                  style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
+                >
+                  {ticket.passengerName}
                 </td>
                 {/* Paid Date (only on Paid view) */}
                 {activeTable === 'paid' && (
@@ -515,6 +531,10 @@ export default function TicketTable({
                 {/* Booking Amount */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   ₹{Math.round(Number(ticket.bookingAmount || 0)).toLocaleString()}
+                </td>
+                {/* Refund */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-red-600">
+                  {Number(ticket.refund || 0) > 0 ? `₹${Math.round(Number(ticket.refund)).toLocaleString()}` : '₹0'}
                 </td>
                 {/* Profit */}
                 {showProfit && (
@@ -559,23 +579,24 @@ export default function TicketTable({
                 </td>
               </tr>
             ))}
-            {/* Totals Row */}
-            <tr className={`${totalsBg} font-semibold`}>
+            {/* Totals Row (sticky at bottom) */}
+            <tr className={`${totalsBg} font-semibold sticky bottom-0 z-10 border-t border-gray-200`}>
               {activeTable === 'open' && <td className="px-4 py-3"></td>}
               {/* Service placeholder */}
               <td className="px-4 py-3"></td>
               {/* Type placeholder */}
               <td className="px-4 py-3"></td>
-              <td className="px-4 py-3" colSpan={2}>Totals ({totals.count} tickets)</td>
-              {/* Passenger Name placeholder */}
-              <td className="px-4 py-3"></td>
-              {/* Paid Date placeholder for Paid view */}
-              {activeTable === 'paid' && <td className="px-4 py-3"></td>}
+              {/* Totals label spanning Account, Booking Date, Passenger (and Paid Date on paid view) */}
+              <td className="px-4 py-3" colSpan={activeTable === 'paid' ? 4 : 3}>Totals ({totals.count} tickets)</td>
+              {/* Ticket and Booking totals */}
               <td className="px-4 py-3">₹{Math.round(totals.ticketAmount).toLocaleString()}</td>
               <td className="px-4 py-3">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
+              {/* Refund total */}
+              <td className="px-4 py-3 text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
               {showProfit && (
                 <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
               )}
+              {/* PNR, Place, Actions placeholders */}
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>

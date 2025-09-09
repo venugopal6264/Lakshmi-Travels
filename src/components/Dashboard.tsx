@@ -80,18 +80,24 @@ export default function Dashboard({
     const totalBookingAmount = openTickets.reduce((sum, t) => sum + (t.ticketAmount || 0), 0);
     const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0);
     const totalProfitAfterRefunds = openTickets.reduce((sum, t) => sum + (t.profit - (t.refund || 0)), 0);
+    const totalRefundAmount = openTickets.reduce((sum, t) => sum + (t.refund || 0), 0);
+    const refundedTicketsCount = openTickets.filter(t => (t.refund || 0) > 0).length;
 
     // Calculate account breakdown (OPEN tickets only)
     const getAccountBreakdown = () => {
-        const accountTotals: Record<string, { amount: number; profit: number; count: number }> = {};
+        const accountTotals: Record<string, { amount: number; refund: number; due: number; profit: number; count: number }> = {};
         openTickets.forEach(ticket => {
-            if (!accountTotals[ticket.account]) {
-                accountTotals[ticket.account] = { amount: 0, profit: 0, count: 0 };
+            const acc = ticket.account;
+            if (!accountTotals[acc]) {
+                accountTotals[acc] = { amount: 0, refund: 0, due: 0, profit: 0, count: 0 };
             }
-            // amount: total Ticket Amount for open tickets
-            accountTotals[ticket.account].amount += (ticket.ticketAmount || 0);
-            accountTotals[ticket.account].profit += (ticket.profit - (ticket.refund || 0));
-            accountTotals[ticket.account].count += 1;
+            const amt = Number(ticket.ticketAmount || 0);
+            const ref = Number(ticket.refund || 0);
+            accountTotals[acc].amount += amt;
+            accountTotals[acc].refund += ref;
+            accountTotals[acc].due += Math.max(0, amt - ref);
+            accountTotals[acc].profit += Number(ticket.profit || 0) - ref;
+            accountTotals[acc].count += 1;
         });
         return accountTotals;
     };
@@ -253,9 +259,9 @@ export default function Dashboard({
                 </div>
 
                 {/* Dashboard widgets: OPEN tickets only */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-purple-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-purple-600">Total Booking Amount</h3>
+                        <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
                         <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalBookingAmount).toLocaleString()}</p>
                         <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
                     </div>
@@ -266,6 +272,11 @@ export default function Dashboard({
                     <div className="bg-green-50 p-4 rounded-lg">
                         <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
                         <p className="text-2xl font-bold text-green-900">₹{Math.round(totalProfitAfterRefunds).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg">
+                        <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
+                        <p className="text-2xl font-bold text-red-900">₹{Math.round(totalRefundAmount).toLocaleString()}</p>
+                        <p className="text-xs text-red-600">{refundedTicketsCount} tickets refunded</p>
                     </div>
                 </div>
 
@@ -282,6 +293,7 @@ export default function Dashboard({
                     dateRange={dateRange}
                     accountFilter={accountFilter}
                     onAccountFilterChange={setAccountFilter}
+                    view="open"
                 />
 
                 {/* Profit summary moved to Payment Tracker */}
@@ -299,6 +311,8 @@ export default function Dashboard({
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Account</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Tickets</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Total Amount</th>
+                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Refund</th>
+                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Amount Due</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -307,6 +321,8 @@ export default function Dashboard({
                                         <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">{account}</td>
                                         <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
                                         <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">₹{Math.round(totals.amount).toLocaleString()}</td>
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-orange-700">₹{Math.round(Math.max(0, totals.amount - totals.refund)).toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>

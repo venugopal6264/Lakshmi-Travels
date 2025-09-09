@@ -1,6 +1,7 @@
 import { Calendar, DollarSign, Download, Plane, Train, Bus, Layers } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
+import TicketTable from './TicketTable';
 
 interface PaymentTrackerProps {
   payments: ApiPayment[];
@@ -25,12 +26,16 @@ export default function PaymentTracker({
     account: ''
   });
 
-  // Local date filter (independent of Dashboard): default last 1 month
-  const toIso = (d: Date) => d.toISOString().split('T')[0];
+  // Local date filter (independent of Dashboard): default from Jan 1st of current year to today
+  const toIso = (d: Date) => {
+    // Normalize to local YYYY-MM-DD (avoid timezone shifting when using toISOString)
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off * 60000);
+    return local.toISOString().split('T')[0];
+  };
   const today = new Date();
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-  const [from, setFrom] = useState<string>(toIso(oneMonthAgo));
+  const janFirst = new Date(today.getFullYear(), 0, 1);
+  const [from, setFrom] = useState<string>(toIso(janFirst));
   const [to, setTo] = useState<string>(toIso(today));
   useEffect(() => {
     // Ensure from <= to
@@ -58,6 +63,21 @@ export default function PaymentTracker({
     if (toDate && payDate > toDate) return false;
     return true;
   });
+
+  // Build paid ticket IDs and paid dates for the filtered payments
+  const paidTicketIds = React.useMemo(() => dateFilteredPayments.flatMap(p => p.tickets || []), [dateFilteredPayments]);
+  const paidDates: Record<string, string> = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    dateFilteredPayments.forEach(p => {
+      const d = p.date;
+      (p.tickets || []).forEach(id => {
+        if (!map[id] || (new Date(d) > new Date(map[id]))) {
+          map[id] = d;
+        }
+      });
+    });
+    return map;
+  }, [dateFilteredPayments]);
 
   // Payments are listed below; add per-account widgets
 
@@ -232,6 +252,23 @@ export default function PaymentTracker({
       return bd - ad;
     });
   }, [dateFilteredPayments]);
+
+  // Helper to compute per-payment aggregates from its tickets
+  const aggregatesForPayment = React.useCallback((p: ApiPayment) => {
+    let ticketSum = 0;
+    let refundSum = 0;
+    let profitNetSum = 0;
+    let count = 0;
+    for (const id of p.tickets || []) {
+      const t = ticketById[id];
+      if (!t) continue;
+      ticketSum += Number(t.ticketAmount || 0);
+      refundSum += Number(t.refund || 0);
+      profitNetSum += Number(t.profit || 0) - Number(t.refund || 0);
+      count += 1;
+    }
+    return { ticketSum, refundSum, profitNetSum, count };
+  }, [ticketById]);
 
 
   const exportPaymentReport = () => {
@@ -451,6 +488,23 @@ export default function PaymentTracker({
         </div>
       </div>
 
+      {/* Paid Tickets Table (moved from Dashboard) */}
+      <div className="mt-6">
+        <TicketTable
+          tickets={dateFilteredTickets}
+          paidTickets={paidTicketIds}
+          paidDates={paidDates}
+          onDeleteTicket={async () => { /* deletion not managed from payments page */ }}
+          onUpdateTicket={async () => { /* updates handled on Dashboard for now */ }}
+          onProcessRefund={async () => { /* refunds handled on Dashboard for now */ }}
+          onMarkAsPaid={async () => { /* no-op on paid view */ }}
+          onBulkMarkAsPaid={async () => { /* no-op on paid view */ }}
+          loading={loading}
+          dateRange={{ from, to }}
+          view="paid"
+        />
+      </div>
+
       {showAddPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
@@ -546,7 +600,10 @@ export default function PaymentTracker({
                   <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
                   <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received Date</th>
                   <th className="px-3 py-2 text-left font-semibold uppercase">No. of Tickets</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Tickets Amount</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
+                  <th className="px-3 py-2 text-left font-semibold uppercase">Refund</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white">
@@ -563,13 +620,17 @@ export default function PaymentTracker({
                     else if (accs.size > 1) accLabel = 'Multiple';
                     else accLabel = '—';
                   }
+                  const agg = aggregatesForPayment(p);
                   const rowBg = idx % 2 === 0 ? 'bg-green-50' : 'bg-emerald-50';
                   return (
                     <tr key={p._id || idx} className={`${rowBg} hover:brightness-95`}>
                       <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
                       <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{(p.tickets || []).length}</td>
-                      <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(Number(p.amount || 0)).toLocaleString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{agg.count}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(agg.ticketSum - agg.refundSum).toLocaleString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(agg.ticketSum).toLocaleString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-emerald-800">₹{Math.round(agg.profitNetSum).toLocaleString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-red-700">₹{Math.round(agg.refundSum).toLocaleString()}</td>
                     </tr>
                   );
                 })}
@@ -577,8 +638,11 @@ export default function PaymentTracker({
                 <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold">
                   <td className="px-3 py-2">Totals</td>
                   <td className="px-3 py-2"></td>
-                  <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + (p.tickets?.length || 0), 0)}</td>
-                  <td className="px-3 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + Number(p.amount || 0), 0)).toLocaleString()}</td>
+                  <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).count, 0)}</td>
+                  <td className="px-3 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + (aggregatesForPayment(p).ticketSum - aggregatesForPayment(p).refundSum), 0)).toLocaleString()}</td>
+                  <td className="px-3 py-2">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).ticketSum, 0)).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-emerald-800">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).profitNetSum, 0)).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-red-700">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).refundSum, 0)).toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
