@@ -11,9 +11,10 @@ interface TicketFormProps {
   loading?: boolean;
   existingAccounts?: string[];
   existingServices?: string[];
+  existingPnrs?: string[]; // for duplicate PNR warning (non-blocking)
 }
 
-export default function TicketForm({ onAddTicket, onSave, mode = 'create', initial = null, heading, loading = false, existingAccounts = [], existingServices = [] }: TicketFormProps) {
+export default function TicketForm({ onAddTicket, onSave, mode = 'create', initial = null, heading, loading = false, existingAccounts = [], existingServices = [], existingPnrs = [] }: TicketFormProps) {
   // Helper to get today's date in YYYY-MM-DD (local) for <input type="date"/>
   const getToday = () => {
     const d = new Date();
@@ -33,7 +34,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     passengerName: string;
     place: string;
     pnr: string;
-  bookingAmount: string;
+    bookingAmount: string;
     refund: string;
     remarks: string;
   };
@@ -48,7 +49,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     passengerName: '',
     place: '',
     pnr: '',
-  bookingAmount: '',
+    bookingAmount: '',
     refund: '',
     remarks: ''
   };
@@ -103,7 +104,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
 
     const newErrors: Record<string, string> = {};
 
-  if (!formData.ticketAmount) newErrors.ticketAmount = 'Ticket amount is required';
+    if (!formData.ticketAmount) newErrors.ticketAmount = 'Ticket amount is required';
     if (!formData.profit) newErrors.profit = 'Profit is required';
     if (!formData.service) newErrors.service = 'Service is required';
     if (!formData.account) newErrors.account = 'Account is required';
@@ -111,7 +112,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     if (!formData.passengerName) newErrors.passengerName = 'Passenger name is required';
     if (!formData.place) newErrors.place = 'Place is required';
     if (!formData.pnr) newErrors.pnr = 'PNR is required';
-  if (!formData.bookingAmount) newErrors.bookingAmount = 'Booking amount is required';
+    if (!formData.bookingAmount) newErrors.bookingAmount = 'Booking amount is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -165,11 +166,11 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
       const next = { ...prev, [name]: value } as typeof prev;
 
       // Parse numbers safely
-  const fare = parseFloat(next.bookingAmount);
-  const amount = parseFloat(next.ticketAmount);
+      const fare = parseFloat(next.bookingAmount);
+      const amount = parseFloat(next.ticketAmount);
       const profit = parseFloat(next.profit);
-  const hasFare = next.bookingAmount !== '' && !Number.isNaN(fare);
-  const hasAmount = next.ticketAmount !== '' && !Number.isNaN(amount);
+      const hasFare = next.bookingAmount !== '' && !Number.isNaN(fare);
+      const hasAmount = next.ticketAmount !== '' && !Number.isNaN(amount);
       const hasProfit = next.profit !== '' && !Number.isNaN(profit);
 
       // Calculation precedence rules:
@@ -203,13 +204,13 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   };
 
   return (
-  <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
         {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         {heading || (mode === 'edit' ? 'Edit Ticket' : 'Add New Ticket')}
       </h2>
 
-  <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div data-testId="type-input">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -341,9 +342,12 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               placeholder="PNR or ticket number"
             />
             {errors.pnr && <p className="text-red-500 text-xs mt-1">{errors.pnr}</p>}
+            {mode === 'create' && formData.pnr && existingPnrs.some(p => p && p.toLowerCase() === formData.pnr.toLowerCase()) && !errors.pnr && (
+              <p className="text-red-600 text-xs mt-1 font-medium">PNR already exists</p>
+            )}
           </div>
 
-           <div data-testId="booking-fare-input">
+          <div data-testId="booking-fare-input">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Booking Amount *
             </label>
@@ -420,7 +424,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           </div>
         </div>
 
-  <div className="flex items-center justify-between pt-4 sticky bottom-0 bg-white border-t mt-6 py-4 z-10">
+        <div className="flex items-center justify-between pt-4 sticky bottom-0 bg-white border-t mt-6 py-4 z-10">
           <div className="flex items-center gap-2">
             <button
               type="button"

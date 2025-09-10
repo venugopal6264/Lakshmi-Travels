@@ -18,13 +18,6 @@ export interface Ticket {
   updatedAt?: string;
 }
 
-export interface ProfitSummary {
-  train: number;
-  bus: number;
-  flight: number;
-  total: number;
-  totalTickets: number;
-}
 
 export interface PaymentRecord {
   _id?: string;

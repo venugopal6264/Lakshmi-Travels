@@ -128,7 +128,8 @@ export default function PaymentTracker({
         considered.forEach((t) => {
           agg.booking += Number(t.bookingAmount || 0);
           agg.ticket += Number(t.ticketAmount || 0);
-          agg.profit += Number(t.profit || 0); // profit as stored
+          // Profit: ticketAmount - bookingAmount (ignore refunds)
+          agg.profit += (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
           agg.refund += Number(t.refund || 0);
           agg.count += 1;
         });
@@ -186,9 +187,9 @@ export default function PaymentTracker({
 
   // Profit by type for selected account scope
   const typeProfit = {
-    train: dateFilteredTickets.filter(t => t.type === 'train').reduce((s, t) => s + (t.profit - (t.refund || 0)), 0),
-    bus: dateFilteredTickets.filter(t => t.type === 'bus').reduce((s, t) => s + (t.profit - (t.refund || 0)), 0),
-    flight: dateFilteredTickets.filter(t => t.type === 'flight').reduce((s, t) => s + (t.profit - (t.refund || 0)), 0),
+    train: dateFilteredTickets.filter(t => t.type === 'train').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
+    bus: dateFilteredTickets.filter(t => t.type === 'bus').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
+    flight: dateFilteredTickets.filter(t => t.type === 'flight').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
   };
 
   // Monthly performance (tickets and profit per type)
@@ -215,7 +216,7 @@ export default function PaymentTracker({
           totalProfit: 0, totalTickets: 0,
         };
       }
-      const profitNet = Number(t.profit || 0) - Number(t.refund || 0);
+      const profitNet = (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
       map[key].totalProfit += profitNet;
       map[key].totalTickets += 1;
       if (t.type === 'train') { map[key].trainCount += 1; map[key].trainProfit += profitNet; }
@@ -264,7 +265,7 @@ export default function PaymentTracker({
       if (!t) continue;
       ticketSum += Number(t.ticketAmount || 0);
       refundSum += Number(t.refund || 0);
-      profitNetSum += Number(t.profit || 0) - Number(t.refund || 0);
+      profitNetSum += (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
       count += 1;
     }
     return { ticketSum, refundSum, profitNetSum, count };

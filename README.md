@@ -1,60 +1,62 @@
-# Travel Ticket Management System
+# Lakshmi Travels Operations Dashboard
 
-A comprehensive web application for managing travel tickets, tracking profits, and generating reports. Built with React.js frontend and Node.js/Express backend with MongoDB database.
+Unified internal dashboard for managing travel tickets, accounts/payments, refunds, vehicles & fuel/service logs, and exporting period/account reports. Frontend: React + TypeScript + Vite + Tailwind. Backend: Express + MongoDB (Mongoose). Auth via session cookie (JWT) with optional Auth0 integration.
 
 ![Travel Ticket Manager](https://images.pexels.com/photos/346885/pexels-photo-346885.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400&fit=crop)
 
-## 🚀 Features
+## 🚀 Core Features
 
-### ✈️ Ticket Management
-- **Multi-modal Support**: Handle train, bus, and flight tickets
-- **Comprehensive Data**: Track amount, profit, passenger details, PNR, fare, refunds, and remarks
-- **Real-time Validation**: Form validation with error handling
-- **Search & Filter**: Advanced filtering by ticket type and search functionality
-- **Sortable Columns**: Sort by date, amount, profit, passenger name, and type
+### Tickets & Accounts
+- Train / Bus / Flight support with passenger names, PNR, service (booking account), route/place, booking amount (base), ticket amount (booking + profit), profit auto‑derived, refund details, remarks.
+- Open vs Paid segregation: Dashboard shows only open (unpaid) tickets; Payment Tracker shows paid tickets.
+- Bulk mark-as-paid (by selection) with per-account preview.
+- Sticky totals row (open & paid tables) with aggregated Ticket Amount, Booking Amount, Refund, Profit.
+- Always-visible Profit column (profit = Ticket Amount – Booking Amount; refund does NOT reduce profit).
+- Duplicate PNR warning (non-blocking) when creating tickets.
 
-### 📊 Profit Tracking
-- **Live Dashboard**: Real-time profit summaries by transport type
-- **Visual Analytics**: Color-coded profit cards with icons
-- **Total Calculations**: Automatic calculation of total profits across all tickets
+### Payments
+- Payment History aggregates derived from linked tickets (Amount Received = Ticket Amount – Refund; does not trust manual payment amount field for per-ticket settlement logic).
+- Per-payment computed: ticket sum, refund sum, profit sum (again using ticketAmount-bookingAmount), count.
+- Account breakdown scopes: All / Open / Paid with dynamic due calculation.
 
-### 💰 Payment Management
-- **Payment Tracking**: Record payments made every 15 days
-- **Payment History**: Complete history with dates and periods
-- **Balance Calculation**: Automatic calculation of remaining amounts
-- **Payment Reports**: Export payment data to CSV
+### Vehicles & Fuel / Service
+- Multi-vehicle (car/bike) management with metadata (model, manufacturer month-year, buy date, capacity, notes, active flag).
+- Refueling & Service entries unified; mileage automatically computed from previous vs current odometer with distance & km/l display.
+- Stacked monthly bar chart (fuel vs service cost by vehicle type).
 
-### 📈 Reporting
-- **CSV Export**: Generate detailed reports in CSV format
-- **Custom Filename**: Auto-generated filenames with timestamps
-- **Comprehensive Data**: All ticket details included in reports
+### Reporting & Export
+- PDF ticket report (first page header only, page numbers, red text for refunded tickets).
+- CSV export (integer-only formatting) with totals & due rows.
+- All currency values integer-rounded for consistency across UI, PDF, CSV.
 
-### 🔒 Data Management
-- **MongoDB Integration**: Secure cloud database storage
-- **Real-time Sync**: Automatic synchronization between frontend and backend
-- **Data Persistence**: All data safely stored in MongoDB
-- **Error Handling**: Graceful error handling with user feedback
+### Auth & Security
+- Session cookie (JWT) auth wrapper; optional Auth0 OAuth code flow.
+- Protected API routes (`/api/tickets`, `/api/payments`, `/api/fuel`, `/api/vehicles`).
+- CORS configured for local dev + configurable client origin.
+
+### UI / UX Enhancements
+- Responsive tables with resizable Place column, passenger name wrapping.
+- Color-coded row states (refunds highlighted), gradient headers, sticky footers.
+- Accessible keyboard & screen-reader friendly form labels.
+
+### Removed / Deprecated
+- Legacy ProfitSummary aggregate endpoint & component (profit now derived client-side consistently).
+- Obsolete FuelTracker component replaced by VehicleDashboard.
 
 ## 🛠️ Technology Stack
 
 ### Frontend
-- **React.js 18** - Modern UI library
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first styling
-- **Lucide React** - Beautiful icons
-- **Vite** - Fast development server
+- React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons
+- jsPDF + autotable (on-demand dynamic import) & html2canvas for PDF/print exports
 
 ### Backend
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web application framework
-- **MongoDB** - NoSQL database
-- **Mongoose** - MongoDB object modeling
+- Express 5, Mongoose 8 (MongoDB)
+- JWT session cookie + optional Auth0 OAuth
+- Bcrypt for password fallback auth
 
-### Development Tools
-- **ESLint** - Code linting
-- **Concurrently** - Run multiple commands
-- **Nodemon** - Auto-restart server
-- **CORS** - Cross-origin resource sharing
+### Tooling
+- ESLint (flat config), TypeScript, Tailwind JIT, PostCSS Autoprefixer
+- Nodemon for backend dev
 
 ## 📋 Prerequisites
 
@@ -98,24 +100,26 @@ You can use either:
 - **MongoDB Atlas** (Cloud): Get connection string from [MongoDB Atlas](https://www.mongodb.com/atlas)
 - **Local MongoDB**: Use `mongodb://localhost:27017/travel-tickets`
 
-### 5. Start the Application
+### 5. Start the Application (Dev)
 ```bash
-# Start both frontend and backend
-npm run dev:full
+# Install root deps (frontend)
+npm install
 
-# Or start them separately:
-# Backend only
-npm run server
+# Install server deps
+cd server && npm install && cd ..
 
-# Frontend only (in another terminal)
+# Start backend
+cd server && npm run dev &
+
+# In another terminal start frontend (root)
 npm run dev
 ```
 
-## 🌐 Application URLs
+## 🌐 Local URLs
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5050/api
-- **Health Check**: http://localhost:5050/api/health
+- Frontend: http://localhost:5173
+- API Base: http://localhost:5050/api
+- Health: http://localhost:5050/api/health
 
 ## 📁 Project Structure
 
@@ -123,10 +127,10 @@ npm run dev
 travel-ticket-management/
 ├── src/                          # Frontend source code
 │   ├── components/               # React components
-│   │   ├── TicketForm.tsx       # Add new tickets
-│   │   ├── TicketTable.tsx      # Display tickets table
-│   │   ├── ProfitSummary.tsx    # Profit dashboard
-│   │   └── PaymentTracker.tsx   # Payment management
+│   │   ├── TicketForm.tsx        # Create / edit tickets (with duplicate PNR warning)
+│   │   ├── TicketTable.tsx       # Open / Paid tables with sticky totals
+│   │   ├── VehicleDashboard.tsx  # Vehicles & fuel/service tracking + charts
+│   │   └── PaymentTracker.tsx    # Payment history & account breakdown
 │   ├── hooks/                   # Custom React hooks
 │   │   └── useApi.ts           # API integration hooks
 │   ├── services/               # API service layer
@@ -152,55 +156,46 @@ travel-ticket-management/
 ## 🔌 API Endpoints
 
 ### Tickets
-- `GET /api/tickets` - Get all tickets
-- `POST /api/tickets` - Create new ticket
-- `PUT /api/tickets/:id` - Update ticket
-- `DELETE /api/tickets/:id` - Delete ticket
-- `GET /api/tickets/summary` - Get profit summary
+GET /api/tickets – list tickets
+POST /api/tickets – create ticket
+PUT /api/tickets/:id – update ticket / refund
+PUT /api/tickets/:id/refund – process refund
+DELETE /api/tickets/:id – delete ticket
 
 ### Payments
-- `GET /api/payments` - Get all payments
-- `POST /api/payments` - Create new payment
-- `DELETE /api/payments/:id` - Delete payment
+GET /api/payments – list payments
+POST /api/payments – create payment (tickets array may be empty initially)
+DELETE /api/payments/:id – delete payment
 
-### Health
-- `GET /api/health` - Server health check
+### Vehicles & Fuel
+GET /api/vehicles, POST /api/vehicles, PUT /api/vehicles/:id, DELETE /api/vehicles/:id?mode=soft|hard
+GET /api/fuel, POST /api/fuel, PUT /api/fuel/:id, DELETE /api/fuel/:id
+
+### Auth / Misc
+GET /api/auth/me – current session
+POST /api/auth/login – local credential login
+POST /api/auth/logout – clear session
+GET /api/health – server health
 
 ## 💡 Usage Guide
 
-### Adding a New Ticket
-1. Fill in all required fields in the "Add New Ticket" form
-2. Select ticket type (Train/Bus/Flight)
-3. Enter passenger details, PNR, amounts, and dates
-4. Click "Add Ticket" to save
-
-### Viewing Tickets
-- Use the search bar to find specific tickets
-- Filter by ticket type using the dropdown
-- Click column headers to sort data
-- Delete tickets using the trash icon
-
-### Managing Payments
-1. Click "Add Payment" in the Payment Tracker section
-2. Enter payment date, amount, and period
-3. View payment history and remaining balance
-4. Export payment reports as needed
-
-### Generating Reports
-- Click "Export Report" to download CSV file
-- Reports include all ticket details
-- Files are automatically named with timestamps
+### Workflow Highlights
+1. Create tickets (profit auto-updates when you edit booking or ticket amounts).
+2. Monitor open tickets on Dashboard; export filtered PDF/CSV per date range & account.
+3. Bulk mark selected open tickets as paid; view them in Payment Tracker.
+4. Record payments and analyze Amount Received vs Ticket Amount & Refund.
+5. Manage vehicles and add refueling/service entries; review mileage & cost trends.
+6. Use duplicate PNR warning to avoid accidental duplicates (still allowed when intentional).
 
 ## 🔧 Development
 
 ### Available Scripts
 ```bash
-npm run dev          # Start frontend development server
-npm run server       # Start backend server
-npm run dev:full     # Start both frontend and backend
-npm run build        # Build for production
-npm run lint         # Run ESLint
-npm run preview      # Preview production build
+npm run dev       # Frontend dev server
+npm run build     # Production build (frontend)
+npm run lint      # Lint
+npm run preview   # Preview dist build
+cd server && npm run dev  # Backend dev (from server folder)
 ```
 
 ### Adding New Features
@@ -254,10 +249,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **React Team** for the amazing framework
-- **MongoDB** for the robust database solution
-- **Tailwind CSS** for the utility-first styling
-- **Lucide** for the beautiful icons
+- React, Vite, Tailwind, Lucide, Mongoose
+- jsPDF & autotable for export utilities
 
 ## 📞 Support
 
@@ -268,4 +261,4 @@ For support and questions:
 
 ---
 
-**Built with ❤️ using React.js and MongoDB**
+**Built with ❤️ for internal operations efficiency**

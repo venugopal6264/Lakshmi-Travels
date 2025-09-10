@@ -25,7 +25,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     'Names',
     'PNR',
     'Place',
-  'Booking Amount',
+    'Booking Amount',
     'Refund',
     'Remarks'
   ];
@@ -40,7 +40,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     ticket.passengerName,
     ticket.pnr,
     ticket.place,
-  ticket.bookingAmount.toString(),
+    ticket.bookingAmount.toString(),
     ticket.refund.toString(),
     ticket.remarks || ''
   ]);
@@ -58,9 +58,9 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
-  'Total',
-  Math.round(totalBooking).toString(), // Booking Amount column
-  Math.round(totalRefund).toString(), // Refund column
+    'Total',
+    Math.round(totalBooking).toString(), // Booking Amount column
+    Math.round(totalRefund).toString(), // Refund column
     ''
   ];
 
@@ -70,8 +70,8 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
-  'Total Due',
-  Math.round(totalDue).toString(), // Place due in Booking Amount column for visibility
+    'Total Due',
+    Math.round(totalDue).toString(), // Place due in Booking Amount column for visibility
     '',
     ''
   ];
@@ -133,7 +133,7 @@ export const downloadPDFReport = async (
     'Names',
     'PNR',
     'Place',
-  'Ticket Amount',
+    'Ticket Amount',
     'Refund',
   ];
 
@@ -146,8 +146,8 @@ export const downloadPDFReport = async (
     t.passengerName,
     t.pnr,
     t.place,
-  Math.round(Number(t.ticketAmount) || 0).toString(),
-  Math.round(Number(t.refund) || 0).toString(),
+    Math.round(Number(t.ticketAmount) || 0).toString(),
+    Math.round(Number(t.refund) || 0).toString(),
   ]);
 
   const totalTicketAmount = sorted.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
@@ -222,16 +222,16 @@ export const downloadPDFReport = async (
       // Always draw footer page number
       drawFooter(currentPage);
     },
-    margin: { top:20, left: 20, right: 20, bottom: 20 },
+    margin: { top: 20, left: 20, right: 20, bottom: 20 },
     theme: 'grid',
   });
 
   // Totals table
   autoTable(doc, {
     body: [
-  // For 7 columns: [Date, Type, Names, PNR, Place, Fare, Refund]
-  [' ', ' ', ' ', ' ', 'Total', Math.round(totalTicketAmount).toString(), Math.round(totalRefund).toString()],
-  [' ', ' ', ' ', ' ', 'Total Due', Math.round(totalDue).toString(), ' ']
+      // For 7 columns: [Date, Type, Names, PNR, Place, Fare, Refund]
+      [' ', ' ', ' ', ' ', 'Total', Math.round(totalTicketAmount).toString(), Math.round(totalRefund).toString()],
+      [' ', ' ', ' ', ' ', 'Total Due', Math.round(totalDue).toString(), ' ']
     ],
     startY: (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
       ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
@@ -241,9 +241,9 @@ export const downloadPDFReport = async (
     theme: 'grid',
     margin: { left: 20, right: 20 },
     columnStyles: {
-  4: { fontStyle: 'bold' }, // label column (Place)
-  5: { fontStyle: 'bold' }, // Fare / Due value
-  6: { fontStyle: 'bold' }, // Refund value on the first row
+      4: { fontStyle: 'bold' }, // label column (Place)
+      5: { fontStyle: 'bold' }, // Fare / Due value
+      6: { fontStyle: 'bold' }, // Refund value on the first row
     },
   });
 

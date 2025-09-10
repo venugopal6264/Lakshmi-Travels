@@ -84,7 +84,7 @@ router.get('/summary', async (req, res) => {
                   {
                     $ifNull: [
                       '$total',
-                      { $multiply: [ { $ifNull: ['$liters', 0] }, { $ifNull: ['$pricePerLiter', 0] } ] },
+                      { $multiply: [{ $ifNull: ['$liters', 0] }, { $ifNull: ['$pricePerLiter', 0] }] },
                     ],
                   },
                   0,
@@ -94,7 +94,7 @@ router.get('/summary', async (req, res) => {
             serviceSpend: {
               $sum: {
                 $cond: [
-                  { $eq: ['$entryType', 'service'] },
+                  { $in: ['$entryType', ['service', 'repair']] },
                   { $ifNull: ['$total', 0] },
                   0,
                 ],

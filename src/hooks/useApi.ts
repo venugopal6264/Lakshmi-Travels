@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiPayment, apiService, ApiTicket, ProfitSummary, ApiFuel } from '../services/api';
+import { ApiPayment, apiService, ApiTicket, ApiFuel } from '../services/api';
 
 export function useTickets() {
   const [tickets, setTickets] = useState<ApiTicket[]>([]);
@@ -134,41 +134,6 @@ export function usePayments() {
   };
 }
 
-export function useProfitSummary() {
-  const [summary, setSummary] = useState<ProfitSummary>({
-    train: 0,
-    bus: 0,
-    flight: 0,
-    total: 0,
-    totalTickets: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchSummary = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.getProfitSummary();
-      setSummary(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch summary');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSummary();
-  }, []);
-
-  return {
-    summary,
-    loading,
-    error,
-    refetch: fetchSummary
-  };
-}
 
 export function useFuel() {
   const [fuel, setFuel] = useState<ApiFuel[]>([]);

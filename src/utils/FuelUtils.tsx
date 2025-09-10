@@ -9,7 +9,7 @@ export type FuelEntry = {
   id: string;
   date: string; // YYYY-MM-DD
   vehicle: VehicleType;
-  entryType: 'refueling' | 'service';
+  entryType: 'refueling' | 'service' | 'repair';
   odometer?: string;
   liters: string; // keep as string for inputs
   pricePerLiter: string;
@@ -22,8 +22,8 @@ export type MonthRow = {
   year: number;
   month: number; // 0-based
   label: string;
-  car: { liters: number; fuelSpend: number; serviceSpend: number };
-  bike: { liters: number; fuelSpend: number; serviceSpend: number };
+  car: { liters: number; fuelSpend: number; serviceSpend: number; repairSpend: number };
+  bike: { liters: number; fuelSpend: number; serviceSpend: number; repairSpend: number };
 };
 
 // NEW: dependency-free stacked monthly bar chart with tooltips
@@ -45,22 +45,26 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
   const data = useMemo(() => rows.slice().reverse().map(r => {
     const fuel = (r.car.fuelSpend || 0) + (r.bike.fuelSpend || 0);
     const service = (r.car.serviceSpend || 0) + (r.bike.serviceSpend || 0);
+    const repair = (r.car.repairSpend || 0) + (r.bike.repairSpend || 0);
     return {
       key: `${r.year}-${r.month}`,
       label: r.label,
       fuel,
       service,
-      total: fuel + service
+      repair,
+      total: fuel + service + repair
     };
   }), [rows]);
 
   const maxTotal = useMemo(() => Math.max(1, ...data.map(d => d.total)), [data]);
 
-  // Playful, punchy: Fuchsia (Fuel) + Emerald (Service)
+  // Playful palette: Fuel (Fuchsia), Service (Emerald), Repair (Rose)
   const fuelColor = '#d946ef';      // fuchsia-500
   const fuelStroke = '#a21caf';     // fuchsia-700
   const serviceColor = '#10b981';   // emerald-500
   const serviceStroke = '#047857';  // emerald-700
+  const repairColor = '#f43f5e';    // rose-500
+  const repairStroke = '#be123c';   // rose-700
 
   const barW = 28;
   const gap = 16;
@@ -110,6 +114,10 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
           <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: serviceColor, border: `1px solid ${serviceStroke}` }} />
           Service
         </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: repairColor, border: `1px solid ${repairStroke}` }} />
+          Repair
+        </span>
       </div>
       <div className="overflow-x-auto">
         <svg width={svgW} height={svgH}>
@@ -122,8 +130,10 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
               const w = barW * sx;
               const fuelH = d.total ? (d.fuel / maxTotal) * chartH : 0;
               const serviceH = d.total ? (d.service / maxTotal) * chartH : 0;
+              const repairH = d.total ? (d.repair / maxTotal) * chartH : 0;
               const fuelY = chartH - fuelH;
-              const serviceY = chartH - fuelH - serviceH;
+              const serviceY = fuelY - serviceH;
+              const repairY = serviceY - repairH;
               return (
                 <g key={d.key} transform={`translate(${x},0)`}>
                   {/* fuel segment (bottom) */}
@@ -152,11 +162,26 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
                     onMouseMove={(e) => onMove(e, `${d.label} • Service`, d.service)}
                     onMouseLeave={onLeave}
                   />
+                  {/* repair segment (top) */}
+                  {repairH > 0 && (
+                    <rect
+                      x={0}
+                      y={repairY}
+                      width={w}
+                      height={repairH}
+                      fill={repairColor}
+                      stroke={repairStroke}
+                      strokeWidth={0.75}
+                      rx={2}
+                      onMouseMove={(e) => onMove(e, `${d.label} • Repair`, d.repair)}
+                      onMouseLeave={onLeave}
+                    />
+                  )}
                   {/* NEW: total label on top of the bar */}
                   {d.total > 0 && (
                     <text
                       x={w / 2}
-                      y={Math.max(10, serviceY - 4)}
+                      y={Math.max(10, (repairH > 0 ? repairY : serviceY) - 4)}
                       textAnchor="middle"
                       fontSize="10"
                       fill="#374151"
@@ -218,7 +243,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
       const amt = typeof e.total === 'number' ? e.total : 0;
       total += amt;
       if (e.entryType === 'refueling') refuel += amt;
-      if (e.entryType === 'service') service += amt;
+      if (e.entryType === 'service' || e.entryType === 'repair') service += amt;
 
       if (typeof e.odometer === 'number') {
         if (prevOdo != null && e.odometer > prevOdo) distance += e.odometer - prevOdo;
@@ -245,6 +270,25 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
       expensePct: 0
     };
   }, [sorted]);
+
+  // Latest service or repair entry for this vehicle
+  const lastService = useMemo(() => {
+    const svc = sorted.filter(e => e.entryType === 'service' || e.entryType === 'repair');
+    if (!svc.length) return null;
+    // sorted is ascending by date, so last element with service/repair may not be at end if last entries are refueling; find max date
+    let latest = svc[0];
+    let latestTime = new Date(latest.date || 0).getTime();
+    for (const e of svc) {
+      const t = new Date(e.date || 0).getTime();
+      if (t > latestTime) { latest = e; latestTime = t; }
+    }
+    return latest;
+  }, [sorted]);
+  const lastServiceDaysAgo = useMemo(() => {
+    if (!lastService || !lastService.date) return null;
+    const ms = Date.now() - new Date(lastService.date).getTime();
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  }, [lastService]);
 
   const inr3 = (n = 0) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
 
@@ -279,7 +323,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
       {tab === 'general' && (
         <div>
           {/* Single colorful row: Cost, Refueling, Services, Distance */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             {/* Cost */}
             <div className="rounded-lg border p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
               <div className="flex items-center justify-between">
@@ -321,6 +365,25 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
               <div className="mt-1 text-3xl font-semibold text-sky-700">{Math.round(totals.distance).toLocaleString()} km</div>
               <div className="text-xs text-sky-600 mt-1">{Math.round(totals.distance / Math.max(1, totals.rangeDays))} km by day</div>
             </div>
+
+            {/* Last Service / Repair */}
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 col-span-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-rose-700 inline-flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-rose-600" /> Last Service
+                </span>
+              </div>
+              {lastService ? (
+                <div className="mt-1 space-y-1">
+                  <div className="text-lg font-semibold text-rose-700">{new Date(lastService.date!).toISOString().slice(0, 10)}</div>
+                  <div className="text-sm text-rose-700">₹{Math.round(Number(lastService.total) || 0).toLocaleString('en-IN')} • <span className="capitalize">{lastService.entryType}</span></div>
+                  {lastServiceDaysAgo != null && <div className="text-[11px] text-rose-600">{lastServiceDaysAgo === 0 ? 'Today' : `${lastServiceDaysAgo} day${lastServiceDaysAgo === 1 ? '' : 's'} ago`}</div>}
+                  {lastService.notes && <div className="text-[11px] text-rose-500 line-clamp-2">{lastService.notes}</div>}
+                </div>
+              ) : (
+                <div className="mt-1 text-sm text-rose-600">No service/repair yet</div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -331,12 +394,11 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             <thead className={vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600'}>
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Type</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Odometer</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Liters</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Price</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
                 {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>}
               </tr>
@@ -354,11 +416,11 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Type</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Odometer</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Liters</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Price</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
                 {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>}
               </tr>
@@ -462,8 +524,8 @@ export function FuelSummarySection(
           year: y,
           month: m,
           label: monthLabel(y, m),
-          car: { liters: 0, fuelSpend: 0, serviceSpend: 0 },
-          bike: { liters: 0, fuelSpend: 0, serviceSpend: 0 }
+          car: { liters: 0, fuelSpend: 0, serviceSpend: 0, repairSpend: 0 },
+          bike: { liters: 0, fuelSpend: 0, serviceSpend: 0, repairSpend: 0 }
         });
       }
       const row = map.get(key)!;
@@ -474,6 +536,8 @@ export function FuelSummarySection(
         if (typeof e.liters === 'number') target.liters += e.liters;
       } else if (e.entryType === 'service') {
         target.serviceSpend += total;
+      } else if (e.entryType === 'repair') {
+        target.repairSpend += total;
       }
     }
     return Array.from(map.values()).sort((a, b) =>
@@ -514,7 +578,12 @@ export function FuelTableBody({
   const list = useMemo(() => {
     const filtered = items.filter(i => {
       if (i.vehicle !== vehicle) return false;
-      if (onlyType && i.entryType !== onlyType) return false;
+      if (onlyType) {
+        if (onlyType === 'service') {
+          // service tab should show both service and repair records
+          if (!(i.entryType === 'service' || i.entryType === 'repair')) return false;
+        } else if (i.entryType !== onlyType) return false;
+      }
       if (vehicleId) return i.vehicleId === vehicleId;
       if (vehicleName) return (i.vehicleName || '').toLowerCase() === vehicleName.toLowerCase();
       return true;
@@ -530,12 +599,17 @@ export function FuelTableBody({
       olderOdo[i] = lastSeenOdo;
       if (typeof list[i].odometer === 'number') lastSeenOdo = list[i].odometer as number;
     }
-    const out: string[] = new Array(n).fill('');
+    type Row = { mileage: number | null; prev: number | null; curr: number | null };
+    const out: Row[] = new Array(n).fill(null).map(() => ({ mileage: null, prev: null, curr: null }));
     for (let i = 0; i < n; i++) {
       const e = list[i];
-      if (e.entryType === 'refueling' && typeof e.liters === 'number' && e.liters > 0 && typeof e.odometer === 'number' && typeof olderOdo[i] === 'number') {
-        const dist = (e.odometer as number) - (olderOdo[i] as number);
-        if (dist > 0) out[i] = (Math.round((dist / (e.liters as number)) * 100) / 100).toString();
+      const prev = olderOdo[i];
+      const curr = typeof e.odometer === 'number' ? e.odometer as number : null;
+      out[i].prev = prev;
+      out[i].curr = curr;
+      if (e.entryType === 'refueling' && typeof e.liters === 'number' && e.liters > 0 && typeof curr === 'number' && typeof prev === 'number') {
+        const dist = curr - prev;
+        if (dist > 0) out[i].mileage = dist / (e.liters as number);
       }
     }
     return out;
@@ -550,51 +624,80 @@ export function FuelTableBody({
   const typeBadge = (t: ApiFuel['entryType']) =>
     t === 'refueling'
       ? 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800'
-      : 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800';
+      : (t === 'service'
+        ? 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800'
+        : 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800');
 
   return (
     <>
       <tbody className={tbodyClass}>
-        {list.map((e, idx) => (
-          <tr key={e._id} className={rowClass}>
-            <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
-            <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.liters != null ? Math.round(Number(e.liters)).toLocaleString() : ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter != null ? Math.round(Number(e.pricePerLiter)).toLocaleString() : ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{e.total != null ? Math.round(Number(e.total)).toLocaleString() : ''}</td>
-            <td className="px-4 py-2 whitespace-nowrap">{mileageArr[idx] ? Math.round(Number(mileageArr[idx])).toString() : ''}</td>
-            <td className="px-4 py-2">{e.notes ?? ''}</td>
-            {(onEdit || onDelete) && (
-              <td className="px-4 py-2 whitespace-nowrap">
-                <div className="flex items-center gap-1.5">
-                  {onEdit && (
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center rounded p-1.5 text-indigo-600 hover:bg-indigo-50"
-                      title="Edit"
-                      aria-label="Edit"
-                      onClick={() => onEdit(e)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+        {list.map((e, idx) => {
+          const mileageCell = (
+            <td className="px-4 py-2 whitespace-nowrap">
+              {(() => {
+                const row = mileageArr[idx];
+                if (!row || row.mileage == null || row.prev == null || row.curr == null) return '';
+                const distance = row.curr - row.prev;
+                if (distance <= 0) return '';
+                return `${Math.round(distance).toLocaleString()} km - ${Math.round(row.mileage).toLocaleString()}`;
+              })()}
+            </td>
+          );
+          return (
+            <tr key={e._id} className={rowClass}>
+              <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
+              {onlyType ? (
+                <>
+                  {onlyType === 'service' && (
+                    <td className="px-4 py-2 whitespace-nowrap capitalize">
+                      <span className={typeBadge(e.entryType)}>{e.entryType}</span>
+                    </td>
                   )}
-                  {onDelete && (
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center rounded p-1.5 text-red-600 hover:bg-red-50"
-                      title="Delete"
-                      aria-label="Delete"
-                      onClick={() => setToDelete(e)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              </td>
-            )}
-          </tr>
-        ))}
+                  {mileageCell}
+                  <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
+                </>
+              ) : (
+                <>
+                  <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
+                  <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
+                </>
+              )}
+              <td className="px-4 py-2 whitespace-nowrap">{e.liters != null ? Math.round(Number(e.liters)).toLocaleString() : ''}</td>
+              <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter != null ? Math.round(Number(e.pricePerLiter)).toLocaleString() : ''}</td>
+              <td className="px-4 py-2 whitespace-nowrap">{e.total != null ? Math.round(Number(e.total)).toLocaleString() : ''}</td>
+              {!onlyType && mileageCell}
+              <td className="px-4 py-2">{e.notes ?? ''}</td>
+              {(onEdit || onDelete) && (
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="flex items-center gap-1.5">
+                    {onEdit && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded p-1.5 text-indigo-600 hover:bg-indigo-50"
+                        title="Edit"
+                        aria-label="Edit"
+                        onClick={() => onEdit(e)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded p-1.5 text-red-600 hover:bg-red-50"
+                        title="Delete"
+                        aria-label="Delete"
+                        onClick={() => setToDelete(e)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              )}
+            </tr>
+          );
+        })}
       </tbody>
       {toDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -653,7 +756,7 @@ export function FuelTableFooter({
       if (e.vehicle !== vehicle) continue;
       if (typeof e.total === 'number') {
         if (e.entryType === 'refueling') fuelTotal += e.total;
-        else if (e.entryType === 'service') serviceTotal += e.total;
+        else if (e.entryType === 'service' || e.entryType === 'repair') serviceTotal += e.total;
       }
     }
     return { fuelTotal, serviceTotal };
@@ -666,7 +769,7 @@ export function FuelTableFooter({
   return (
     <tfoot>
       <tr className={tClass}>
-        <td className="px-4 py-2" colSpan={5}>
+        <td className="px-4 py-2" colSpan={onlyType ? 6 : 5}>
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge}`}>Totals</span>
         </td>
         <td className="px-4 py-2 whitespace-nowrap align-top">
@@ -678,7 +781,7 @@ export function FuelTableFooter({
               </>
             )}
             {onlyType === 'refueling' && <div>Fuel: ₹{fmt(totals.fuelTotal)}</div>}
-            {onlyType === 'service' && <div>Service: ₹{fmt(totals.serviceTotal)}</div>}
+            {onlyType === 'service' && <div>Service/Repair: ₹{fmt(totals.serviceTotal)}</div>}
           </div>
         </td>
         <td className="px-4 py-2" colSpan={2}></td>

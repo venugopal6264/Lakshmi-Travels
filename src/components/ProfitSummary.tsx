@@ -1,6 +1,12 @@
 import { Bus, Plane, Train, TrendingUp } from 'lucide-react';
 import { Ticket } from '../types/ticket';
 
+// Extend Ticket shape locally to include numeric amount & fare used for profit calc
+interface TicketForProfit extends Ticket {
+  amount: number; // treated as ticket amount
+  fare: number;   // treated as booking amount
+}
+
 interface ProfitSummaryProps {
   tickets: Ticket[];
   dateRange: { from: string; to: string };
@@ -20,16 +26,15 @@ export default function ProfitSummary({ tickets, dateRange, loading = false }: P
   });
 
   // Calculate summary from filtered tickets
-  const summary = filteredTickets.reduce((acc, ticket) => {
-    acc[ticket.type] += ticket.profit;
-    acc.total += ticket.profit;
+  // Map legacy Ticket fields: amount ~ ticketAmount, fare ~ bookingAmount
+  const summary = (filteredTickets as TicketForProfit[]).reduce((acc, ticket) => {
+    const p = (Number(ticket.amount || 0) - Number(ticket.fare || 0));
+    if (ticket.type === 'train') acc.train += p;
+    else if (ticket.type === 'bus') acc.bus += p;
+    else if (ticket.type === 'flight') acc.flight += p;
+    acc.total += p;
     return acc;
-  }, {
-    train: 0,
-    bus: 0,
-    flight: 0,
-    total: 0
-  });
+  }, { train: 0, bus: 0, flight: 0, total: 0 });
 
   const totalTickets = filteredTickets.length;
 

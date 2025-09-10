@@ -32,6 +32,12 @@ export default function Dashboard({
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [accountFilter, setAccountFilter] = useState<string>('all');
+    // When clicking an account in the Account Breakdown table, set the filter
+    const handleSelectAccountFromBreakdown = (account: string) => {
+        if (!account) return;
+        setAccountFilter(account);
+        // Optionally could scroll into view of tickets table (future enhancement)
+    };
 
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
     const parseLocalDate = (s?: string) => {
@@ -79,7 +85,8 @@ export default function Dashboard({
     // KPI totals for OPEN tickets in the selected range
     const totalBookingAmount = openTickets.reduce((sum, t) => sum + (t.ticketAmount || 0), 0);
     const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0);
-    const totalProfitAfterRefunds = openTickets.reduce((sum, t) => sum + (t.profit - (t.refund || 0)), 0);
+    // Profit: ticketAmount - bookingAmount (refunds do NOT reduce profit)
+    const totalProfit = openTickets.reduce((sum, t) => sum + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0);
     const totalRefundAmount = openTickets.reduce((sum, t) => sum + (t.refund || 0), 0);
     const refundedTicketsCount = openTickets.filter(t => (t.refund || 0) > 0).length;
 
@@ -96,7 +103,7 @@ export default function Dashboard({
             accountTotals[acc].amount += amt;
             accountTotals[acc].refund += ref;
             accountTotals[acc].due += Math.max(0, amt - ref);
-            accountTotals[acc].profit += Number(ticket.profit || 0) - ref;
+            accountTotals[acc].profit += (Number(ticket.ticketAmount || 0) - Number(ticket.bookingAmount || 0));
             accountTotals[acc].count += 1;
         });
         return accountTotals;
@@ -153,6 +160,7 @@ export default function Dashboard({
     // Suggestions for TicketForm
     const existingAccounts = Array.from(new Set((tickets || []).map(t => t.account).filter(Boolean)));
     const existingServices = Array.from(new Set((tickets || []).map(t => t.service).filter(Boolean)));
+    const existingPnrs = Array.from(new Set((tickets || []).map(t => t.pnr).filter(Boolean)));
 
     const handleAddTicketFromModal = async (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
         await onAddTicket(ticket);
@@ -271,7 +279,7 @@ export default function Dashboard({
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                         <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
-                        <p className="text-2xl font-bold text-green-900">₹{Math.round(totalProfitAfterRefunds).toLocaleString()}</p>
+                        <p className="text-2xl font-bold text-green-900">₹{Math.round(totalProfit).toLocaleString()}</p>
                     </div>
                     <div className="bg-red-50 p-4 rounded-lg">
                         <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
@@ -279,24 +287,6 @@ export default function Dashboard({
                         <p className="text-xs text-red-600">{refundedTicketsCount} tickets refunded</p>
                     </div>
                 </div>
-
-                <TicketTable
-                    tickets={tickets}
-                    paidTickets={paidTicketIds}
-                    paidDates={paidDates}
-                    onDeleteTicket={onDeleteTicket}
-                    onUpdateTicket={onUpdateTicket}
-                    onProcessRefund={onProcessRefund}
-                    onMarkAsPaid={onMarkAsPaid}
-                    onBulkMarkAsPaid={onBulkMarkAsPaid}
-                    loading={loading}
-                    dateRange={dateRange}
-                    accountFilter={accountFilter}
-                    onAccountFilterChange={setAccountFilter}
-                    view="open"
-                />
-
-                {/* Profit summary moved to Payment Tracker */}
 
                 {/* Account Breakdown (OPEN tickets only) */}
                 <div className="bg-white rounded-lg shadow-md p-6">
@@ -317,8 +307,21 @@ export default function Dashboard({
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {Object.entries(accountBreakdown).map(([account, totals], idx) => (
-                                    <tr key={account} className={`transition-colors ${rowBgClasses[idx % rowBgClasses.length]}`}>
-                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">{account}</td>
+                                    <tr
+                                        key={account}
+                                        className={`transition-colors ${rowBgClasses[idx % rowBgClasses.length]} ${accountFilter === account ? 'ring-2 ring-orange-400' : ''}`}
+                                    >
+                                        <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectAccountFromBreakdown(account)}
+                                                className={`text-left hover:underline focus:outline-none ${accountFilter === account ? 'text-orange-700' : ''}`}
+                                                aria-label={`Filter tickets by account ${account}`}
+                                                title="Click to filter tickets by this account"
+                                            >
+                                                {account}
+                                            </button>
+                                        </td>
                                         <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
                                         <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">₹{Math.round(totals.amount).toLocaleString()}</td>
                                         <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
@@ -335,7 +338,24 @@ export default function Dashboard({
                     </div>
                 </div>
 
+                {/* OPEN tickets table */}
+                <TicketTable
+                    tickets={tickets}
+                    paidTickets={paidTicketIds}
+                    paidDates={paidDates}
+                    onDeleteTicket={onDeleteTicket}
+                    onUpdateTicket={onUpdateTicket}
+                    onProcessRefund={onProcessRefund}
+                    onMarkAsPaid={onMarkAsPaid}
+                    onBulkMarkAsPaid={onBulkMarkAsPaid}
+                    loading={loading}
+                    dateRange={dateRange}
+                    accountFilter={accountFilter}
+                    onAccountFilterChange={setAccountFilter}
+                    view="open"
+                />
 
+                {/*No Tickets - will display create tickets form */}
                 {tickets.length === 0 && !loading && (
                     <div className="text-center py-12">
                         <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
@@ -344,6 +364,7 @@ export default function Dashboard({
                     </div>
                 )}
             </div>
+
             {/* Create Ticket Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto">
@@ -358,6 +379,7 @@ export default function Dashboard({
                                 loading={loading}
                                 existingAccounts={existingAccounts}
                                 existingServices={existingServices}
+                                existingPnrs={existingPnrs}
                             />
                         </div>
                     </div>

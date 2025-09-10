@@ -59,7 +59,6 @@ export default function TicketTable({
   }, [view]);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
-  const [showProfit, setShowProfit] = useState<boolean>(false);
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [showConfirmBulk, setShowConfirmBulk] = useState<boolean>(false);
   // Resizable "Place" column width (md+ only)
@@ -158,12 +157,14 @@ export default function TicketTable({
   const totals = useMemo(() => {
     return filteredTickets.reduce(
       (acc, t) => {
+        const ticketAmt = Number(t.ticketAmount || 0);
+        const bookingAmt = Number(t.bookingAmount || 0);
         acc.count += 1;
-        acc.ticketAmount += Number(t.ticketAmount || 0);
-        acc.bookingAmount += Number(t.bookingAmount || 0);
+        acc.ticketAmount += ticketAmt;
+        acc.bookingAmount += bookingAmt;
         acc.refund += Number(t.refund || 0);
-        // profit after refund
-        acc.profit += Number(t.profit || 0) - Number(t.refund || 0);
+        // Profit definition: ticket amount - booking amount (refunds do NOT reduce profit)
+        acc.profit += (ticketAmt - bookingAmt);
         return acc;
       },
       { count: 0, ticketAmount: 0, bookingAmount: 0, profit: 0, refund: 0 }
@@ -274,7 +275,7 @@ export default function TicketTable({
         </div>
       </div>
 
-      {/* Table Toggle (hidden when view is fixed) */}
+      {/* Table Toggle (hidden when view is fixed) - profit always shown now */}
       {view === 'both' && (
         <div className="flex flex-wrap gap-2 mb-4">
           <button
@@ -297,17 +298,6 @@ export default function TicketTable({
             <CheckCircle className="w-4 h-4" />
             Paid Tickets ({paidTicketsData.length})
           </button>
-          <div className="ml-auto flex items-center gap-2">
-            <label className="inline-flex items-center gap-2 text-sm text-blue-700">
-              <input
-                type="checkbox"
-                checked={showProfit}
-                onChange={(e) => setShowProfit(e.target.checked)}
-                className="rounded border-blue-300 accent-blue-600 focus:ring-blue-500"
-              />
-              Show Profit
-            </label>
-          </div>
         </div>
       )}
 
@@ -363,7 +353,7 @@ export default function TicketTable({
         </div>
       </div>
 
-      <div className={`overflow-x-auto overflow-y-auto ${activeTable === 'open' ? 'max-h-[78vh]' : 'max-h-[60vh]'} relative pb-12`}>
+      <div className={`overflow-x-auto overflow-y-auto max-h-[60vh] relative pb-12`}>
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -441,15 +431,13 @@ export default function TicketTable({
               >
                 Refund {sortField === 'refund' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              {/* Profit (hide on xs) */}
-              {showProfit && (
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('profit')}
-                >
-                  Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </th>
-              )}
+              {/* Profit */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('profit')}
+              >
+                Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
               {/* PNR */}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 PNR
@@ -536,12 +524,10 @@ export default function TicketTable({
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-red-600">
                   {Number(ticket.refund || 0) > 0 ? `₹${Math.round(Number(ticket.refund)).toLocaleString()}` : '₹0'}
                 </td>
-                {/* Profit */}
-                {showProfit && (
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                    ₹{Math.round(ticket.profit - (ticket.refund || 0)).toLocaleString()}
-                  </td>
-                )}
+                {/* Profit (ticketAmount - bookingAmount; refund ignored) */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                  ₹{Math.round(Number(ticket.ticketAmount || 0) - Number(ticket.bookingAmount || 0)).toLocaleString()}
+                </td>
                 {/* PNR */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                   {ticket.pnr}
@@ -593,9 +579,7 @@ export default function TicketTable({
               <td className="px-4 py-3">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
               {/* Refund total */}
               <td className="px-4 py-3 text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
-              {showProfit && (
-                <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
-              )}
+              <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
               {/* PNR, Place, Actions placeholders */}
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
@@ -633,7 +617,7 @@ export default function TicketTable({
               {`Account: ${confirmDeleteTicket.account} | Type: ${confirmDeleteTicket.type}
 Booking: ${formatDate(confirmDeleteTicket.bookingDate)} | Passenger: ${confirmDeleteTicket.passengerName}
 PNR: ${confirmDeleteTicket.pnr} | Place: ${confirmDeleteTicket.place}
-Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLocaleString()} | Booking: \u20B9${Math.round(Number(confirmDeleteTicket.bookingAmount || 0)).toLocaleString()} | Profit: \u20B9${Math.round(confirmDeleteTicket.profit).toLocaleString()}${confirmDeleteTicket.refund ? ` | Refunded: \u20B9${Math.round(confirmDeleteTicket.refund)}` : ''}`}
+Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLocaleString()} | Booking: \u20B9${Math.round(Number(confirmDeleteTicket.bookingAmount || 0)).toLocaleString()} | Profit: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0) - Number(confirmDeleteTicket.bookingAmount || 0)).toLocaleString()}${confirmDeleteTicket.refund ? ` | Refunded: \u20B9${Math.round(confirmDeleteTicket.refund)}` : ''}`}
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button

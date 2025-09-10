@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Car, Plus, Settings } from 'lucide-react';
+import { Car, Fuel as FuelIcon, Bike, Info } from 'lucide-react';
 import { ApiFuel, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
 import { FuelSummarySection, VehicleDash, VehicleType } from '../utils/FuelUtils';
@@ -19,6 +19,112 @@ type VehicleDoc = {
     chassisNumber?: string;
     notes?: string;
 };
+
+function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel: ApiFuel[] }) {
+    // Single-open accordion behavior
+    const [openId, setOpenId] = useState<string | null>(null);
+    const toggle = (id: string) => setOpenId(curr => (curr === id ? null : id));
+    const cards = useMemo(() => {
+        return vehicles.map(v => {
+            // Only consider 'service' entries (exclude 'repair' per requirement)
+            const serviceEntries = fuel.filter(f => f.vehicle === v.type && f.vehicleId === v._id && f.entryType === 'service');
+            if (!serviceEntries.length) return { vehicle: v, last: null as ApiFuel | null, sinceKm: null as number | null };
+            // Find latest service by date
+            let latest = serviceEntries[0];
+            let latestTime = new Date(latest.date || 0).getTime();
+            for (const e of serviceEntries) {
+                const t = new Date(e.date || 0).getTime();
+                if (t > latestTime) { latest = e; latestTime = t; }
+            }
+            // Compute km since last service: latest refueling odometer AFTER the service - service odometer
+            let sinceKm: number | null = null;
+            const serviceOdo = typeof latest.odometer === 'number' ? latest.odometer : null;
+            if (serviceOdo != null && latest.date) {
+                const serviceTime = new Date(latest.date).getTime();
+                let latestFuelOdo: number | null = null;
+                let latestFuelTime = -1;
+                for (const e of fuel) {
+                    if (e.vehicle !== v.type || e.vehicleId !== v._id) continue;
+                    if (e.entryType !== 'refueling') continue;
+                    if (!e.date) continue;
+                    const t = new Date(e.date).getTime();
+                    if (t < serviceTime) continue; // only after (or same day) as service
+                    if (typeof e.odometer !== 'number') continue;
+                    if (t > latestFuelTime) { latestFuelTime = t; latestFuelOdo = e.odometer; }
+                }
+                if (latestFuelOdo != null) {
+                    sinceKm = latestFuelOdo - serviceOdo;
+                    if (sinceKm < 0) sinceKm = 0; // guard for resets
+                } else {
+                    sinceKm = 0; // no refueling after service yet
+                }
+            }
+            return { vehicle: v, last: latest, sinceKm };
+        });
+    }, [vehicles, fuel]);
+    const today = Date.now();
+    return (
+        <div className="mb-4">
+            <h3 className="mb-3 text-sm font-semibold text-gray-700">Last Service Overview</h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {cards.map(c => {
+                    const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : null;
+                    const daysAgo = c.last?.date ? Math.floor((today - new Date(c.last.date).getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const bg = c.vehicle.type === 'car' ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-green-50 to-green-100 border-green-200';
+                    return (
+                        <div key={c.vehicle._id} className={`relative rounded-lg border p-4 bg-gradient-to-br ${bg}`}>
+                            <div className="flex items-start justify-between gap-2">
+                                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    {c.vehicle.type === 'car' ? <Car className="h-4 w-4 text-amber-600" /> : <Bike className="h-4 w-4 text-amber-600" />}
+                                    {c.vehicle.name}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => toggle(c.vehicle._id)}
+                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition ${openId === c.vehicle._id ? 'bg-white/70 text-gray-700' : 'text-gray-600 hover:bg-white/50'}`}
+                                    title={openId === c.vehicle._id ? 'Hide info' : 'Show info'}
+                                >
+                                    <Info className="h-3 w-3" /> {openId === c.vehicle._id ? 'Hide' : 'Info'}
+                                </button>
+                            </div>
+                            {c.last ? (
+                                <div className="mt-1 space-y-1">
+                                    <div className="text-lg font-semibold text-gray-800">
+                                        {dStr}
+                                        {daysAgo != null && (
+                                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                                ({daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`})
+                                            </span>
+                                        )}
+                                    </div>
+                                    {typeof c.last.odometer === 'number' && (
+                                        <div className="text-xs text-gray-600">Odometer: {Math.round(c.last.odometer).toLocaleString()} km</div>
+                                    )}
+                                    {c.sinceKm != null && (
+                                        <div className="text-xs text-gray-600">Since service: {Math.round(c.sinceKm).toLocaleString()} km</div>
+                                    )}
+                                    <div className={`border-t border-dashed border-gray-300 text-[11px] leading-tight space-y-1 overflow-hidden transition-all duration-300 ease-in-out ${openId === c.vehicle._id ? 'max-h-64 opacity-100 mt-2 pt-2' : 'max-h-0 opacity-0'}`}
+                                        aria-hidden={openId === c.vehicle._id ? 'false' : 'true'}>
+                                        {c.vehicle.model && <div><span className="text-gray-500">Model: </span>{c.vehicle.model}</div>}
+                                        {c.vehicle.manufacturerDate && <div><span className="text-gray-500">Mfg: </span>{new Date(c.vehicle.manufacturerDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</div>}
+                                        {c.vehicle.buyDate && <div><span className="text-gray-500">Buy: </span>{String(c.vehicle.buyDate).slice(0, 10)}</div>}
+                                        {c.vehicle.fuelType && <div><span className="text-gray-500">Fuel: </span>{c.vehicle.fuelType}</div>}
+                                        {c.vehicle.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span>{c.vehicle.fuelCapacity} L</div>}
+                                        {c.vehicle.licensePlate && <div><span className="text-gray-500">Plate: </span>{c.vehicle.licensePlate}</div>}
+                                        {c.vehicle.chassisNumber && <div><span className="text-gray-500">Chassis: </span>{c.vehicle.chassisNumber}</div>}
+                                        {c.vehicle.notes && <div className="line-clamp-2"><span className="text-gray-500">Notes: </span>{c.vehicle.notes}</div>}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-1 text-sm text-gray-500 italic">No record</div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 
 export default function VehicleDashboard() {
@@ -132,7 +238,7 @@ export default function VehicleDashboard() {
                             className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-emerald-600 hover:to-teal-600 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
                             title="Add new entry"
                         >
-                            <Plus className="w-4 h-4" />
+                            <FuelIcon className="w-4 h-4" />
                             Add New
                         </button>
                         <button
@@ -140,7 +246,7 @@ export default function VehicleDashboard() {
                             className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-indigo-600 hover:to-blue-700 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
                             title="Manage vehicles"
                         >
-                            <Settings className="w-4 h-4" />
+                            <Car className="w-4 h-4" />
                             Manage
                         </button>
                         <button
@@ -148,13 +254,17 @@ export default function VehicleDashboard() {
                             className="bg-gradient-to-r from-lime-500 to-green-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-lime-600 hover:to-green-700 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
                             title="Add vehicle"
                         >
-                            <Plus className="w-4 h-4" />
-                            Add vehicle
+                            <Car className="w-4 h-4" />
+                            Add Vehicle
                         </button>
                     </div>
                 </div>
             </div>
             <div className="p-6">
+                {/* All Vehicles - Last Service / Repair Overview (per-card expandable info) */}
+                {vehicles.length > 0 && (
+                    <LastServiceOverview vehicles={vehicles} fuel={fuel} />
+                )}
                 {/* Toolbar: Vehicle and Period selectors */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end mb-4">
                     <div className="md:col-span-1">
@@ -211,6 +321,7 @@ export default function VehicleDashboard() {
                         )}
                     </div>
                 </div>
+
 
 
                 {/* VEHICLE TABS (Car | Bike) */}
@@ -628,6 +739,7 @@ function FuelEntryModal({ initial, defaultVehicle, vehicles, onClose, onSave }: 
                         <select className="w-full px-3 py-2 border rounded-md" value={entryType} onChange={e => setEntryType(e.target.value as ApiFuel['entryType'])}>
                             <option value="refueling">Refueling</option>
                             <option value="service">Service</option>
+                            <option value="repair">Repair</option>
                         </select>
                     </div>
                     <div>
@@ -650,9 +762,9 @@ function FuelEntryModal({ initial, defaultVehicle, vehicles, onClose, onSave }: 
                             </div>
                         </>
                     )}
-                    {entryType === 'service' && (
+                    {(entryType === 'service' || entryType === 'repair') && (
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Service Amount (₹)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{entryType === 'service' ? 'Service' : 'Repair'} Amount (₹)</label>
                             <input type="number" className="w-full px-3 py-2 border rounded-md" value={total} onChange={e => setTotal(e.target.value)} />
                         </div>
                     )}

@@ -8,7 +8,7 @@ const fuelSchema = new mongoose.Schema(
     // optional linkage to named vehicle
     vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: false },
     vehicleName: { type: String, required: false, default: '' },
-    entryType: { type: String, enum: ['refueling', 'service'], required: true },
+    entryType: { type: String, enum: ['refueling', 'service', 'repair'], required: true },
     odometer: { type: Number, required: false, default: null },
     liters: { type: Number, required: false, default: null },
     pricePerLiter: { type: Number, required: false, default: null },

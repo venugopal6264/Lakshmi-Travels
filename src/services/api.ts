@@ -35,13 +35,6 @@ export interface ApiPayment {
   updatedAt?: string;
 }
 
-export interface ProfitSummary {
-  train: number;
-  bus: number;
-  flight: number;
-  total: number;
-  totalTickets: number;
-}
 
 export interface ApiFuel {
   _id?: string;
@@ -49,7 +42,7 @@ export interface ApiFuel {
   vehicle: 'car' | 'bike';
   vehicleId?: string | null;
   vehicleName?: string | null;
-  entryType: 'refueling' | 'service';
+  entryType: 'refueling' | 'service' | 'repair';
   odometer?: number | null;
   liters?: number | null;
   pricePerLiter?: number | null;
@@ -128,9 +121,6 @@ class ApiService {
     });
   }
 
-  async getProfitSummary(): Promise<ProfitSummary> {
-    return this.request<ProfitSummary>('/tickets/summary');
-  }
 
   // Payment API methods
   async getPayments(): Promise<ApiPayment[]> {
