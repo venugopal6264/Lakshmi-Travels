@@ -66,13 +66,13 @@ function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel:
     return (
         <div className="mb-4">
             <h3 className="mb-3 text-sm font-semibold text-gray-700">Last Service Overview</h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-6 lg:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cards.map(c => {
                     const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : null;
                     const daysAgo = c.last?.date ? Math.floor((today - new Date(c.last.date).getTime()) / (1000 * 60 * 60 * 24)) : null;
                     const bg = c.vehicle.type === 'car' ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-green-50 to-green-100 border-green-200';
                     return (
-                        <div key={c.vehicle._id} className={`relative rounded-lg border p-4 bg-gradient-to-br ${bg}`}>
+                        <div key={c.vehicle._id} className={`relative rounded-lg border p-4 bg-gradient-to-br border-t-4 ${bg} ${c.vehicle.type === 'car' ? 'border-t-blue-500' : 'border-t-green-500'}`}>
                             <div className="flex items-start justify-between gap-2">
                                 <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                     {c.vehicle.type === 'car' ? <Car className="h-4 w-4 text-amber-600" /> : <Bike className="h-4 w-4 text-amber-600" />}

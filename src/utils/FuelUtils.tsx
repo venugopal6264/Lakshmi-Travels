@@ -26,6 +26,257 @@ export type MonthRow = {
   bike: { liters: number; fuelSpend: number; serviceSpend: number; repairSpend: number };
 };
 
+// Simple INR formatter used across charts
+const fmtINR = (n: number) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
+
+// Short number formatter for axis ticks (e.g., 24.8k, 1.2M)
+const fmtShort = (n: number) => {
+  const abs = Math.abs(n);
+  if (abs >= 1e7) return `${Math.round(n / 1e6)}M`;
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (abs >= 1e4) return `${Math.round(n / 1e3)}k`;
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(1)}k`;
+  return Math.round(n).toLocaleString();
+};
+
+// Compact month label e.g., Jan ’25
+const fmtMonthYY = (ts: number) => {
+  const d = new Date(ts);
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${month} ’${yy}`;
+};
+
+/** Donut chart: compares Refueling vs Service totals */
+function CostComparisonDonut({ items }: { items: ApiFuel[] }) {
+  // Measure container for responsive sizing
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [containerW, setContainerW] = useState(0);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setContainerW(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Tooltip state
+  const [tip, setTip] = useState<{ x: number; y: number; label: string; value: string } | null>(null);
+  const showTip = (e: React.MouseEvent, label: string, value: number) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    const x = e.clientX - (rect?.left ?? 0) + 8;
+    const y = e.clientY - (rect?.top ?? 0) - 28;
+    setTip({ x, y, label, value: fmtINR(value) });
+  };
+  const hideTip = () => setTip(null);
+
+  const data = useMemo(() => {
+    let refuel = 0, service = 0;
+    for (const e of items) {
+      const t = typeof e.total === 'number' ? e.total : 0;
+      if (e.entryType === 'refueling') refuel += t;
+      else if (e.entryType === 'service' || e.entryType === 'repair') service += t;
+    }
+    const total = refuel + service;
+    return {
+      parts: [
+        { key: 'Refueling', value: refuel, color: '#10b981' }, // emerald-500
+        { key: 'Service', value: service, color: '#1a80bb' },  // user-specified blue
+      ], total
+    } as const;
+  }, [items]);
+
+  // Responsive size (min 180, max 360)
+  const size = Math.max(180, Math.min(containerW || 220, 360));
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.36; // ring radius ~36% of size
+  const strokeW = Math.max(16, Math.min(size * 0.13, 36)); // thickness scales with size
+  const C = 2 * Math.PI * r;
+  let offset = 0;
+
+  // Avoid NaNs in stroke-dasharray when total is 0
+  const safeTotal = data.total > 0 ? data.total : 1;
+
+  return (
+    <div ref={wrapRef} className="relative flex flex-col items-center w-full">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* base track */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeW} />
+        {data.parts.map((p) => {
+          const seg = (p.value / safeTotal) * C;
+          const dash = `${seg} ${C - seg}`;
+          const rotation = (offset / C) * 360 - 90; // start at top
+          offset += seg;
+          return (
+            <g key={p.key} transform={`rotate(${rotation}, ${cx}, ${cy})`}>
+              <circle
+                cx={cx}
+                cy={cy}
+                r={r}
+                fill="none"
+                stroke={p.color}
+                strokeWidth={strokeW}
+                strokeDasharray={dash}
+                strokeLinecap="butt"
+                onMouseMove={(e) => { if (p.value > 0) showTip(e, p.key, p.value); }}
+                onMouseLeave={hideTip}
+              />
+            </g>
+          );
+        })}
+        {/* center label */}
+        <text x={cx} y={cy - 6} textAnchor="middle" fontSize="12" fill="#374151">Total</text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="16" fontWeight={600} fill="#111827">{fmtINR(data.total)}</text>
+      </svg>
+      {/* legend */}
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-700">
+        {data.parts.map(p => (
+          <span key={p.key} className="inline-flex items-center gap-2">
+            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: p.color }} />
+            {p.key} - {fmtINR(p.value)}
+          </span>
+        ))}
+      </div>
+      {tip && (
+        <div className="pointer-events-none absolute z-10 rounded border bg-white px-2 py-1 text-[10px] shadow-sm" style={{ left: tip.x, top: tip.y }}>
+          <div className="font-medium text-gray-800">{tip.label}</div>
+          <div className="text-gray-700">{tip.value}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Odometer line chart: plots odometer vs date with simple grid */
+function OdometerLine({ items }: { items: ApiFuel[] }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [containerW, setContainerW] = useState(0);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setContainerW(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const [tip, setTip] = useState<{ x: number; y: number; title: string; value: string } | null>(null);
+  const [cross, setCross] = useState<{ x: number; y: number } | null>(null);
+  const show = (e: React.MouseEvent, title: string, value: string) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    const x = e.clientX - (rect?.left ?? 0) + 8;
+    const y = e.clientY - (rect?.top ?? 0) - 28;
+    setTip({ x, y, title, value });
+  };
+  const hide = () => setTip(null);
+
+  const points = useMemo(() => {
+    const withOdo = items.filter(e => typeof e.odometer === 'number' && !!e.date).map(e => ({
+      x: new Date(e.date!).getTime(),
+      y: Number(e.odometer)
+    }));
+    const sorted = withOdo.sort((a, b) => a.x - b.x);
+    return sorted;
+  }, [items]);
+
+  const width = Math.max(300, Math.min(containerW || 420, 1000));
+  const height = 200;
+  const pad = { l: 40, r: 12, t: 12, b: 4 };
+  const innerW = width - pad.l - pad.r;
+  const innerH = height - pad.t - pad.b;
+
+  if (points.length === 0) return <div className="text-sm text-gray-500">No odometer data</div>;
+
+  const minX = points[0].x;
+  const maxX = points[points.length - 1].x;
+  const minY = Math.min(...points.map(p => p.y));
+  const maxY = Math.max(...points.map(p => p.y));
+  const spanX = Math.max(1, maxX - minX);
+  const spanY = Math.max(1, maxY - minY);
+  // add small padding so the path doesn't hug the edges
+  const xPad = spanX * 0.03;
+  const yPad = Math.max(1, spanY * 0.07);
+  const minXp = minX - xPad;
+  const maxXp = maxX + xPad;
+  const minYp = Math.max(0, minY - yPad);
+  const maxYp = maxY + yPad;
+  const spanXp = Math.max(1, maxXp - minXp);
+  const spanYp = Math.max(1, maxYp - minYp);
+  const x = (vx: number) => pad.l + ((vx - minXp) / spanXp) * innerW;
+  const y = (vy: number) => pad.t + innerH - ((vy - minYp) / spanYp) * innerH;
+
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.x)} ${y(p.y)}`).join(' ');
+
+  // horizontal gridlines (5)
+  const ticks = 5;
+  const yTicks = new Array(ticks).fill(0).map((_, i) => minYp + (i * spanYp) / (ticks - 1));
+
+  // Helpers
+  const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+  const onMove = (e: React.MouseEvent) => {
+    if (points.length === 0) return;
+    const rect = (e.currentTarget as SVGRectElement).ownerSVGElement?.getBoundingClientRect();
+    const mx = e.clientX - (rect?.left ?? 0);
+    const cx = clamp(mx, pad.l, width - pad.r);
+    // find nearest point by x distance in screen coords
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const sx = x(points[i].x);
+      const d = Math.abs(sx - cx);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    const px = x(points[bestIdx].x);
+    const py = y(points[bestIdx].y);
+    setCross({ x: px, y: py });
+    show(e, new Date(points[bestIdx].x).toISOString().slice(0, 10), `${Math.round(points[bestIdx].y).toLocaleString()} km`);
+  };
+  const onLeave = () => { setCross(null); hide(); };
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <div className="mb-2 flex items-center gap-2 text-xs text-gray-600"><span className="h-0.5 w-6 bg-cyan-500" />Odometer (km)</div>
+      <svg width={width} height={height}>
+        {/* grid */}
+        {yTicks.map((ty, i) => (
+          <g key={i}>
+            <line x1={pad.l} y1={y(ty)} x2={width - pad.r} y2={y(ty)} stroke="#e5e7eb" strokeWidth={1} />
+            <text x={pad.l - 6} y={y(ty)} textAnchor="end" dominantBaseline="middle" fontSize="10" fill="#6b7280">{fmtShort(ty)}</text>
+          </g>
+        ))}
+        {/* line */}
+        <path d={d} fill="none" stroke="#06b6d4" strokeWidth={2.5} />
+        {/* points */}
+        {points.map((p, i) => (
+          <circle key={i} cx={x(p.x)} cy={y(p.y)} r={2.5} fill="#06b6d4" />
+        ))}
+        {/* crosshair */}
+        {cross && (
+          <g>
+            <line x1={cross.x} y1={pad.t} x2={cross.x} y2={pad.t + innerH} stroke="#94a3b8" strokeDasharray="3,3" />
+            <circle cx={cross.x} cy={cross.y} r={3} fill="#06b6d4" />
+          </g>
+        )}
+        {/* x-axis ticks (min/mid/max) */}
+        {([minX, minX + spanX / 2, maxX] as number[]).map((tx, i) => (
+          <text key={i} x={x(tx)} y={height - 1} textAnchor="middle" fontSize="10" fill="#6b7280">{fmtMonthYY(tx)}</text>
+        ))}
+        {/* hover overlay */}
+        <rect x={pad.l} y={pad.t} width={innerW} height={innerH} fill="transparent" onMouseMove={onMove} onMouseLeave={onLeave} />
+      </svg>
+      {tip && (
+        <div className="pointer-events-none absolute z-10 rounded border bg-white px-2 py-1 text-[10px] shadow-sm" style={{ left: tip.x, top: tip.y }}>
+          <div className="font-medium text-gray-800">{tip.title}</div>
+          <div className="text-gray-700">{tip.value}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // NEW: dependency-free stacked monthly bar chart with tooltips
 export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -46,9 +297,12 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
     const fuel = (r.car.fuelSpend || 0) + (r.bike.fuelSpend || 0);
     const service = (r.car.serviceSpend || 0) + (r.bike.serviceSpend || 0);
     const repair = (r.car.repairSpend || 0) + (r.bike.repairSpend || 0);
+    const monthShort = new Date(r.year, r.month, 1).toLocaleString('en-US', { month: 'short' });
     return {
       key: `${r.year}-${r.month}`,
       label: r.label,
+      monthShort,
+      year: r.year,
       fuel,
       service,
       repair,
@@ -58,19 +312,19 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
 
   const maxTotal = useMemo(() => Math.max(1, ...data.map(d => d.total)), [data]);
 
-  // Playful palette: Fuel (Fuchsia), Service (Emerald), Repair (Rose)
-  const fuelColor = '#d946ef';      // fuchsia-500
-  const fuelStroke = '#a21caf';     // fuchsia-700
-  const serviceColor = '#10b981';   // emerald-500
-  const serviceStroke = '#047857';  // emerald-700
-  const repairColor = '#f43f5e';    // rose-500
-  const repairStroke = '#be123c';   // rose-700
+  // Custom palette: Fuel=Blue, Service=Orange, Repair=Gray
+  const fuelColor = '#1a80bb';      // Blue
+  const fuelStroke = '#166a99';     // Darker Blue for border
+  const serviceColor = '#ea801c';   // Orange
+  const serviceStroke = '#b06014';  // Darker Orange for border
+  const repairColor = '#b8b8b8';    // Gray
+  const repairStroke = '#8a8a8a';   // Darker Gray for border
 
   const barW = 28;
   const gap = 16;
   const padX = 24;
   const padY = 8;
-  const chartH = 180;
+  const chartH = 240;
   const labelH = 24;
 
   // Base width needed for bars at default sizes
@@ -101,6 +355,8 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
   };
 
   const onLeave = () => setTip(null);
+
+  const isCompact = containerW > 0 && containerW < 480; // treat small widths as mobile
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -177,17 +433,20 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
                       onMouseLeave={onLeave}
                     />
                   )}
-                  {/* NEW: total label on top of the bar */}
-                  {d.total > 0 && (
-                    <text
-                      x={w / 2}
-                      y={Math.max(10, (repairH > 0 ? repairY : serviceY) - 4)}
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="#374151"
-                    >
-                      {fmt(d.total)}
-                    </text>
+                  {/* Total label inside bar (vertical) */}
+                  {d.total > 0 && (fuelH + serviceH + repairH) >= 44 && (
+                    <g transform={`translate(${w / 2}, ${chartH - (fuelH + serviceH + repairH) / 2}) rotate(-90)`}>
+                      <text
+                        x={0}
+                        y={0}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize="10"
+                        fill="#ffffff"
+                      >
+                        {fmt(d.total)}
+                      </text>
+                    </g>
                   )}
                   {/* month label */}
                   <text
@@ -197,7 +456,7 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
                     fontSize="10"
                     fill="#6b7280"
                   >
-                    {d.label}
+                    {isCompact ? d.monthShort : d.label}
                   </text>
                 </g>
               );
@@ -265,9 +524,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
       entriesCount: sorted.length,
       firstDate, lastDate, rangeDays,
       refuelPct: pct(refuel, total),
-      servicePct: pct(service, total),
-      expense: 0,
-      expensePct: 0
+      servicePct: pct(service, total)
     };
   }, [sorted]);
 
@@ -323,9 +580,9 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
       {tab === 'general' && (
         <div>
           {/* Single colorful row: Cost, Refueling, Services, Distance */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 lg:gap-8">
             {/* Cost */}
-            <div className="rounded-lg border p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 border-t-4 border-t-indigo-500">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-indigo-700">Cost</span>
               </div>
@@ -334,7 +591,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             </div>
 
             {/* Refueling */}
-            <div className="rounded-lg border p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 border-t-4 border-t-amber-500">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-amber-700 inline-flex items-center gap-2">
                   <Fuel className="h-4 w-4 text-amber-600" /> Refueling
@@ -345,7 +602,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             </div>
 
             {/* Services */}
-            <div className="rounded-lg border p-4 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 border-fuchsia-200">
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 border-fuchsia-200 border-t-4 border-t-fuchsia-500">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-fuchsia-700 inline-flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-fuchsia-600" /> Services
@@ -356,7 +613,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             </div>
 
             {/* Distance */}
-            <div className="rounded-lg border p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-blue-200">
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-blue-200 border-t-4 border-t-sky-500">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-sky-700 inline-flex items-center gap-2">
                   <Gauge className="h-4 w-4 text-sky-600" /> Distance
@@ -367,7 +624,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             </div>
 
             {/* Last Service / Repair */}
-            <div className="rounded-lg border p-4 bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 col-span-1">
+            <div className="rounded-lg border p-4 bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 col-span-1 border-t-4 border-t-rose-500">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-rose-700 inline-flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-rose-600" /> Last Service
@@ -385,49 +642,81 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
               )}
             </div>
           </div>
+
+          {/* Charts: Cost comparison (donut) and Odometer line */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            <div className="bg-white rounded-lg shadow-md p-4 border-t-4 border-t-amber-500">
+              <h3 className="text-base font-semibold text-gray-800 mb-2">Cost comparison chart</h3>
+              <CostComparisonDonut items={sorted} />
+            </div>
+            <div className="bg-white rounded-lg shadow-md px-4 pt-4 pb-0 border-t-4 border-t-sky-500">
+              <h3 className="text-base font-semibold text-gray-800 mb-4">Odometer chart</h3>
+              <OdometerLine items={sorted} />
+            </div>
+          </div>
         </div>
       )}
 
       {tab === 'refueling' && (
-        <div className="overflow-x-auto">
-          <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-blue-200' : 'divide-green-200'}`}>
-            <thead className={vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600'}>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Odometer</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Liters</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Price</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
-                {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>}
-              </tr>
-            </thead>
-            <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
-            <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" />
-          </table>
+        <div className={`bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4 ${vehicle === 'car' ? 'border-blue-500' : 'border-green-500'}`}>
+          <div className="px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 text-white flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Fuel className="w-5 h-5" />
+              Refueling History
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="overflow-x-auto">
+              <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-blue-200' : 'divide-green-200'}`}>
+                <thead className={vehicle === 'car' ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200' : 'bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200'}>
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Mileage (km/L)</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Odometer</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Liters</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Price</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Total</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Notes</th>
+                    {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>}
+                  </tr>
+                </thead>
+                <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
+                <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" />
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
       {tab === 'service' && (
-        <div className="overflow-x-auto">
-          <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-blue-200' : 'divide-green-200'}`}>
-            <thead className={vehicle === 'car' ? 'bg-blue-600' : 'bg-green-600'}>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Type</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Mileage (km/L)</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Odometer</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Liters</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Price</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Notes</th>
-                {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>}
-              </tr>
-            </thead>
-            <FuelTableBody items={items} vehicle={vehicle} onlyType="service" onEdit={onEdit} onDelete={onDelete} />
-            <FuelTableFooter items={items} vehicle={vehicle} onlyType="service" />
-          </table>
+        <div className={`bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4 ${vehicle === 'car' ? 'border-blue-500' : 'border-green-500'}`}>
+          <div className="px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 text-white flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Wrench className="w-5 h-5" />
+              Service History
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="overflow-x-auto">
+              <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-blue-200' : 'divide-green-200'}`}>
+                <thead className={vehicle === 'car' ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200' : 'bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200'}>
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Mileage (km/L)</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Odometer</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Liters</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Price</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Total</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Notes</th>
+                    {(onEdit || onDelete) && <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>}
+                  </tr>
+                </thead>
+                <FuelTableBody items={items} vehicle={vehicle} onlyType="service" onEdit={onEdit} onDelete={onDelete} />
+                <FuelTableFooter items={items} vehicle={vehicle} onlyType="service" />
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </section>
@@ -552,7 +841,7 @@ export function FuelSummarySection(
   return (
     <div className="mt-10">
       {monthlyRows.length > 0 && (
-        <div className="rounded-xl border border-blue-200/60 bg-gradient-to-br from-blue-50 to-green-50 p-4">
+        <div className="rounded-xl border border-blue-200/60 bg-gradient-to-br from-blue-50 to-green-50 p-4 border-t-4 border-t-indigo-500">
           <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">Monthly Summary (All Time)</h3>
           <div className="mt-3">
             <MonthlyFuelServiceBarChart rows={monthlyRows} />

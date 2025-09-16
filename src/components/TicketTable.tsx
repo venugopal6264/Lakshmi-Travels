@@ -1,5 +1,5 @@
 import { CheckCircle, Clock, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ApiTicket } from '../services/api';
 import EditTicketModal from './EditTicketModal';
 
@@ -61,9 +61,6 @@ export default function TicketTable({
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [showConfirmBulk, setShowConfirmBulk] = useState<boolean>(false);
-  // Resizable "Place" column width (md+ only)
-  const [placeColWidth, setPlaceColWidth] = useState<number>(240);
-  const isResizingRef = useRef(false);
   // Fixed width for Passenger Name column (wrap content)
   const passengerColWidth = 160;
 
@@ -77,29 +74,13 @@ export default function TicketTable({
   const hoverRow = isOpenView ? 'hover:bg-orange-50/60' : 'hover:bg-green-50/60';
   const rowLeftBorder = isOpenView ? 'border-l-4 border-orange-400' : 'border-l-4 border-green-400';
   const totalsBg = isOpenView ? 'bg-orange-50' : 'bg-green-50';
+  // Accent styling for inputs/selects based on view
+  const controlBorder = isOpenView
+    ? 'border-orange-300 focus:ring-orange-500 focus:border-orange-400'
+    : 'border-green-300 focus:ring-green-500 focus:border-green-400';
+  const controlIcon = isOpenView ? 'text-orange-400' : 'text-green-500';
 
-  const startResizePlace = (e: React.MouseEvent) => {
-    // Start horizontal drag to resize the Place column
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = placeColWidth;
-    isResizingRef.current = true;
-
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!isResizingRef.current) return;
-      const delta = ev.clientX - startX;
-      const next = Math.max(120, Math.min(800, startWidth + delta));
-      setPlaceColWidth(next);
-    };
-    const onMouseUp = () => {
-      isResizingRef.current = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
+  // Place column is now word-wrapped, not resizable
 
   // Filter tickets by date range
   const dateFilteredTickets = tickets.filter(ticket => {
@@ -302,20 +283,20 @@ export default function TicketTable({
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <div className="relative w-full sm:flex-1">
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${controlIcon}`} />
           <input
             type="text"
             placeholder="Search by passenger, PNR, or place..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-16 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className={`w-full pl-12 pr-24 py-3 border rounded-md focus:outline-none focus:ring-2 text-lg ${controlBorder}`}
           />
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
               aria-label="Clear search"
             >
               Clear
@@ -323,12 +304,12 @@ export default function TicketTable({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
+        <div className="flex items-center gap-2 sm:flex-none">
+          <Filter className={`w-5 h-5 ${controlIcon}`} />
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className={`w-48 sm:w-52 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
           >
             <option value="all">All Types</option>
             <option value="train">Train</option>
@@ -343,7 +324,7 @@ export default function TicketTable({
               setAccountFilter(v);
               onAccountFilterChange?.(v);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className={`w-56 sm:w-72 md:w-80 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
           >
             <option value="all">All Accounts</option>
             {uniqueAccounts.map(account => (
@@ -442,19 +423,11 @@ export default function TicketTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 PNR
               </th>
-              {/* Place (resizable on md+) */}
+              {/* Place (word-wrapped, not resizable) */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative select-none"
-                style={{ width: placeColWidth, minWidth: placeColWidth }}
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider select-none"
               >
-                <div className="pr-3">Place</div>
-                {/* Resize handle */}
-                <div
-                  role="separator"
-                  aria-label="Resize Place column"
-                  onMouseDown={startResizePlace}
-                  className="absolute top-0 right-0 h-full w-2 cursor-col-resize hover:bg-gray-200/60"
-                />
+                Place
               </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -532,10 +505,9 @@ export default function TicketTable({
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                   {ticket.pnr}
                 </td>
-                {/* Place */}
+                {/* Place (word-wrapped) */}
                 <td
-                  className="px-4 py-4 text-sm text-gray-900 truncate"
-                  style={{ width: placeColWidth, minWidth: placeColWidth, maxWidth: placeColWidth }}
+                  className="px-4 py-4 text-sm text-gray-900 whitespace-normal break-words"
                   title={ticket.place}
                 >
                   {ticket.place}
