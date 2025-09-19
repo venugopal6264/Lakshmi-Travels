@@ -102,6 +102,9 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Sanitize place: remove all spaces
+    const sanitizedPlace = (formData.place || '').replace(/\s+/g, '');
+
     const newErrors: Record<string, string> = {};
 
     if (!formData.ticketAmount) newErrors.ticketAmount = 'Ticket amount is required';
@@ -110,7 +113,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     if (!formData.account) newErrors.account = 'Account is required';
     if (!formData.bookingDate) newErrors.bookingDate = 'Booking date is required';
     if (!formData.passengerName) newErrors.passengerName = 'Passenger name is required';
-    if (!formData.place) newErrors.place = 'Place is required';
+    if (!sanitizedPlace) newErrors.place = 'Place is required';
     if (!formData.pnr) newErrors.pnr = 'PNR is required';
     if (!formData.bookingAmount) newErrors.bookingAmount = 'Booking amount is required';
 
@@ -130,7 +133,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           account: formData.account,
           bookingDate: formData.bookingDate,
           passengerName: formData.passengerName,
-          place: formData.place,
+          place: sanitizedPlace,
           pnr: formData.pnr,
           bookingAmount: parseFloat(formData.bookingAmount),
           refund: parseFloat(formData.refund) || 0,
@@ -145,7 +148,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           account: formData.account,
           bookingDate: formData.bookingDate,
           passengerName: formData.passengerName,
-          place: formData.place,
+          place: sanitizedPlace,
           pnr: formData.pnr,
           bookingAmount: parseFloat(formData.bookingAmount),
           refund: parseFloat(formData.refund) || 0,
@@ -201,6 +204,11 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  // Strip spaces from place on blur to enforce format visually
+  const handlePlaceBlur = () => {
+    setFormData(prev => ({ ...prev, place: (prev.place || '').replace(/\s+/g, '') }));
   };
 
   return (
@@ -320,6 +328,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="place"
               value={formData.place}
               onChange={handleChange}
+              onBlur={handlePlaceBlur}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.place ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Travel route/place"

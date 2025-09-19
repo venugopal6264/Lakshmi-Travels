@@ -6,7 +6,6 @@ import EditTicketModal from './EditTicketModal';
 interface TicketTableProps {
   tickets: ApiTicket[];
   paidTickets: string[];
-  paidDates?: Record<string, string>;
   onDeleteTicket: (id: string) => Promise<void>;
   onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
   onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
@@ -24,7 +23,6 @@ interface TicketTableProps {
 export default function TicketTable({
   tickets,
   paidTickets,
-  paidDates,
   onDeleteTicket,
   onUpdateTicket,
   onProcessRefund,
@@ -208,11 +206,10 @@ export default function TicketTable({
   // Date range is provided by parent via props
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    const d = new Date(dateString);
+    const month = d.toLocaleString('en-US', { month: 'short' });
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${month}-${day}`;
   };
 
   const getTypeColor = (type: string) => {
@@ -342,7 +339,7 @@ export default function TicketTable({
           </div>
         )}
 
-        <table className="w-full table-auto text-sm">
+        <table className="w-full table-auto">
           <thead className={`sticky top-0 z-10 ${headerGradient} ${headerBorder}`}>
             <tr>
               {activeTable === 'open' && (
@@ -355,17 +352,6 @@ export default function TicketTable({
                   />
                 </th>
               )}
-              {/* Service (first column, hide on xs) */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Service
-              </th>
-              {/* Type (second column, hide on xs) */}
-              <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('type')}
-              >
-                Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
-              </th>
               {/* Account */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -378,7 +364,11 @@ export default function TicketTable({
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('bookingDate')}
               >
-                Booking Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                B Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              {/* PNR */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                PNR
               </th>
               {/* Passenger Name */}
               <th
@@ -388,20 +378,14 @@ export default function TicketTable({
               >
                 Passenger Name {sortField === 'passengerName' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              {/* Paid Date (only on Paid view) */}
-              {activeTable === 'paid' && (
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Paid Date
-                </th>
-              )}
-              {/* Ticket Amount prominent */}
+              {/* Ticket Amount */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('ticketAmount')}
               >
                 Ticket Amount {sortField === 'ticketAmount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              {/* Booking Amount (hide on xs) */}
+              {/* Booking Amount */}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Booking Amount
               </th>
@@ -419,24 +403,34 @@ export default function TicketTable({
               >
                 Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
-              {/* PNR */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                PNR
-              </th>
-              {/* Place (word-wrapped, not resizable) */}
+              {/* Place */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider select-none"
               >
                 Place
               </th>
+              {/* Service */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Service
+              </th>
+              {/* Type */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('type')}
+              >
+                Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              {/* Actions */}
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 Actions
               </th>
+
+
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200 text-xs">
             {sortedTickets.map((ticket) => (
               <tr
                 key={ticket._id}
@@ -452,8 +446,50 @@ export default function TicketTable({
                     />
                   </td>
                 )}
+                {/* Account */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                  {ticket.account}
+                </td>
+                {/* Booking Date */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                  {formatDate(ticket.bookingDate)}
+                </td>
+                {/* PNR */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900 font-mono">
+                  {ticket.pnr}
+                </td>
+                {/* Passenger Name (wrap long names, fixed width) */}
+                <td
+                  className="px-4 py-4 text-xs text-gray-900 whitespace-normal break-words"
+                  style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
+                >
+                  {ticket.passengerName}
+                </td>
+                {/* Ticket Amount */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                  ₹{Math.round(Number(ticket.ticketAmount || 0)).toLocaleString()}
+                </td>
+                {/* Booking Amount */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                  ₹{Math.round(Number(ticket.bookingAmount || 0)).toLocaleString()}
+                </td>
+                {/* Refund */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-red-600">
+                  {Number(ticket.refund || 0) > 0 ? `₹${Math.round(Number(ticket.refund)).toLocaleString()}` : '₹0'}
+                </td>
+                {/* Profit (ticketAmount - bookingAmount; refund ignored) */}
+                <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-green-600">
+                  ₹{Math.round(Number(ticket.ticketAmount || 0) - Number(ticket.bookingAmount || 0)).toLocaleString()}
+                </td>
+                {/* Place display without spaces */}
+                <td
+                  className="px-4 py-4 text-xs text-gray-900 whitespace-normal break-words"
+                  title={(ticket.place || '').replace(/\s+/g, '')}
+                >
+                  {(ticket.place || '').replace(/\s+/g, '')}
+                </td>
                 {/* Service */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
                   {ticket.service || '-'}
                 </td>
                 {/* Type */}
@@ -462,57 +498,7 @@ export default function TicketTable({
                     {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
                   </span>
                 </td>
-                {/* Account */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {ticket.account}
-                </td>
-                {/* Booking Date */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(ticket.bookingDate)}
-                </td>
-                {/* Passenger Name (wrap long names, fixed width) */}
-                <td
-                  className="px-4 py-4 text-sm text-gray-900 whitespace-normal break-words"
-                  style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
-                >
-                  {ticket.passengerName}
-                </td>
-                {/* Paid Date (only on Paid view) */}
-                {activeTable === 'paid' && (
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {ticket._id && paidDates?.[ticket._id]
-                      ? new Date(paidDates[ticket._id]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                      : '-'}
-                  </td>
-                )}
-                {/* Ticket Amount */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ₹{Math.round(Number(ticket.ticketAmount || 0)).toLocaleString()}
-                </td>
-                {/* Booking Amount */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ₹{Math.round(Number(ticket.bookingAmount || 0)).toLocaleString()}
-                </td>
-                {/* Refund */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-red-600">
-                  {Number(ticket.refund || 0) > 0 ? `₹${Math.round(Number(ticket.refund)).toLocaleString()}` : '₹0'}
-                </td>
-                {/* Profit (ticketAmount - bookingAmount; refund ignored) */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                  ₹{Math.round(Number(ticket.ticketAmount || 0) - Number(ticket.bookingAmount || 0)).toLocaleString()}
-                </td>
-                {/* PNR */}
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                  {ticket.pnr}
-                </td>
-                {/* Place (word-wrapped) */}
-                <td
-                  className="px-4 py-4 text-sm text-gray-900 whitespace-normal break-words"
-                  title={ticket.place}
-                >
-                  {ticket.place}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditingTicket(ticket)}
@@ -538,21 +524,18 @@ export default function TicketTable({
               </tr>
             ))}
             {/* Totals Row (sticky at bottom) */}
-            <tr className={`${totalsBg} font-semibold sticky bottom-0 z-10 border-t border-gray-200`}>
+            <tr className={`${totalsBg} font-semibold sticky bottom-0 z-10 border-t border-gray-200 text-xs`}>
               {activeTable === 'open' && <td className="px-4 py-3"></td>}
-              {/* Service placeholder */}
-              <td className="px-4 py-3"></td>
-              {/* Type placeholder */}
-              <td className="px-4 py-3"></td>
-              {/* Totals label spanning Account, Booking Date, Passenger (and Paid Date on paid view) */}
-              <td className="px-4 py-3" colSpan={activeTable === 'paid' ? 4 : 3}>Totals ({totals.count} tickets)</td>
+              {/* Totals label spanning Account, Booking Date, PNR, Passenger Name */}
+              <td className="px-4 py-3" colSpan={4}>Totals ({totals.count} tickets)</td>
               {/* Ticket and Booking totals */}
               <td className="px-4 py-3">₹{Math.round(totals.ticketAmount).toLocaleString()}</td>
               <td className="px-4 py-3">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
               {/* Refund total */}
               <td className="px-4 py-3 text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
               <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
-              {/* PNR, Place, Actions placeholders */}
+              {/* Place, Service, Type, Actions placeholders */}
+              <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
@@ -629,19 +612,19 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                   <tr className="bg-gray-50">
                     <th className="px-3 py-2 text-left font-medium text-gray-700">Account</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-700">Total Tickets</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">Total Ticket Amount</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">Total Due (Ticket - Refund)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
                     const byId: Record<string, ApiTicket> = Object.fromEntries(tickets.map(t => [t._id!, t]));
                     const selected = selectedTickets.map(id => byId[id]).filter(Boolean);
-                    const grouped: Record<string, { count: number; amount: number }> = {};
+                    const grouped: Record<string, { count: number; net: number }> = {};
                     for (const t of selected) {
                       const acc = t.account || 'Unknown';
-                      if (!grouped[acc]) grouped[acc] = { count: 0, amount: 0 };
+                      if (!grouped[acc]) grouped[acc] = { count: 0, net: 0 };
                       grouped[acc].count += 1;
-                      grouped[acc].amount += Number(t.ticketAmount || 0);
+                      grouped[acc].net += Number(t.ticketAmount || 0) - Number(t.refund || 0);
                     }
                     const rows = Object.entries(grouped);
                     if (rows.length === 0) {
@@ -657,13 +640,13 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                           <tr key={acc} className="border-t">
                             <td className="px-3 py-2">{acc}</td>
                             <td className="px-3 py-2">{v.count}</td>
-                            <td className="px-3 py-2">₹{Math.round(v.amount).toLocaleString()}</td>
+                            <td className="px-3 py-2">₹{Math.round(v.net).toLocaleString()}</td>
                           </tr>
                         ))}
                         <tr className="border-t bg-gray-50 font-medium">
                           <td className="px-3 py-2">Total</td>
                           <td className="px-3 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
-                          <td className="px-3 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.amount, 0)).toLocaleString()}</td>
+                          <td className="px-3 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.net, 0)).toLocaleString()}</td>
                         </tr>
                       </>
                     );

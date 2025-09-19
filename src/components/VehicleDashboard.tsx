@@ -65,54 +65,72 @@ function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel:
     const today = Date.now();
     return (
         <div className="mb-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">Last Service Overview</h3>
-            <div className="grid gap-6 lg:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">Last Service Overview</h3>
+            <div className="grid gap-4 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cards.map(c => {
                     const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : null;
                     const daysAgo = c.last?.date ? Math.floor((today - new Date(c.last.date).getTime()) / (1000 * 60 * 60 * 24)) : null;
-                    const bg = c.vehicle.type === 'car' ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-green-50 to-green-100 border-green-200';
+                    const accent = c.vehicle.type === 'car' ? 'border-l-blue-500' : 'border-l-green-500';
                     return (
-                        <div key={c.vehicle._id} className={`relative rounded-lg border p-4 bg-gradient-to-br border-t-4 ${bg} ${c.vehicle.type === 'car' ? 'border-t-blue-500' : 'border-t-green-500'}`}>
+                        <div
+                            key={c.vehicle._id}
+                            className={`relative rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition ${accent} border-l-4`}
+                        >
                             <div className="flex items-start justify-between gap-2">
-                                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                    {c.vehicle.type === 'car' ? <Car className="h-4 w-4 text-amber-600" /> : <Bike className="h-4 w-4 text-amber-600" />}
-                                    {c.vehicle.name}
-                                </span>
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                                    {c.vehicle.type === 'car' ? (
+                                        <Car className="h-4 w-4 text-blue-600" />
+                                    ) : (
+                                        <Bike className="h-4 w-4 text-green-600" />
+                                    )}
+                                    <span>{c.vehicle.name}</span>
+                                    <span className="ml-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 capitalize ring-1 ring-gray-200">
+                                        {c.vehicle.type}
+                                    </span>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => toggle(c.vehicle._id)}
-                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition ${openId === c.vehicle._id ? 'bg-white/70 text-gray-700' : 'text-gray-600 hover:bg-white/50'}`}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 border border-transparent hover:border-gray-200"
                                     title={openId === c.vehicle._id ? 'Hide info' : 'Show info'}
                                 >
-                                    <Info className="h-3 w-3" /> {openId === c.vehicle._id ? 'Hide' : 'Info'}
+                                    <Info className="h-3.5 w-3.5" /> {openId === c.vehicle._id ? 'Hide' : 'Info'}
                                 </button>
                             </div>
                             {c.last ? (
-                                <div className="mt-1 space-y-1">
-                                    <div className="text-lg font-semibold text-gray-800">
-                                        {dStr}
+                                <div className="mt-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-2xl font-semibold text-gray-900 tracking-tight">{dStr}</div>
                                         {daysAgo != null && (
-                                            <span className="ml-2 text-sm font-normal text-gray-500">
-                                                ({daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`})
+                                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                                                {daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`}
                                             </span>
                                         )}
                                     </div>
-                                    {typeof c.last.odometer === 'number' && (
-                                        <div className="text-xs text-gray-600">Odometer: {Math.round(c.last.odometer).toLocaleString()} km</div>
-                                    )}
-                                    {c.sinceKm != null && (
-                                        <div className="text-xs text-gray-600">Since service: {Math.round(c.sinceKm).toLocaleString()} km</div>
-                                    )}
-                                    <div className={`border-t border-dashed border-gray-300 text-[11px] leading-tight space-y-1 overflow-hidden transition-all duration-300 ease-in-out ${openId === c.vehicle._id ? 'max-h-64 opacity-100 mt-2 pt-2' : 'max-h-0 opacity-0'}`}
-                                        aria-hidden={openId === c.vehicle._id ? 'false' : 'true'}>
-                                        {c.vehicle.model && <div><span className="text-gray-500">Model: </span>{c.vehicle.model}</div>}
-                                        {c.vehicle.manufacturerDate && <div><span className="text-gray-500">Mfg: </span>{new Date(c.vehicle.manufacturerDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</div>}
-                                        {c.vehicle.buyDate && <div><span className="text-gray-500">Buy: </span>{String(c.vehicle.buyDate).slice(0, 10)}</div>}
-                                        {c.vehicle.fuelType && <div><span className="text-gray-500">Fuel: </span>{c.vehicle.fuelType}</div>}
-                                        {c.vehicle.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span>{c.vehicle.fuelCapacity} L</div>}
-                                        {c.vehicle.licensePlate && <div><span className="text-gray-500">Plate: </span>{c.vehicle.licensePlate}</div>}
-                                        {c.vehicle.chassisNumber && <div><span className="text-gray-500">Chassis: </span>{c.vehicle.chassisNumber}</div>}
-                                        {c.vehicle.notes && <div className="line-clamp-2"><span className="text-gray-500">Notes: </span>{c.vehicle.notes}</div>}
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-gray-600">
+                                        {typeof c.last.odometer === 'number' && (
+                                            <div>Odometer: <span className="font-medium text-gray-800">{Math.round(c.last.odometer).toLocaleString()} km</span></div>
+                                        )}
+                                        {c.sinceKm != null && (
+                                            <div>Since service: <span className="font-medium text-gray-800">{Math.round(c.sinceKm).toLocaleString()} km</span></div>
+                                        )}
+                                    </div>
+                                    <div
+                                        className={`overflow-hidden transition-all duration-300 ease-in-out ${openId === c.vehicle._id ? 'max-h-64 opacity-100 mt-3' : 'max-h-0 opacity-0'} `}
+                                        aria-hidden={openId === c.vehicle._id ? 'false' : 'true'}
+                                    >
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 border-t border-dashed border-gray-200 pt-2 text-[12px] leading-tight">
+                                            {c.vehicle.model && <div><span className="text-gray-500">Model: </span><span className="text-gray-800">{c.vehicle.model}</span></div>}
+                                            {c.vehicle.manufacturerDate && (
+                                                <div><span className="text-gray-500">Mfg: </span><span className="text-gray-800">{new Date(c.vehicle.manufacturerDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span></div>
+                                            )}
+                                            {c.vehicle.buyDate && <div><span className="text-gray-500">Buy: </span><span className="text-gray-800">{String(c.vehicle.buyDate).slice(0, 10)}</span></div>}
+                                            {c.vehicle.fuelType && <div><span className="text-gray-500">Fuel: </span><span className="text-gray-800">{c.vehicle.fuelType}</span></div>}
+                                            {c.vehicle.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span><span className="text-gray-800">{c.vehicle.fuelCapacity} L</span></div>}
+                                            {c.vehicle.licensePlate && <div><span className="text-gray-500">Plate: </span><span className="text-gray-800">{c.vehicle.licensePlate}</span></div>}
+                                            {c.vehicle.chassisNumber && <div><span className="text-gray-500">Chassis: </span><span className="text-gray-800">{c.vehicle.chassisNumber}</span></div>}
+                                            {c.vehicle.notes && <div className="sm:col-span-2"><span className="text-gray-500">Notes: </span><span className="text-gray-800 line-clamp-2">{c.vehicle.notes}</span></div>}
+                                        </div>
                                     </div>
                                 </div>
                             ) : (

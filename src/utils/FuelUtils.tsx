@@ -905,8 +905,8 @@ export function FuelTableBody({
   }, [list]);
 
   const tbodyClass = vehicle === 'car'
-    ? 'divide-y divide-blue-100'
-    : 'divide-y divide-green-100';
+    ? 'divide-y divide-blue-100 text-xs'
+    : 'divide-y divide-green-100 text-xs';
   const rowClass = vehicle === 'car'
     ? 'odd:bg-blue-50 even:bg-blue-100 hover:bg-blue-200'
     : 'odd:bg-green-50 even:bg-green-100 hover:bg-green-200';
@@ -1052,7 +1052,7 @@ export function FuelTableFooter({
   }, [items, vehicle]);
 
   const fmt = (n: number) => Math.round(n).toLocaleString();
-  const tClass = vehicle === 'car' ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900';
+  const tClass = vehicle === 'car' ? 'bg-blue-50 text-blue-900 text-xs' : 'bg-green-50 text-green-900 text-xs';
   const badge = vehicle === 'car' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 
   return (

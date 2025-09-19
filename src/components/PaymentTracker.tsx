@@ -66,18 +66,7 @@ export default function PaymentTracker({
 
   // Build paid ticket IDs and paid dates for the filtered payments
   const paidTicketIds = React.useMemo(() => dateFilteredPayments.flatMap(p => p.tickets || []), [dateFilteredPayments]);
-  const paidDates: Record<string, string> = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    dateFilteredPayments.forEach(p => {
-      const d = p.date;
-      (p.tickets || []).forEach(id => {
-        if (!map[id] || (new Date(d) > new Date(map[id]))) {
-          map[id] = d;
-        }
-      });
-    });
-    return map;
-  }, [dateFilteredPayments]);
+  // Removed paidDates map; not used in table anymore
 
   // Payments are listed below; add per-account widgets
 
@@ -191,6 +180,23 @@ export default function PaymentTracker({
     bus: dateFilteredTickets.filter(t => t.type === 'bus').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
     flight: dateFilteredTickets.filter(t => t.type === 'flight').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
   };
+
+  // Overall totals for current date range
+  const totalsAll = React.useMemo(() => {
+    let ticket = 0, booking = 0, refund = 0, profit = 0, count = 0, refundedCount = 0;
+    for (const t of dateFilteredTickets) {
+      const ta = Number(t.ticketAmount || 0);
+      const ba = Number(t.bookingAmount || 0);
+      const rf = Number(t.refund || 0);
+      ticket += ta;
+      booking += ba;
+      refund += rf;
+      profit += (ta - ba);
+      count += 1;
+      if (rf > 0) refundedCount += 1;
+    }
+    return { ticket, booking, refund, profit, count, refundedCount };
+  }, [dateFilteredTickets]);
 
   // Monthly performance (tickets and profit per type)
   const monthlyStats = React.useMemo(() => {
@@ -342,8 +348,28 @@ export default function PaymentTracker({
           </div>
         </div>
 
-
-        {/* Profit by Type (moved from Dashboard) */}
+        {/* Profit by Type */}
+        {/* Summary widgets (date-filtered tickets) */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8 mb-6">
+          <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500">
+            <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
+            <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalsAll.booking).toLocaleString()}</p>
+            <p className="text-xs text-indigo-600">{totalsAll.count} tickets</p>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-lg border-t-4 border-purple-500">
+            <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
+            <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalsAll.ticket).toLocaleString()}</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg border-t-4 border-green-500">
+            <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
+            <p className="text-2xl font-bold text-green-900">₹{Math.round(totalsAll.profit).toLocaleString()}</p>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg border-t-4 border-red-500">
+            <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
+            <p className="text-2xl font-bold text-red-900">₹{Math.round(totalsAll.refund).toLocaleString()}</p>
+            <p className="text-xs text-red-600">{totalsAll.refundedCount} tickets refunded</p>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-6">
           <div className="bg-gradient-to-r from-blue-50 to-sky-100 p-4 rounded-lg flex items-center justify-between border border-blue-100 border-t-4 border-t-blue-500">
             <div>
@@ -390,7 +416,7 @@ export default function PaymentTracker({
             </div>
           </div>
           <div className="overflow-x-auto max-h-[60vh] relative rounded-md">
-            <table className="w-full table-auto text-sm">
+            <table className="w-full table-auto">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                   <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
@@ -402,7 +428,7 @@ export default function PaymentTracker({
                   <th className="px-3 py-2 text-left font-semibold uppercase">Due Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white">
+              <tbody className="divide-y divide-white text-xs">
                 {Object.entries(breakdowns[breakdownScope].byAccount).map(([account, v]) => (
                   <tr key={account} className="odd:bg-blue-50 even:bg-emerald-50 hover:brightness-95">
                     <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-800">{account}</td>
@@ -415,7 +441,7 @@ export default function PaymentTracker({
                   </tr>
                 ))}
                 {/* Totals Row */}
-                <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 font-semibold">
+                <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 font-semibold text-xs">
                   <td className="px-3 py-2">Totals</td>
                   <td className="px-3 py-2">{breakdowns[breakdownScope].totals.count}</td>
                   <td className="px-3 py-2">₹{Math.round(breakdowns[breakdownScope].totals.booking).toLocaleString()}</td>
@@ -441,7 +467,7 @@ export default function PaymentTracker({
             <div className="text-xs text-purple-700 bg-purple-50 px-3 py-1 rounded border border-purple-200">Filtered: {from} → {to}</div>
           </div>
           <div className="overflow-x-auto max-h-[60vh] relative rounded-md">
-            <table className="w-full table-auto text-sm">
+            <table className="w-full table-auto">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gradient-to-r from-purple-700 to-violet-700 text-white">
                   <th rowSpan={2} className="px-3 py-2 text-left font-semibold uppercase align-middle">Month</th>
@@ -460,7 +486,7 @@ export default function PaymentTracker({
                   <th className="px-3 py-1 text-left font-medium uppercase">Profit</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white">
+              <tbody className="divide-y divide-white text-xs">
                 {monthlyStats.rows.map((r, idx) => (
                   <tr key={r.key} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-violet-50'} hover:brightness-95`}>
                     <td className="px-3 py-2 font-semibold text-gray-800">{r.label}</td>
@@ -474,7 +500,7 @@ export default function PaymentTracker({
                     <td className="px-3 py-2 text-emerald-900">₹{Math.round(r.busProfit).toLocaleString()}</td>
                   </tr>
                 ))}
-                <tr className="bg-gradient-to-r from-violet-50 to-purple-50 font-semibold">
+                <tr className="bg-gradient-to-r from-violet-50 to-purple-50 font-semibold text-xs">
                   <td className="px-3 py-2">Totals</td>
                   <td className="px-3 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.totalProfit).toLocaleString()}</td>
                   <td className="px-3 py-2">{monthlyStats.totals.totalTickets}</td>
@@ -498,7 +524,6 @@ export default function PaymentTracker({
           <TicketTable
             tickets={dateFilteredTickets}
             paidTickets={paidTicketIds}
-            paidDates={paidDates}
             onDeleteTicket={async () => { /* deletion not managed from payments page */ }}
             onUpdateTicket={async () => { /* updates handled on Dashboard for now */ }}
             onProcessRefund={async () => { /* refunds handled on Dashboard for now */ }}
@@ -601,7 +626,7 @@ export default function PaymentTracker({
             <p className="text-gray-500 text-center py-4">No payments recorded yet.</p>
           ) : (
             <div className="overflow-x-auto max-h-[50vh] relative rounded-md">
-              <table className="w-full table-auto text-sm">
+              <table className="w-full table-auto">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
                     <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
@@ -613,7 +638,7 @@ export default function PaymentTracker({
                     <th className="px-3 py-2 text-left font-semibold uppercase">Refund</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white">
+                <tbody className="divide-y divide-white text-xs">
                   {sortedPayments.map((p, idx) => {
                     // Derive account if missing
                     let accLabel: string = p.account || '';
@@ -643,7 +668,7 @@ export default function PaymentTracker({
                     );
                   })}
                   {/* Totals row */}
-                  <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold">
+                  <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold text-xs">
                     <td className="px-3 py-2">Totals</td>
                     <td className="px-3 py-2"></td>
                     <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).count, 0)}</td>

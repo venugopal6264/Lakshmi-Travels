@@ -92,18 +92,20 @@ export default function Dashboard({
 
     // Calculate account breakdown (OPEN tickets only)
     const getAccountBreakdown = () => {
-        const accountTotals: Record<string, { amount: number; refund: number; due: number; profit: number; count: number }> = {};
+        const accountTotals: Record<string, { amount: number; booking: number; refund: number; due: number; profit: number; count: number }> = {};
         openTickets.forEach(ticket => {
             const acc = ticket.account;
             if (!accountTotals[acc]) {
-                accountTotals[acc] = { amount: 0, refund: 0, due: 0, profit: 0, count: 0 };
+                accountTotals[acc] = { amount: 0, booking: 0, refund: 0, due: 0, profit: 0, count: 0 };
             }
             const amt = Number(ticket.ticketAmount || 0);
+            const book = Number(ticket.bookingAmount || 0);
             const ref = Number(ticket.refund || 0);
             accountTotals[acc].amount += amt;
+            accountTotals[acc].booking += book;
             accountTotals[acc].refund += ref;
             accountTotals[acc].due += Math.max(0, amt - ref);
-            accountTotals[acc].profit += (Number(ticket.ticketAmount || 0) - Number(ticket.bookingAmount || 0));
+            accountTotals[acc].profit += (amt - book);
             accountTotals[acc].count += 1;
         });
         return accountTotals;
@@ -296,17 +298,19 @@ export default function Dashboard({
                         </div>
                         <div className="p-6">
                             <div className="overflow-x-auto max-h-[50vh] relative">
-                                <table className="w-full table-auto text-sm">
-                                    <thead className="sticky top-0 z-10 bg-gradient-to-r from-indigo-50 to-blue-100 border-b border-indigo-200">
-                                        <tr>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Account</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Tickets</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Total Amount</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Refund</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 uppercase tracking-wider">Amount Due</th>
+                                <table className="w-full table-auto">
+                                    <thead className="sticky top-0 z-10">
+                                        <tr className="bg-purple-500 text-white">
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Due</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Booking</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Profit</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-gray-200 text-xs">
                                         {Object.entries(accountBreakdown).map(([account, totals]) => (
                                             <tr
                                                 key={account}
@@ -323,12 +327,26 @@ export default function Dashboard({
                                                         {account}
                                                     </button>
                                                 </td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(Math.max(0, totals.amount - totals.refund)).toLocaleString()}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">₹{Math.round(totals.amount).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-indigo-700">₹{Math.round(Math.max(0, totals.amount - totals.refund)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-indigo-900">₹{Math.round(totals.booking).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-green-900">₹{Math.round(totals.profit).toLocaleString()}</td>
                                             </tr>
                                         ))}
+                                        {/* Totals Row */}
+                                        {Object.keys(accountBreakdown).length > 0 && (
+                                            <tr className="bg-gradient-to-r from-purple-100 to-purple-200 font-semibold text-xs">
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4">Totals</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + Math.max(0, v.amount - v.refund), 0)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-indigo-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.booking, 0)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-green-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.profit, 0)).toLocaleString()}</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                                 {Object.keys(accountBreakdown).length === 0 && (
@@ -344,7 +362,6 @@ export default function Dashboard({
                     <TicketTable
                         tickets={tickets}
                         paidTickets={paidTicketIds}
-                        paidDates={paidDates}
                         onDeleteTicket={onDeleteTicket}
                         onUpdateTicket={onUpdateTicket}
                         onProcessRefund={onProcessRefund}
