@@ -13,6 +13,10 @@ export default function LoginPage() {
       setError(null);
       setPwdBusy(true);
       const base = import.meta.env?.VITE_API_URL || 'http://localhost:5050/api';
+      // Detect mixed content (HTTPS page -> HTTP API) which iOS Safari blocks as "Load Failed"
+      if (window.location.protocol === 'https:' && base.startsWith('http://')) {
+        throw new Error('Insecure API URL (http) from secure site (https). Set VITE_API_URL to an https:// API.');
+      }
       const res = await fetch(`${base}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,9 +28,24 @@ export default function LoginPage() {
         const msg = (data && typeof data === 'object' && 'message' in data) ? (data as { message?: string }).message : undefined;
         throw new Error(msg || `Login failed (${res.status})`);
       }
+      const data: { bounce?: string } = await res.json().catch(() => ({}));
+      // On iOS Chrome/Edge (WebKit-based), cookies set via fetch may not persist; bounce via top-level navigation
+      const ua = navigator.userAgent;
+      const isiOS = /iPad|iPhone|iPod/.test(ua);
+      const isWebKit = /WebKit/i.test(ua);
+      const isSafari = /Safari/i.test(ua) && !/CriOS|EdgiOS/i.test(ua);
+      const isNonSafari = isiOS && isWebKit && !isSafari; // e.g., CriOS (Chrome on iOS) or EdgiOS (Edge on iOS)
+      if (isNonSafari && data?.bounce) {
+        window.location.href = data.bounce as string;
+        return;
+      }
       window.location.href = '/dashboard';
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Login failed';
+      let message = e instanceof Error ? e.message : 'Login failed';
+      // Safari/iOS reports network/CORS issues as "TypeError: Load failed" or similar
+      if (typeof message === 'string' && /load failed|failed to fetch|networkerror/i.test(message)) {
+        message = 'Network error contacting API. Ensure API URL is HTTPS and CORS allows this domain.';
+      }
       setError(message);
     } finally {
       setPwdBusy(false);

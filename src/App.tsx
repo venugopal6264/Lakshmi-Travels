@@ -75,7 +75,7 @@ function InnerApp() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
-      <div className="container mx-auto px-4 py-8">
+      <div className="mx-auto px-4 py-4">
         {renderCurrentPage()}
       </div>
     </div>

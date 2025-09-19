@@ -88,9 +88,10 @@ function getCookieOptions(req) {
   const isLocalhost = origin?.startsWith('http://localhost') || origin?.startsWith('http://127.0.0.1');
   return {
     httpOnly: true,
-    sameSite: isLocalhost ? 'lax' : (prod ? 'none' : 'lax'),
+    // For cross-site cookies on iOS/Safari, SameSite=None; Secure is required over HTTPS
+    sameSite: isLocalhost ? 'lax' : 'none',
     secure: prod && !isLocalhost,
-  maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000,
   };
 }
 
@@ -145,7 +146,7 @@ app.get('/api/auth/callback', async (req, res) => {
       email: user.email,
       picture: user.picture,
     });
-  res.cookie('session', sessionToken, getCookieOptions(req));
+    res.cookie('session', sessionToken, getCookieOptions(req));
 
     const redirectPath = decodeURIComponent(state || '/') || '/';
     // Redirect back to client root; client router will handle the rest
@@ -188,10 +189,10 @@ mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(async () => {
-  console.log('Connected to MongoDB');
-})
-.catch((error) => console.error('MongoDB connection error:', error));
+  .then(async () => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((error) => console.error('MongoDB connection error:', error));
 
 // Protect APIs: require a valid session
 app.use('/api/tickets', verifySession, ticketsRouter);
@@ -213,10 +214,38 @@ app.post('/api/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
     const sessionToken = signSession({ sub: String(user._id), username: user.username, role: user.role });
     res.cookie('session', sessionToken, getCookieOptions(req));
-    res.json({ user: { sub: String(user._id), username: user.username, role: user.role } });
+    // Provide a bounce URL to set cookie in a top-level navigation for iOS Chrome/Edge
+    const clientBase = req.headers.origin && (req.headers.origin === clientOrigin || req.headers.origin === 'http://localhost:5173' || req.headers.origin === 'http://127.0.0.1:5173')
+      ? req.headers.origin
+      : clientOrigin;
+    const redirectTarget = `${clientBase}/dashboard`;
+    const bounce = `${serverOrigin}/api/auth/bounce?token=${encodeURIComponent(sessionToken)}&redirect=${encodeURIComponent(redirectTarget)}`;
+    res.json({ user: { sub: String(user._id), username: user.username, role: user.role }, bounce });
   } catch (e) {
     console.error('Password login failed', e);
     res.status(500).json({ message: 'Login failed' });
+  }
+});
+
+// Bounce endpoint: set cookie during top-level navigation then redirect back to client
+app.get('/api/auth/bounce', (req, res) => {
+  try {
+    const { token, redirect } = req.query;
+    if (!token || typeof token !== 'string') return res.status(400).send('Missing token');
+    // Verify token before setting it as session
+    const payload = jwt.verify(token, JWT_SECRET);
+    // Set cookie again in a first-party context (works on iOS Chrome/Edge)
+    res.cookie('session', token, getCookieOptions(req));
+    let target = typeof redirect === 'string' ? redirect : '/';
+    // Prevent open redirect: only allow redirects back to known client origins
+    const allowed = [clientOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+    if (!allowed.some((o) => target.startsWith(o))) {
+      target = clientOrigin;
+    }
+    return res.redirect(target);
+  } catch (err) {
+    console.error('Bounce failed', err);
+    return res.status(400).send('Invalid bounce request');
   }
 });
 
