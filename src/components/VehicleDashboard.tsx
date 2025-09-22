@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Car, Fuel as FuelIcon, Bike, Info } from 'lucide-react';
 import { ApiFuel, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
-import { FuelSummarySection, VehicleDash, VehicleType } from '../utils/FuelUtils';
+import { VehicleDash } from '../utils/FuelUtils';
+import { VehicleType } from '../utils/common/utils';
+import { FuelSummarySection } from '../utils/charts/FuelSummarySection';
 
 // Shared type for vehicles returned by API
 type VehicleDoc = {
@@ -339,8 +341,6 @@ export default function VehicleDashboard() {
                         )}
                     </div>
                 </div>
-
-
 
                 {/* VEHICLE TABS (Car | Bike) */}
                 {periodFilteredFuel.length > 0 && (

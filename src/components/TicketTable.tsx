@@ -34,6 +34,12 @@ export default function TicketTable({
   view = 'both',
   // date handler removed
 }: TicketTableProps) {
+  // Lightweight SPA navigation helper (syncs with App's popstate listener)
+  const navigateTo = (path: string) => {
+    if (!path) return;
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [accountFilter, setAccountFilter] = useState<string>(accountFilterProp ?? 'all');
@@ -250,6 +256,29 @@ export default function TicketTable({
           <span className="text-sm text-green-600">
             {sortedTickets.length} of {currentTickets.length} tickets
           </span>
+          {/* Cross-page quick toggle */}
+          {view === 'open' && (
+            <button
+              type="button"
+              onClick={() => navigateTo('/payment-tracker')}
+              className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 transition flex items-center gap-1"
+              title="Go to Paid Tickets"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Paid Tickets
+            </button>
+          )}
+          {view === 'paid' && (
+            <button
+              type="button"
+              onClick={() => navigateTo('/dashboard')}
+              className="px-3 py-1.5 rounded-md bg-orange-500 text-white text-sm hover:bg-orange-600 transition flex items-center gap-1"
+              title="Go to Open Tickets"
+            >
+              <Clock className="w-4 h-4" />
+              Open Tickets
+            </button>
+          )}
         </div>
       </div>
 

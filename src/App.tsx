@@ -180,6 +180,8 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
             payments={payments}
             tickets={tickets}
             onAddPayment={async (paymentData) => { await addPayment(paymentData); }}
+            onAddTicket={async (ticketData) => { await addTicket(ticketData); }}
+            onDeleteTicket={async (id) => { await deleteTicket(id); }}
             loading={paymentsLoading}
           />
         );

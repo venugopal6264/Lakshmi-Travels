@@ -1,5 +1,5 @@
 import { BarChart3, Calendar, Download, TrendingUp, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
 import { downloadPDFReport } from '../utils/reportGenerator';
@@ -32,6 +32,20 @@ export default function Dashboard({
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [accountFilter, setAccountFilter] = useState<string>('all');
+    // Export UI state
+    const [exportingTickets, setExportingTickets] = useState(false);
+    const [showExportToast, setShowExportToast] = useState(false);
+    const exportToastTimer = useRef<number | null>(null);
+
+    // Cleanup toast timer on unmount
+    useEffect(() => {
+        return () => {
+            if (exportToastTimer.current) {
+                window.clearTimeout(exportToastTimer.current);
+                exportToastTimer.current = null;
+            }
+        };
+    }, []);
     // When clicking an account in the Account Breakdown table, set the filter
     const handleSelectAccountFromBreakdown = (account: string) => {
         if (!account) return;
@@ -130,6 +144,7 @@ export default function Dashboard({
             alert('No tickets to export for the selected account/date range');
             return;
         }
+        setExportingTickets(true);
         // Build filename: Account-BookingStartDate-EndDate
         const accounts = Array.from(new Set(filteredForExport.map(t => t.account)));
         const accountLabel = accountFilter !== 'all'
@@ -145,12 +160,19 @@ export default function Dashboard({
         const startLabel = start ? start.split('T')[0] : 'ALL';
         const endLabel = end ? end.split('T')[0] : 'ALL';
         const filename = `${accountLabel}-${startLabel}-${endLabel}.pdf`;
-        await downloadPDFReport(filteredForExport, {
-            accountLabel,
-            startLabel,
-            endLabel,
-            filename,
-        });
+        try {
+            await downloadPDFReport(filteredForExport, {
+                accountLabel,
+                startLabel,
+                endLabel,
+                filename,
+            });
+        } finally {
+            setExportingTickets(false);
+            setShowExportToast(true);
+            if (exportToastTimer.current) window.clearTimeout(exportToastTimer.current);
+            exportToastTimer.current = window.setTimeout(() => setShowExportToast(false), 5000);
+        }
     };
 
     // Suggestions for TicketForm
@@ -227,9 +249,30 @@ export default function Dashboard({
                 {/* Gradient header (match Vehicles) */}
                 <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
                         <div>
-                            <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
-                            <p className="text-white/90 mt-1">Overview of your travel tickets and profits</p>
+                            {/* Export confirmation popup */}
+                            {showExportToast && (
+                                <div className="fixed top-6 right-6 z-50">
+                                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 font-bold">✓</div>
+                                        <div className="text-sm text-gray-800">Tickets exported successfully.</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (exportToastTimer.current) {
+                                                    window.clearTimeout(exportToastTimer.current);
+                                                    exportToastTimer.current = null;
+                                                }
+                                                setShowExportToast(false);
+                                            }}
+                                            className="ml-2 px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                             {/* Date Range Selector */}
@@ -256,10 +299,21 @@ export default function Dashboard({
                             </button>
                             <button
                                 onClick={exportReport}
-                                className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-indigo-600 hover:to-blue-700 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
+                                disabled={exportingTickets}
+                                className={`bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2 ${exportingTickets ? 'opacity-70 cursor-not-allowed' : 'hover:from-indigo-600 hover:to-blue-700'}`}
+                                title={exportingTickets ? 'Exporting…' : 'Export Report'}
                             >
-                                <Download className="w-4 h-4" />
-                                Export Report
+                                {exportingTickets ? (
+                                    <span className="flex items-center gap-2">
+                                        <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        Exporting…
+                                    </span>
+                                ) : (
+                                    <>
+                                        <Download className="w-4 h-4" />
+                                        Export Report
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -355,6 +409,7 @@ export default function Dashboard({
                                     </div>
                                 )}
                             </div>
+
                         </div>
                     </div>
 

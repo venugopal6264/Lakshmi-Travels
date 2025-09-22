@@ -1,5 +1,5 @@
 import { Calendar, DollarSign, Download, Plane, Train, Bus, Layers } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import TicketTable from './TicketTable';
 
@@ -7,6 +7,10 @@ interface PaymentTrackerProps {
   payments: ApiPayment[];
   tickets: ApiTicket[];
   onAddPayment: (payment: Omit<ApiPayment, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  // New: allow creating tickets from here (for refund-as-open flow)
+  onAddTicket: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  // New: allow deleting tickets from Paid view too
+  onDeleteTicket: (id: string) => Promise<void>;
   loading?: boolean;
 }
 
@@ -14,6 +18,8 @@ export default function PaymentTracker({
   payments,
   tickets,
   onAddPayment,
+  onAddTicket,
+  onDeleteTicket,
   loading = false
 }: PaymentTrackerProps) {
   const [showAddPayment, setShowAddPayment] = useState(false);
@@ -37,12 +43,25 @@ export default function PaymentTracker({
   const janFirst = new Date(today.getFullYear(), 0, 1);
   const [from, setFrom] = useState<string>(toIso(janFirst));
   const [to, setTo] = useState<string>(toIso(today));
+  // Export UI state (CSV export)
+  const [exportingPayments, setExportingPayments] = useState(false);
+  const [showExportToast, setShowExportToast] = useState(false);
+  const exportToastTimer = useRef<number | null>(null);
   useEffect(() => {
     // Ensure from <= to
     if (new Date(from) > new Date(to)) {
       setFrom(to);
     }
   }, [from, to]);
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (exportToastTimer.current) {
+        window.clearTimeout(exportToastTimer.current);
+        exportToastTimer.current = null;
+      }
+    };
+  }, []);
 
   // Prepare local date boundaries
   const fromDate = from ? new Date(from) : null;
@@ -128,14 +147,17 @@ export default function PaymentTracker({
           .reduce((s, t) => s + Number(t.ticketAmount || 0), 0);
         if (scope === 'all') {
           agg.paid = paidSumForAccount;
-          agg.due = agg.ticket - agg.paid; // due = all ticket - paid tickets
+          // Include refunds in due so outstanding refunds are visible
+          agg.due = (agg.ticket - agg.paid) + agg.refund;
         } else if (scope === 'open') {
           agg.paid = 0;
-          agg.due = agg.ticket; // all considered are unpaid
+          // Open scope: show unpaid ticket amounts + refunds to be paid
+          agg.due = agg.ticket + agg.refund;
         } else {
           // paid scope
           agg.paid = agg.ticket; // all considered are paid tickets
-          agg.due = 0;
+          // Even in paid scope, surface refunds related to these tickets
+          agg.due = agg.refund;
         }
         map[a] = agg;
       });
@@ -279,18 +301,56 @@ export default function PaymentTracker({
 
 
   const exportPaymentReport = () => {
-    const csvContent = [
-      ['Date', 'Amount', 'Period'],
-      ...dateFilteredPayments.map(p => [p.date, p.amount.toString(), p.period])
-    ].map(row => row.join(',')).join('\n');
+    setExportingPayments(true);
+    try {
+      const csvContent = [
+        ['Date', 'Amount', 'Period'],
+        ...dateFilteredPayments.map(p => [p.date, p.amount.toString(), p.period])
+      ].map(row => row.join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `payment-report-${from}-to-${to}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payment-report-${from}-to-${to}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingPayments(false);
+      setShowExportToast(true);
+      if (exportToastTimer.current) window.clearTimeout(exportToastTimer.current);
+      exportToastTimer.current = window.setTimeout(() => setShowExportToast(false), 5000);
+    }
+  };
+
+  // Handle refund for a paid ticket: create a new OPEN refund ticket with zero amounts
+  const handleRefundForPaidTicket = async (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => {
+    const base = tickets.find(t => t._id === id);
+    if (!base) return;
+    const refundAmt = Number(refundData.refund || 0);
+    const refundDateStr = refundData.refundDate || new Date().toISOString().split('T')[0];
+    // Create a new ticket record carrying the refund
+    const payload: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'> = {
+      ticketAmount: 0,
+      bookingAmount: 0,
+      profit: 0,
+      refund: refundAmt,
+      refundDate: refundDateStr,
+      refundReason: refundData.refundReason || `Refund for ${base.pnr}`,
+      type: base.type,
+      service: base.service,
+      account: base.account,
+      bookingDate: refundDateStr,
+      passengerName: `${base.passengerName}`,
+      place: base.place,
+      pnr: `Paid-${base.pnr}`,
+      remarks: `Refund created from paid ticket ${base._id}`,
+    };
+    await onAddTicket(payload);
+    // Optional UX: alert user
+    setTimeout(() => {
+      alert('Refund ticket created under Open Tickets.');
+    }, 50);
   };
 
   return (
@@ -305,10 +365,21 @@ export default function PaymentTracker({
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={exportPaymentReport}
-              className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-indigo-600 hover:to-blue-700 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
+              disabled={exportingPayments}
+              className={`bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2 ${exportingPayments ? 'opacity-70 cursor-not-allowed' : 'hover:from-indigo-600 hover:to-blue-700'}`}
+              title={exportingPayments ? 'Exporting…' : 'Export Report'}
             >
-              <Download className="w-4 h-4" />
-              Export Report
+              {exportingPayments ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Exporting…
+                </span>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Export Report
+                </>
+              )}
             </button>
             <button
               onClick={() => setShowAddPayment(true)}
@@ -392,6 +463,22 @@ export default function PaymentTracker({
             </div>
             <Plane className="w-6 h-6 text-purple-600" />
           </div>
+        </div>
+
+        {/* Paid Tickets Table (moved from Dashboard) */}
+        <div className="mt-6">
+          <TicketTable
+            tickets={dateFilteredTickets}
+            paidTickets={paidTicketIds}
+            onDeleteTicket={onDeleteTicket}
+            onUpdateTicket={async () => { /* updates handled on Dashboard for now */ }}
+            onProcessRefund={handleRefundForPaidTicket}
+            onMarkAsPaid={async () => { /* no-op on paid view */ }}
+            onBulkMarkAsPaid={async () => { /* no-op on paid view */ }}
+            loading={loading}
+            dateRange={{ from, to }}
+            view="paid"
+          />
         </div>
 
         {/* Combined Account Breakdown with scope toggle */}
@@ -519,21 +606,7 @@ export default function PaymentTracker({
           </div>
         </div>
 
-        {/* Paid Tickets Table (moved from Dashboard) */}
-        <div className="mt-6">
-          <TicketTable
-            tickets={dateFilteredTickets}
-            paidTickets={paidTicketIds}
-            onDeleteTicket={async () => { /* deletion not managed from payments page */ }}
-            onUpdateTicket={async () => { /* updates handled on Dashboard for now */ }}
-            onProcessRefund={async () => { /* refunds handled on Dashboard for now */ }}
-            onMarkAsPaid={async () => { /* no-op on paid view */ }}
-            onBulkMarkAsPaid={async () => { /* no-op on paid view */ }}
-            loading={loading}
-            dateRange={{ from, to }}
-            view="paid"
-          />
-        </div>
+
 
         {showAddPayment && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -683,6 +756,28 @@ export default function PaymentTracker({
           )}
         </div>
       </div>
+      {/* Export confirmation popup */}
+      {showExportToast && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3">
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 font-bold">✓</div>
+            <div className="text-sm text-gray-800">Payments report exported.</div>
+            <button
+              type="button"
+              onClick={() => {
+                if (exportToastTimer.current) {
+                  window.clearTimeout(exportToastTimer.current);
+                  exportToastTimer.current = null;
+                }
+                setShowExportToast(false);
+              }}
+              className="ml-2 px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
