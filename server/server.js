@@ -64,9 +64,14 @@ const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
 const AUTH0_REDIRECT_URI = process.env.AUTH0_REDIRECT_URI || `${serverOrigin}/api/auth/callback`;
 const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE || undefined; // optional API audience
 const ALLOW_DEV_LOGIN = process.env.ALLOW_DEV_LOGIN === 'true';
+// Session lifetime constants
+const SHORT_LIFETIME_SEC = 24 * 60 * 60; // 1 day (no remember)
+const LONG_LIFETIME_SEC = 7 * 24 * 60 * 60; // 7 days (remember)
+const ROLLING_RENEW_THRESHOLD_SEC = 6 * 60 * 60; // renew remember token if <6h left
 
-function signSession(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+function signSession(payload, remember = false) {
+  const ttl = remember ? LONG_LIFETIME_SEC : SHORT_LIFETIME_SEC;
+  return jwt.sign({ ...payload, remember: remember ? true : undefined }, JWT_SECRET, { expiresIn: ttl });
 }
 
 function verifySession(req, res, next) {
@@ -76,13 +81,21 @@ function verifySession(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
+    if (decoded && decoded.exp && decoded.remember) {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = decoded.exp - now;
+      if (remaining > 0 && remaining < ROLLING_RENEW_THRESHOLD_SEC) {
+        const refreshed = signSession({ sub: decoded.sub, username: decoded.username, role: decoded.role, name: decoded.name, email: decoded.email, picture: decoded.picture }, true);
+        res.cookie('session', refreshed, getCookieOptions(req, true));
+      }
+    }
     next();
   } catch (e) {
     return res.status(401).json({ message: 'Invalid session' });
   }
 }
 
-function getCookieOptions(req) {
+function getCookieOptions(req, remember = false) {
   const prod = process.env.NODE_ENV === 'production';
   const origin = req.headers.origin;
   const isLocalhost = origin?.startsWith('http://localhost') || origin?.startsWith('http://127.0.0.1');
@@ -91,7 +104,7 @@ function getCookieOptions(req) {
     // For cross-site cookies on iOS/Safari, SameSite=None; Secure is required over HTTPS
     sameSite: isLocalhost ? 'lax' : 'none',
     secure: prod && !isLocalhost,
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: (remember ? LONG_LIFETIME_SEC : SHORT_LIFETIME_SEC) * 1000,
   };
 }
 
@@ -177,10 +190,10 @@ app.get('/api/auth/me', (req, res) => {
 // Dev-only login: enable with ALLOW_DEV_LOGIN=true (do NOT enable in production)
 app.post('/api/auth/dev-login', (req, res) => {
   if (!ALLOW_DEV_LOGIN) return res.status(403).json({ message: 'Disabled' });
-  const { email = 'dev@example.com', name = 'Dev User' } = req.body || {};
+  const { email = 'dev@example.com', name = 'Dev User', remember = false } = req.body || {};
   const user = { sub: `dev|${email}`, email, name };
-  const sessionToken = signSession(user);
-  res.cookie('session', sessionToken, getCookieOptions(req));
+  const sessionToken = signSession(user, !!remember);
+  res.cookie('session', sessionToken, getCookieOptions(req, !!remember));
   res.json({ user });
 });
 
@@ -200,20 +213,60 @@ app.use('/api/payments', verifySession, paymentsRouter);
 app.use('/api/fuel', verifySession, fuelRouter);
 app.use('/api/vehicles', verifySession, vehiclesRouter);
 
+// Admin utilities
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+  // role may exist on password login tokens; for Auth0 users, treat first created user as admin not implemented
+  if (req.user.role === 'admin') return next();
+  return res.status(403).json({ message: 'Forbidden' });
+}
+
+// List all users (admin only)
+app.get('/api/admin/users', verifySession, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, { username: 1, role: 1, createdAt: 1, updatedAt: 1, passwordHint: 1 }).sort({ username: 1 });
+    res.json({ users });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to list users' });
+  }
+});
+
+// Reset password (admin only) or self-update (owner allowed)
+app.put('/api/admin/users/:id/password', verifySession, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword, passwordHint } = req.body || {};
+    if (!newPassword || newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (typeof passwordHint !== 'string' || passwordHint.trim().length === 0) return res.status(400).json({ message: 'passwordHint is required' });
+    const targetUser = await User.findById(id);
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+    const isSelf = String(req.user.sub) === String(id) || String(req.user.username) === targetUser.username;
+    const isAdmin = req.user.role === 'admin';
+    if (!isAdmin && !isSelf) return res.status(403).json({ message: 'Forbidden' });
+    targetUser.passwordHash = await bcrypt.hash(newPassword, 10);
+    targetUser.passwordHint = passwordHint.trim();
+    await targetUser.save();
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Password reset failed', e);
+    res.status(500).json({ message: 'Password reset failed' });
+  }
+});
+
 // --- Users API (removed admin management per request) ---
 
 
 // Login with username/password -> sets session cookie (for local or password-based fallback)
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { username, password } = req.body || {};
+    const { username, password, remember = false } = req.body || {};
     if (!username || !password) return res.status(400).json({ message: 'username and password are required' });
     const user = await User.findOne({ username });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-    const sessionToken = signSession({ sub: String(user._id), username: user.username, role: user.role });
-    res.cookie('session', sessionToken, getCookieOptions(req));
+    const sessionToken = signSession({ sub: String(user._id), username: user.username, role: user.role }, !!remember);
+    res.cookie('session', sessionToken, getCookieOptions(req, !!remember));
     // Provide a bounce URL to set cookie in a top-level navigation for iOS Chrome/Edge
     const clientBase = req.headers.origin && (req.headers.origin === clientOrigin || req.headers.origin === 'http://localhost:5173' || req.headers.origin === 'http://127.0.0.1:5173')
       ? req.headers.origin

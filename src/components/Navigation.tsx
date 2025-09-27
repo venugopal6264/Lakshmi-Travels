@@ -10,10 +10,16 @@ interface NavigationProps {
 export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
     const { user, loading, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const hasAdminRole = (u: unknown): u is { role: string } => {
+        if (!u || typeof u !== 'object') return false;
+        const obj = u as Record<string, unknown>;
+        return typeof obj.role === 'string';
+    };
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
-        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' },
+        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' }
+        // Accounts entry removed – access now via clicking the user icon (admin only)
     ];
 
     const buildHref = (basePath: string) => basePath;
@@ -63,10 +69,25 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                         })}
                         {!loading && user && (
                             <div className="ml-3 pl-3 border-l border-white/20 flex items-center">
+                                {/* User avatar/icon – clickable for admins to open Accounts page */}
                                 {user.picture ? (
-                                    <img src={user.picture} alt="avatar" className="w-6 h-6 rounded-full mr-2 ring-2 ring-white/30" />
+                                    <button
+                                        type="button"
+                                        onClick={() => hasAdminRole(user) && user.role === 'admin' && onPageChange('accounts')}
+                                        title={hasAdminRole(user) && user.role === 'admin' ? 'Open Accounts' : 'User'}
+                                        className={`mr-2 ring-2 ring-white/30 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60 ${hasAdminRole(user) && user.role === 'admin' ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}`}
+                                    >
+                                        <img src={user.picture} alt="avatar" className="w-6 h-6" />
+                                    </button>
                                 ) : (
-                                    <User2 className="w-5 h-5 text-white/90 mr-2" />
+                                    <button
+                                        type="button"
+                                        onClick={() => hasAdminRole(user) && user.role === 'admin' && onPageChange('accounts')}
+                                        title={hasAdminRole(user) && user.role === 'admin' ? 'Open Accounts' : 'User'}
+                                        className={`mr-2 text-white/90 rounded-full p-0.5 focus:outline-none focus:ring-2 focus:ring-white/60 ${hasAdminRole(user) && user.role === 'admin' ? 'cursor-pointer hover:bg-white/10' : 'cursor-default'}`}
+                                    >
+                                        <User2 className="w-5 h-5" />
+                                    </button>
                                 )}
                                 <button onClick={logout} className="flex items-center gap-1 px-3 py-2 rounded-md text-white/90 hover:text-white hover:bg-white/10">
                                     <LogOut className="w-4 h-4" /> Logout
@@ -110,10 +131,25 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                         {!loading && user && (
                             <div className="border-t border-white/10 mt-2 pt-2 mx-1 flex items-center justify-between px-4">
                                 <div className="flex items-center gap-2">
-                                    {user.picture ? (
-                                        <img src={user.picture} alt="avatar" className="w-6 h-6 rounded-full ring-2 ring-white/30" />
+                                    {(hasAdminRole(user) && user.role === 'admin') ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => onPageChange('accounts')}
+                                            className="rounded-full ring-2 ring-white/30 overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60 hover:brightness-110"
+                                            title="Open Accounts"
+                                        >
+                                            {user.picture ? (
+                                                <img src={user.picture} alt="avatar" className="w-6 h-6" />
+                                            ) : (
+                                                <User2 className="w-5 h-5 text-white/90 m-0.5" />
+                                            )}
+                                        </button>
                                     ) : (
-                                        <User2 className="w-5 h-5 text-white/90" />
+                                        user.picture ? (
+                                            <img src={user.picture} alt="avatar" className="w-6 h-6 rounded-full ring-2 ring-white/30" />
+                                        ) : (
+                                            <User2 className="w-5 h-5 text-white/90" />
+                                        )
                                     )}
                                     <span className="text-white/90 text-sm">{user.name || 'User'}</span>
                                 </div>

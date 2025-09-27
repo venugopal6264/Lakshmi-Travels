@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
+import AccountsPage from './components/AccountsPage';
 import Navigation from './components/Navigation';
 import VehicleDashboard from './components/VehicleDashboard';
 import PaymentTracker from './components/PaymentTracker';
@@ -22,6 +23,7 @@ function InnerApp() {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('login')) setCurrentPage('login');
     else if (path.includes('payment')) setCurrentPage('payments');
+    else if (path.includes('accounts')) setCurrentPage('accounts');
     else if (path.includes('vehicles')) setCurrentPage('fuel');
     else setCurrentPage('dashboard');
 
@@ -29,6 +31,7 @@ function InnerApp() {
       const p = window.location.pathname.toLowerCase();
       if (p.includes('login')) setCurrentPage('login');
       else if (p.includes('payment')) setCurrentPage('payments');
+      else if (p.includes('accounts')) setCurrentPage('accounts');
       else if (p.includes('vehicles')) setCurrentPage('fuel');
       else setCurrentPage('dashboard');
     };
@@ -42,8 +45,9 @@ function InnerApp() {
       currentPage === 'dashboard' ? '/dashboard'
         : currentPage === 'login' ? '/login'
           : currentPage === 'payments' ? '/payment-tracker'
-            : currentPage === 'fuel' ? '/vehicles'
-              : '/dashboard';
+            : currentPage === 'accounts' ? '/accounts'
+              : currentPage === 'fuel' ? '/vehicles'
+                : '/dashboard';
     const currentUrl = window.location.pathname;
     if (currentUrl !== basePath) {
       window.history.pushState({}, '', basePath);
@@ -216,6 +220,8 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
         );
       case 'fuel':
         return <VehicleDashboard />;
+      case 'accounts':
+        return <AccountsPage />;
       default:
         return null;
     }

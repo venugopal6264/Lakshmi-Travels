@@ -97,12 +97,23 @@ export default function Dashboard({
     const openTickets = dateFilteredTickets.filter(t => !paidTicketIds.includes(t._id || ''));
 
     // KPI totals for OPEN tickets in the selected range
-    const totalBookingAmount = openTickets.reduce((sum, t) => sum + (t.ticketAmount || 0), 0);
-    const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0);
+    const totalBookingAmount = openTickets.reduce((sum, t) => sum + (t.ticketAmount || 0), 0); // total ticket amount
+    const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0); // total booking amount
     // Profit: ticketAmount - bookingAmount (refunds do NOT reduce profit)
     const totalProfit = openTickets.reduce((sum, t) => sum + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0);
     const totalRefundAmount = openTickets.reduce((sum, t) => sum + (t.refund || 0), 0);
     const refundedTicketsCount = openTickets.filter(t => (t.refund || 0) > 0).length;
+    // Total partial payments within same date window (align with account breakdown logic)
+    const fromDateKP = parseLocalDate(dateRange.from);
+    const toDateKP = parseLocalDate(dateRange.to);
+    const totalPartialPaid = payments.filter(p => p.isPartial).filter(p => {
+        const d = parseLocalDate(p.date) || new Date(p.date);
+        if (fromDateKP && d < fromDateKP) return false;
+        if (toDateKP && d > toDateKP) return false;
+        return true;
+    }).reduce((s, p) => s + Number(p.amount || 0), 0);
+    // Remaining due formula: total ticket - refund - partial (>=0)
+    const totalRemainingDue = Math.max(0, totalBookingAmount - totalRefundAmount - totalPartialPaid);
 
     // Calculate account breakdown (OPEN tickets only) + partial payments impact
     const getAccountBreakdown = () => {
@@ -353,21 +364,32 @@ export default function Dashboard({
                 {/* Body */}
                 <div className="p-6 space-y-6">
                     {/* Dashboard widgets: OPEN tickets only */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8">
-                        <div className="bg-purple-50 p-4 rounded-lg border-t-4 border-purple-500">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-6 lg:gap-8">
+                        {/* Moved: Remaining Due first */}
+                        <div className="bg-blue-50 p-4 rounded-lg border-t-4 border-blue-500 order-1">
+                            <h3 className="text-sm font-medium text-blue-600">Total Remaining Due</h3>
+                            <p className="text-2xl font-bold text-blue-900">₹{Math.round(totalRemainingDue).toLocaleString()}</p>
+                            <p className="text-[10px] text-blue-600">Ticket - Refund - Partial</p>
+                        </div>
+                        {/* Moved: Partial Paid second */}
+                        <div className="bg-amber-50 p-4 rounded-lg border-t-4 border-amber-500 order-2">
+                            <h3 className="text-sm font-medium text-amber-600">Total Partial Paid</h3>
+                            <p className="text-2xl font-bold text-amber-900">₹{Math.round(totalPartialPaid).toLocaleString()}</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg border-t-4 border-purple-500 order-3">
                             <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
                             <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalBookingAmount).toLocaleString()}</p>
                             <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
                         </div>
-                        <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500">
+                        <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500 order-4">
                             <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
                             <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalFare).toLocaleString()}</p>
                         </div>
-                        <div className="bg-green-50 p-4 rounded-lg border-t-4 border-green-500">
+                        <div className="bg-green-50 p-4 rounded-lg border-t-4 border-green-500 order-5">
                             <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
                             <p className="text-2xl font-bold text-green-900">₹{Math.round(totalProfit).toLocaleString()}</p>
                         </div>
-                        <div className="bg-red-50 p-4 rounded-lg border-t-4 border-red-500">
+                        <div className="bg-red-50 p-4 rounded-lg border-t-4 border-red-500 order-6">
                             <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
                             <p className="text-2xl font-bold text-red-900">₹{Math.round(totalRefundAmount).toLocaleString()}</p>
                             <p className="text-xs text-red-600">{refundedTicketsCount} tickets refunded</p>

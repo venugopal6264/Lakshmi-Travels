@@ -209,6 +209,17 @@ class ApiService {
     return this.request('/auth/logout', { method: 'POST' });
   }
 
+  // Admin user management
+  async getUsers(): Promise<{ users: Array<{ _id: string; username: string; role: string; createdAt?: string; updatedAt?: string; passwordHint?: string }> }> {
+    return this.request('/admin/users');
+  }
+  async resetUserPassword(id: string, newPassword: string, passwordHint: string): Promise<{ success: boolean }> {
+    return this.request(`/admin/users/${id}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ newPassword, passwordHint })
+    });
+  }
+
   // PDF upload removed
 }
 
