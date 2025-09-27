@@ -104,13 +104,15 @@ export default function Dashboard({
     const totalRefundAmount = openTickets.reduce((sum, t) => sum + (t.refund || 0), 0);
     const refundedTicketsCount = openTickets.filter(t => (t.refund || 0) > 0).length;
 
-    // Calculate account breakdown (OPEN tickets only)
+    // Calculate account breakdown (OPEN tickets only) + partial payments impact
     const getAccountBreakdown = () => {
-        const accountTotals: Record<string, { amount: number; booking: number; refund: number; due: number; profit: number; count: number }> = {};
+        type Row = { amount: number; booking: number; refund: number; partial: number; due: number; profit: number; count: number };
+        const accountTotals: Record<string, Row> = {};
+        // Base aggregates from open (unpaid) tickets
         openTickets.forEach(ticket => {
             const acc = ticket.account;
             if (!accountTotals[acc]) {
-                accountTotals[acc] = { amount: 0, booking: 0, refund: 0, due: 0, profit: 0, count: 0 };
+                accountTotals[acc] = { amount: 0, booking: 0, refund: 0, partial: 0, due: 0, profit: 0, count: 0 };
             }
             const amt = Number(ticket.ticketAmount || 0);
             const book = Number(ticket.bookingAmount || 0);
@@ -118,9 +120,28 @@ export default function Dashboard({
             accountTotals[acc].amount += amt;
             accountTotals[acc].booking += book;
             accountTotals[acc].refund += ref;
-            accountTotals[acc].due += Math.max(0, amt - ref);
             accountTotals[acc].profit += (amt - book);
             accountTotals[acc].count += 1;
+        });
+        // Aggregate partial payments within date range (same filter logic as tickets)
+        const fromDate = parseLocalDate(dateRange.from);
+        const toDate = parseLocalDate(dateRange.to);
+        payments.forEach(p => {
+            if (!p.isPartial) return;
+            const payDate = parseLocalDate(p.date) || new Date(p.date);
+            if (fromDate && payDate < fromDate) return;
+            if (toDate && payDate > toDate) return;
+            const acc = p.account;
+            if (!acc) return;
+            if (!accountTotals[acc]) {
+                // Account has partial payment but no open tickets – still show with zero tickets
+                accountTotals[acc] = { amount: 0, booking: 0, refund: 0, partial: 0, due: 0, profit: 0, count: 0 };
+            }
+            accountTotals[acc].partial += Number(p.amount || 0);
+        });
+        // Compute due per requirement: due = total - refund - partial (clamped >= 0)
+        Object.values(accountTotals).forEach(row => {
+            row.due = Math.max(0, (row.amount - row.refund - row.partial));
         });
         return accountTotals;
     };
@@ -161,11 +182,22 @@ export default function Dashboard({
         const endLabel = end ? end.split('T')[0] : 'ALL';
         const filename = `${accountLabel}-${startLabel}-${endLabel}.pdf`;
         try {
+            // Compute partial payments within same date window for included accounts
+            const fromDate = parseLocalDate(dateRange.from);
+            const toDate = parseLocalDate(dateRange.to);
+            const includedAccounts = new Set(filteredForExport.map(t => t.account));
+            const partialTotal = payments.filter(p => p.isPartial && p.account && includedAccounts.has(p.account)).filter(p => {
+                const d = parseLocalDate(p.date) || new Date(p.date);
+                if (fromDate && d < fromDate) return false;
+                if (toDate && d > toDate) return false;
+                return true;
+            }).reduce((s, p) => s + Number(p.amount || 0), 0);
             await downloadPDFReport(filteredForExport, {
                 accountLabel,
                 startLabel,
                 endLabel,
                 filename,
+                partialTotal,
             });
         } finally {
             setExportingTickets(false);
@@ -356,7 +388,8 @@ export default function Dashboard({
                                     <thead className="sticky top-0 z-10">
                                         <tr className="bg-purple-500 text-white">
                                             <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Due</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
+                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Partial</th>
                                             <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
                                             <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
                                             <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
@@ -381,7 +414,8 @@ export default function Dashboard({
                                                         {account}
                                                     </button>
                                                 </td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(Math.max(0, totals.amount - totals.refund)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(totals.due).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
@@ -393,7 +427,8 @@ export default function Dashboard({
                                         {Object.keys(accountBreakdown).length > 0 && (
                                             <tr className="bg-gradient-to-r from-purple-100 to-purple-200 font-semibold text-xs">
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4">Totals</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + Math.max(0, v.amount - v.refund), 0)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.due, 0)).toLocaleString()}</td>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-amber-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.partial, 0)).toLocaleString()}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
@@ -409,6 +444,7 @@ export default function Dashboard({
                                     </div>
                                 )}
                             </div>
+                            <p className="mt-3 text-[10px] text-gray-500">Remaining Due = Total Ticket - Refund - Partial Paid. Partial payments are cumulative and do not increase ticket count.</p>
 
                         </div>
                     </div>
@@ -417,6 +453,7 @@ export default function Dashboard({
                     <TicketTable
                         tickets={tickets}
                         paidTickets={paidTicketIds}
+                        payments={payments}
                         onDeleteTicket={onDeleteTicket}
                         onUpdateTicket={onUpdateTicket}
                         onProcessRefund={onProcessRefund}

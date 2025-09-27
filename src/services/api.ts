@@ -31,6 +31,7 @@ export interface ApiPayment {
   period: string;
   account?: string;
   tickets: string[];
+  isPartial?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -66,7 +67,7 @@ export interface FuelSummaryResponse {
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_URL}${endpoint}`;
-    
+
     try {
       const response = await fetch(url, {
         headers: {
@@ -140,6 +141,12 @@ class ApiService {
     });
   }
 
+  async clearPartialPayments(account: string): Promise<{ message: string; deleted: number; amount: number }> {
+    return this.request(`/payments/partial/account/${encodeURIComponent(account)}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Fuel API methods
   async getFuel(): Promise<ApiFuel[]> {
     return this.request<ApiFuel[]>('/fuel');
@@ -174,12 +181,10 @@ class ApiService {
     const q = includeInactive ? '?includeInactive=true' : '';
     return this.request(`/vehicles${q}`);
   }
-  async createVehicle(v: { name: string; type: 'car' | 'bike'; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }>
-  {
+  async createVehicle(v: { name: string; type: 'car' | 'bike'; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }> {
     return this.request('/vehicles', { method: 'POST', body: JSON.stringify(v) });
   }
-  async updateVehicle(id: string, patch: Partial<{ name: string; type: 'car' | 'bike'; active: boolean; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }>
-  {
+  async updateVehicle(id: string, patch: Partial<{ name: string; type: 'car' | 'bike'; active: boolean; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }> {
     return this.request(`/vehicles/${id}`, { method: 'PUT', body: JSON.stringify(patch) });
   }
   async deleteVehicle(id: string, mode: 'soft' | 'hard' = 'soft'): Promise<{ success: boolean; deleted?: boolean }> {

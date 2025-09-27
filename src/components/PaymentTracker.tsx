@@ -29,8 +29,10 @@ export default function PaymentTracker({
     date: '',
     amount: '',
     period: '',
-    account: ''
+    account: '',
+    isPartial: false
   });
+  const [accountDueInfo, setAccountDueInfo] = useState<{ ticketTotal: number; refundTotal: number; partialTotal: number; remainingDue: number } | null>(null);
 
   // Local date filter (independent of Dashboard): default from Jan 1st of current year to today
   const toIso = (d: Date) => {
@@ -83,14 +85,18 @@ export default function PaymentTracker({
     return true;
   });
 
-  // Build paid ticket IDs and paid dates for the filtered payments
+  // Build paid ticket IDs within date range (for per-range views)
   const paidTicketIds = React.useMemo(() => dateFilteredPayments.flatMap(p => p.tickets || []), [dateFilteredPayments]);
-  // Removed paidDates map; not used in table anymore
+  // Global set of all paid ticket IDs (across all payments) for gating add-payment logic
+  const allPaidTicketIds = React.useMemo(() => new Set<string>(payments.flatMap(p => p.tickets || [])), [payments]);
+  // Open tickets = tickets not referenced by any payment (still unpaid)
+  const openTickets = React.useMemo(() => tickets.filter(t => !allPaidTicketIds.has(t._id || '')), [tickets, allPaidTicketIds]);
+  // Accounts having at least one open ticket
+  const openAccounts = React.useMemo(() => Array.from(new Set(openTickets.map(t => t.account))).sort(), [openTickets]);
 
   // Payments are listed below; add per-account widgets
 
-  // Get unique accounts from tickets
-  const accounts = Array.from(new Set(dateFilteredTickets.map(ticket => ticket.account)));
+  // (Removed legacy all-accounts list; breakdown uses dateFilteredTickets directly)
 
   // Helper: compute per-account aggregates for All/Open/Paid subsets
   const breakdowns = React.useMemo(() => {
@@ -125,6 +131,14 @@ export default function PaymentTracker({
       (ticketsByAccount[a] ||= []).push(t);
     });
 
+    // Map account -> total partial payment amount (payments marked isPartial)
+    const partialCredits: Record<string, number> = {};
+    dateFilteredPayments.forEach(p => {
+      if (p.isPartial && p.account) {
+        partialCredits[p.account] = (partialCredits[p.account] || 0) + Number(p.amount || 0);
+      }
+    });
+
     const computeScope = (scope: 'all' | 'open' | 'paid') => {
       const map: Record<string, Agg> = {};
       Object.entries(ticketsByAccount).forEach(([a, ts]) => {
@@ -142,22 +156,23 @@ export default function PaymentTracker({
           agg.count += 1;
         });
         // Amount paid based on paid tickets' ticketAmount
-        const paidSumForAccount = ts
+        const paidTicketPortion = ts
           .filter((t) => paidTicketIds.has(t._id || ''))
           .reduce((s, t) => s + Number(t.ticketAmount || 0), 0);
+        const partialCredit = partialCredits[a] || 0; // does not increase ticket count
         if (scope === 'all') {
-          agg.paid = paidSumForAccount;
-          // Include refunds in due so outstanding refunds are visible
-          agg.due = (agg.ticket - agg.paid) + agg.refund;
+          agg.paid = paidTicketPortion + partialCredit;
+          // Due reduced by partial credits; include refunds
+          agg.due = Math.max(0, (agg.ticket - paidTicketPortion - partialCredit)) + agg.refund;
         } else if (scope === 'open') {
           agg.paid = 0;
-          // Open scope: show unpaid ticket amounts + refunds to be paid
-          agg.due = agg.ticket + agg.refund;
+          // Open scope: show unpaid ticket amounts minus partial credit (not below 0) + refunds
+          agg.due = Math.max(0, agg.ticket - partialCredit) + agg.refund;
         } else {
           // paid scope
-          agg.paid = agg.ticket; // all considered are paid tickets
-          // Even in paid scope, surface refunds related to these tickets
-          agg.due = agg.refund;
+          agg.paid = agg.ticket + partialCredit; // tickets fully paid plus partial credit counted
+          // Surface refunds (still due to pay out) minus any unused partial credit (if partial credit exceeds refunds, clamp)
+          agg.due = Math.max(0, agg.refund - partialCredit);
         }
         map[a] = agg;
       });
@@ -178,14 +193,20 @@ export default function PaymentTracker({
 
     try {
       setSubmitting(true);
+      // If full payment: attach all currently open tickets for selected account so they become paid.
+      let attachTickets: string[] = [];
+      if (!paymentData.isPartial && paymentData.account) {
+        attachTickets = openTickets.filter(t => t.account === paymentData.account && t._id).map(t => t._id!)
+      }
       await onAddPayment({
         date: paymentData.date,
         amount: parseFloat(paymentData.amount),
         period: paymentData.period,
         account: paymentData.account,
-        tickets: []
+        tickets: attachTickets,
+        isPartial: paymentData.isPartial
       });
-      setPaymentData({ date: '', amount: '', period: '', account: '' });
+      setPaymentData({ date: '', amount: '', period: '', account: '', isPartial: false });
       setShowAddPayment(false);
     } catch (error) {
       console.error('Failed to add payment:', error);
@@ -193,6 +214,47 @@ export default function PaymentTracker({
       setSubmitting(false);
     }
   };
+
+  // When account selection changes, compute due metrics for that account
+  useEffect(() => {
+    // Clear account if it no longer has open tickets
+    if (paymentData.account && !openAccounts.includes(paymentData.account)) {
+      setPaymentData(prev => ({ ...prev, account: '', amount: '', isPartial: false }));
+      setAccountDueInfo(null);
+      return;
+    }
+    if (!paymentData.account) {
+      setAccountDueInfo(null);
+      return;
+    }
+    const related = openTickets.filter(t => t.account === paymentData.account);
+    const ticketTotal = related.reduce((s, t) => s + Number(t.ticketAmount || 0), 0);
+    const refundTotal = related.reduce((s, t) => s + Number(t.refund || 0), 0);
+    const partialTotal = payments.filter(p => p.isPartial && p.account === paymentData.account)
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const remainingDue = Math.max(0, ticketTotal - refundTotal - partialTotal);
+    setAccountDueInfo({ ticketTotal, refundTotal, partialTotal, remainingDue });
+  }, [paymentData.account, openTickets, openAccounts, payments]);
+
+  // One-time auto-fill amount with due when account changes (user can clear/edit freely afterwards)
+  const prevAccountRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!paymentData.account || !accountDueInfo) return;
+    if (prevAccountRef.current !== paymentData.account) {
+      setPaymentData(prev => ({ ...prev, amount: accountDueInfo.remainingDue ? accountDueInfo.remainingDue.toString() : '', isPartial: false }));
+      prevAccountRef.current = paymentData.account;
+    }
+  }, [paymentData.account, accountDueInfo]);
+
+  // Auto toggle partial/full when amount changes relative to due
+  useEffect(() => {
+    if (!accountDueInfo) return;
+    if (paymentData.amount === '') return;
+    const amt = parseFloat(paymentData.amount);
+    if (!isFinite(amt)) return;
+    const isFull = Math.abs(amt - accountDueInfo.remainingDue) < 0.0001;
+    setPaymentData(prev => ({ ...prev, isPartial: !isFull }));
+  }, [paymentData.amount, accountDueInfo]);
 
   // Totals for payments are now shown on Dashboard
 
@@ -609,75 +671,141 @@ export default function PaymentTracker({
 
 
         {showAddPayment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">Add New Payment</h3>
-                <button onClick={() => setShowAddPayment(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" /> Add Payment
+                  </h3>
+                  <p className="text-emerald-50 text-xs mt-0.5">Record a full or partial payment for an account.</p>
+                </div>
+                <button
+                  onClick={() => setShowAddPayment(false)}
+                  className="text-white/80 hover:text-white transition"
+                  aria-label="Close"
+                >✕</button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+                {/* Account (only those with open tickets) */}
+                <div className="flex flex-col gap-1 group">
+                  <label className="text-xs font-semibold tracking-wide text-gray-600 group-focus-within:text-emerald-600">Account (open tickets only)</label>
+                  <select
+                    value={paymentData.account}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, account: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    required
+                    disabled={openAccounts.length === 0}
+                  >
+                    <option value="" disabled>{openAccounts.length === 0 ? 'No open accounts' : 'Select account'}</option>
+                    {openAccounts.map(account => (
+                      <option key={account} value={account}>{account}</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-gray-500 mt-1">Accounts fully paid are hidden.</p>
+                </div>
+                {/* Field Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {/* Date */}
+                  <div className="flex flex-col gap-1 group">
+                    <label className="text-xs font-semibold tracking-wide text-gray-600 group-focus-within:text-emerald-600">Payment Date</label>
                     <input
                       type="date"
                       value={paymentData.date}
                       onChange={(e) => setPaymentData(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
                   </div>
-                  <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                  {/* Amount */}
+                  <div className="flex flex-col gap-1 group">
+                    <label className="text-xs font-semibold tracking-wide text-gray-600 group-focus-within:text-emerald-600">Amount (₹)</label>
                     <input
                       type="number"
+                      min={0}
+                      step={0.01}
                       value={paymentData.amount}
                       onChange={(e) => setPaymentData(prev => ({ ...prev, amount: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter amount"
+                      placeholder="e.g. 1200"
+                      className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
+                  {/* Period */}
+                  <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2 group">
+                    <label className="text-xs font-semibold tracking-wide text-gray-600 group-focus-within:text-emerald-600">Period</label>
                     <input
                       type="text"
                       value={paymentData.period}
                       onChange={(e) => setPaymentData(prev => ({ ...prev, period: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., Jan 1-15, 2025"
+                      placeholder="e.g., Jan 1 - Jan 15 2025"
+                      className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
-                    <select
-                      value={paymentData.account}
-                      onChange={(e) => setPaymentData(prev => ({ ...prev, account: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    >
-                      <option value="" disabled>Select account</option>
-                      {accounts.map(account => (
-                        <option key={account} value={account}>{account}</option>
-                      ))}
-                    </select>
+
+                </div>
+                {/* Partial Toggle moved to next line */}
+                {!!paymentData.account && (
+                  <div className="flex flex-col gap-2 group">
+                    <label className="text-xs font-semibold tracking-wide text-gray-600">Partial Payment</label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentData(p => ({ ...p, isPartial: !p.isPartial }))}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${paymentData.isPartial ? 'bg-emerald-600' : 'bg-gray-300'}`}
+                        aria-pressed={paymentData.isPartial}
+                        disabled={!accountDueInfo || accountDueInfo.remainingDue === 0}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${paymentData.isPartial ? 'translate-x-5' : 'translate-x-1'}`}
+                        />
+                      </button>
+                      <span className="text-xs text-gray-600">
+                        {paymentData.isPartial ? 'Marked as partial' : 'Mark if amount doesn\'t settle all open tickets'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {/* Due Summary Box */}
+                <div className="grid gap-4">
+                  {accountDueInfo && paymentData.account && (
+                    <div className="flex flex-col gap-3 rounded-md border border-emerald-200 bg-emerald-50/70 p-3">
+                      <div className="flex flex-wrap gap-4 text-[11px] font-medium">
+                        <div className="px-2 py-1 rounded bg-white/70 border border-emerald-200 text-emerald-700">Ticket Total: ₹{Math.round(accountDueInfo.ticketTotal).toLocaleString()}</div>
+                        <div className="px-2 py-1 rounded bg-white/70 border border-emerald-200 text-emerald-700">Refund Total: ₹{Math.round(accountDueInfo.refundTotal).toLocaleString()}</div>
+                        <div className="px-2 py-1 rounded bg-white/70 border border-amber-300 text-amber-700">Partial Paid: ₹{Math.round(accountDueInfo.partialTotal).toLocaleString()}</div>
+                        <div className="px-2 py-1 rounded bg-emerald-600 text-white border border-emerald-700 shadow-sm">Remaining Due: ₹{Math.round(accountDueInfo.remainingDue).toLocaleString()}</div>
+                        <div className="px-2 py-1 rounded border text-xs font-semibold tracking-wide ${paymentData.isPartial ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-emerald-500 bg-emerald-100 text-emerald-700'}">
+                          {paymentData.isPartial ? 'Partial Payment' : 'Full Payment'}
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-emerald-800 leading-relaxed">
+                        {paymentData.isPartial ? 'Amount entered is less than Remaining Due. It will be saved as a partial payment.' : 'Amount matches Remaining Due. This will be saved as a full payment.'}
+                      </div>
+                    </div>
+                  )}
+                  {/* Helper / Guidance */}
+                  <div className="rounded-md border border-dashed border-emerald-300 bg-emerald-50/60 p-3 text-[11px] leading-relaxed text-emerald-800 flex flex-col gap-1">
+                    <div className="font-semibold text-emerald-700">Guidance</div>
+                    <div>Use Partial Payment when the client pays less than the total outstanding ticket amount. Full allocation to specific tickets will be supported in a future enhancement.</div>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowAddPayment(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                  >
-                    Cancel
-                  </button>
+                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition"
+                  >Cancel</button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-md shadow hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 text-sm font-semibold"
                   >
-                    {submitting ? 'Adding...' : 'Add Payment'}
+                    {submitting && <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                    {submitting ? 'Saving...' : 'Add Payment'}
                   </button>
                 </div>
               </form>
@@ -709,6 +837,7 @@ export default function PaymentTracker({
                     <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
                     <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
                     <th className="px-3 py-2 text-left font-semibold uppercase">Refund</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Type</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white text-xs">
@@ -728,8 +857,9 @@ export default function PaymentTracker({
                     const agg = aggregatesForPayment(p);
                     // Odd rows white, even rows light green
                     const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-green-50';
+                    const typeLabel = p.isPartial ? 'Partial' : 'Full';
                     return (
-                      <tr key={p._id || idx} className={`${rowBg} hover:brightness-95`}>
+                      <tr key={p._id || idx} className={`${rowBg} hover:brightness-95 ${p.isPartial ? 'border-l-4 border-l-amber-500' : ''}`}>
                         <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
                         <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
                         <td className="px-3 py-2 whitespace-nowrap">{agg.count}</td>
@@ -737,6 +867,9 @@ export default function PaymentTracker({
                         <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(agg.ticketSum).toLocaleString()}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-emerald-800">₹{Math.round(agg.profitNetSum).toLocaleString()}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-red-700">₹{Math.round(agg.refundSum).toLocaleString()}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded text-[10px] font-semibold ${p.isPartial ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{typeLabel}</span>
+                        </td>
                       </tr>
                     );
                   })}
@@ -749,6 +882,7 @@ export default function PaymentTracker({
                     <td className="px-3 py-2">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).ticketSum, 0)).toLocaleString()}</td>
                     <td className="px-3 py-2 text-emerald-800">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).profitNetSum, 0)).toLocaleString()}</td>
                     <td className="px-3 py-2 text-red-700">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).refundSum, 0)).toLocaleString()}</td>
+                    <td className="px-3 py-2"></td>
                   </tr>
                 </tbody>
               </table>

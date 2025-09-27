@@ -118,7 +118,7 @@ const loadImageAsDataUrl = async (url: string): Promise<string | null> => {
 
 export const downloadPDFReport = async (
   tickets: ApiTicket[],
-  opts?: { accountLabel?: string; startLabel?: string; endLabel?: string; filename?: string }
+  opts?: { accountLabel?: string; startLabel?: string; endLabel?: string; filename?: string; partialTotal?: number }
 ) => {
   if (!tickets || tickets.length === 0) return;
   // Dynamically import heavy libs to keep initial bundle small
@@ -152,7 +152,8 @@ export const downloadPDFReport = async (
 
   const totalTicketAmount = sorted.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
   const totalRefund = sorted.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
-  const totalDue = totalTicketAmount - totalRefund;
+  const partialTotal = Number(opts?.partialTotal || 0);
+  const totalDue = totalTicketAmount - totalRefund - partialTotal;
   const hasRefundFlags = sorted.map(t => (Number(t.refund) || 0) > 0);
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -184,6 +185,11 @@ export const downloadPDFReport = async (
     doc.setFontSize(10);
     doc.text(`Account: ${account}`, startX + 300, y + 18, { align: 'left' });
     doc.text(`Period: ${period}`, startX + 300, y + 36, { align: 'left' });
+    if (partialTotal > 0) {
+      doc.setFontSize(9);
+      doc.text(`Partial Paid: ${Math.round(partialTotal)}`, startX + 300, y + 52, { align: 'left' });
+      doc.setFontSize(10);
+    }
   };
 
   const drawFooter = (page: number) => {
@@ -229,9 +235,9 @@ export const downloadPDFReport = async (
   // Totals table
   autoTable(doc, {
     body: [
-      // For 7 columns: [Date, Type, Names, PNR, Place, Fare, Refund]
       [' ', ' ', ' ', ' ', 'Total', Math.round(totalTicketAmount).toString(), Math.round(totalRefund).toString()],
-      [' ', ' ', ' ', ' ', 'Total Due', Math.round(totalDue).toString(), ' ']
+      [' ', ' ', ' ', ' ', 'Partial Paid', partialTotal ? Math.round(partialTotal).toString() : '0', ' '],
+      [' ', ' ', ' ', ' ', 'Remaining Due', Math.round(totalDue).toString(), ' ']
     ],
     startY: (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
       ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
@@ -247,6 +253,14 @@ export const downloadPDFReport = async (
     },
   });
 
+  // Optional formula note
+  if (partialTotal > 0) {
+    const y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 140;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text('Remaining Due = Total Ticket - Refund - Partial Paid', 25, y + 18);
+    doc.setTextColor(0);
+  }
   const filename = opts?.filename || `${account}-${(opts?.startLabel || 'ALL')}-${(opts?.endLabel || 'ALL')}.pdf`;
   doc.save(filename);
 };

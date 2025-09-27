@@ -9,6 +9,11 @@ const paymentSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  // Flag to indicate this payment is a partial (does not fully settle referenced tickets)
+  isPartial: {
+    type: Boolean,
+    default: false
+  },
   period: {
     type: String,
     required: true

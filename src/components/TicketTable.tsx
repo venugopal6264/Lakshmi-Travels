@@ -1,11 +1,12 @@
 import { CheckCircle, Clock, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { ApiTicket } from '../services/api';
+import { ApiTicket, ApiPayment } from '../services/api';
 import EditTicketModal from './EditTicketModal';
 
 interface TicketTableProps {
   tickets: ApiTicket[];
   paidTickets: string[];
+  payments: ApiPayment[]; // needed for partial payment aggregation in bulk confirm modal
   onDeleteTicket: (id: string) => Promise<void>;
   onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
   onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
@@ -23,6 +24,7 @@ interface TicketTableProps {
 export default function TicketTable({
   tickets,
   paidTickets,
+  payments,
   onDeleteTicket,
   onUpdateTicket,
   onProcessRefund,
@@ -634,32 +636,43 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Confirm Mark as Paid</h3>
-            <p className="text-sm text-gray-700 mb-4">The following accounts will be marked as paid based on your selection.</p>
+            <p className="text-sm text-gray-700 mb-4">The following accounts will be marked as paid. Remaining Due = (Ticket - Refund) - Partial Paid. Any partial payment records shown will be cleared when you confirm.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="px-3 py-2 text-left font-medium text-gray-700">Account</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-700">Total Tickets</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">Total Due (Ticket - Refund)</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">Partial Paid</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">Remaining Due (Ticket - Refund - Partial)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
                     const byId: Record<string, ApiTicket> = Object.fromEntries(tickets.map(t => [t._id!, t]));
                     const selected = selectedTickets.map(id => byId[id]).filter(Boolean);
-                    const grouped: Record<string, { count: number; net: number }> = {};
+                    // Aggregate selected ticket net (ticket - refund) per account
+                    const grouped: Record<string, { count: number; net: number; partial: number; remaining: number }> = {};
                     for (const t of selected) {
                       const acc = t.account || 'Unknown';
-                      if (!grouped[acc]) grouped[acc] = { count: 0, net: 0 };
+                      if (!grouped[acc]) grouped[acc] = { count: 0, net: 0, partial: 0, remaining: 0 };
                       grouped[acc].count += 1;
                       grouped[acc].net += Number(t.ticketAmount || 0) - Number(t.refund || 0);
                     }
+                    // Add partial payments only for accounts that have selected tickets
+                    payments.filter(p => p.isPartial && p.account && grouped[p.account]).forEach(p => {
+                      const acc = p.account!;
+                      grouped[acc].partial += Number(p.amount || 0);
+                    });
+                    // Compute remaining due = max(0, net - partial)
+                    Object.values(grouped).forEach(row => {
+                      row.remaining = Math.max(0, row.net - row.partial);
+                    });
                     const rows = Object.entries(grouped);
                     if (rows.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={3} className="px-3 py-3 text-center text-gray-500">No tickets selected.</td>
+                          <td colSpan={4} className="px-3 py-3 text-center text-gray-500">No tickets selected.</td>
                         </tr>
                       );
                     }
@@ -669,13 +682,15 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                           <tr key={acc} className="border-t">
                             <td className="px-3 py-2">{acc}</td>
                             <td className="px-3 py-2">{v.count}</td>
-                            <td className="px-3 py-2">₹{Math.round(v.net).toLocaleString()}</td>
+                            <td className="px-3 py-2 text-amber-700">₹{Math.round(v.partial).toLocaleString()}</td>
+                            <td className="px-3 py-2 font-medium">₹{Math.round(v.remaining).toLocaleString()}</td>
                           </tr>
                         ))}
                         <tr className="border-t bg-gray-50 font-medium">
                           <td className="px-3 py-2">Total</td>
                           <td className="px-3 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
-                          <td className="px-3 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.net, 0)).toLocaleString()}</td>
+                          <td className="px-3 py-2 text-amber-700">₹{Math.round(rows.reduce((s, [, v]) => s + v.partial, 0)).toLocaleString()}</td>
+                          <td className="px-3 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.remaining, 0)).toLocaleString()}</td>
                         </tr>
                       </>
                     );
@@ -683,6 +698,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                 </tbody>
               </table>
             </div>
+            <p className="mt-3 text-[10px] text-gray-500">On confirm: partial payment records (if any) are deleted and replaced with full payment(s) for the selected tickets.</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"

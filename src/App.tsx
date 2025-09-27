@@ -8,7 +8,7 @@ import Navigation from './components/Navigation';
 import VehicleDashboard from './components/VehicleDashboard';
 import PaymentTracker from './components/PaymentTracker';
 import { usePayments, useTickets } from './hooks/useApi';
-import { ApiTicket } from './services/api';
+import { ApiTicket, apiService } from './services/api';
 
 function InnerApp() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -125,6 +125,20 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
   const handleMarkAsPaid = async (ticketId: string) => {
     const ticket = tickets.find(t => t._id === ticketId);
     if (!ticket) return;
+    const account = ticket.account;
+    // Compute existing partial amount for account
+    const partialTotal = payments.filter(p => p.isPartial && p.account === account)
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    if (partialTotal > 0) {
+      const proceed = window.confirm(`This account has a partial payment of ₹${Math.round(partialTotal)}. Marking this ticket as paid will remove the partial amount record(s). Continue?`);
+      if (!proceed) return;
+      try {
+        await apiService.clearPartialPayments(account);
+      } catch {
+        alert('Failed to clear partial payments. Aborting mark as paid.');
+        return;
+      }
+    }
     const today = new Date().toISOString().split('T')[0];
     await addPayment({
       date: today,
@@ -137,8 +151,24 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
 
   const handleBulkMarkAsPaid = async (ticketIds: string[]) => {
     const selectedTickets = tickets.filter(t => ticketIds.includes(t._id!));
+    if (selectedTickets.length === 0) return;
+    // Determine accounts involved
+    const accounts = Array.from(new Set(selectedTickets.map(t => t.account)));
+    // For each account compute partial total
+    const partialInfo = accounts.map(acc => ({
+      account: acc,
+      amount: payments.filter(p => p.isPartial && p.account === acc).reduce((s, p) => s + Number(p.amount || 0), 0)
+    })).filter(p => p.amount > 0);
+    if (partialInfo.length > 0) {
+      const lines = partialInfo.map(p => `${p.account}: ₹${Math.round(p.amount)}`).join('\n');
+      const proceed = window.confirm(`Partial payments exist for:\n${lines}\nProceed? They will be removed.`);
+      if (!proceed) return;
+      for (const p of partialInfo) {
+        try { await apiService.clearPartialPayments(p.account); } catch { alert(`Failed to clear partials for ${p.account}`); return; }
+      }
+    }
     const today = new Date().toISOString().split('T')[0];
-    // Group by account and create one payment per account using ticketAmount sum
+    // Group by account and create one payment per account
     const byAccount = selectedTickets.reduce((acc, t) => {
       const key = t.account || 'Unknown';
       if (!acc[key]) acc[key] = { amount: 0, ids: [] as string[] };
@@ -146,7 +176,6 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
       acc[key].ids.push(t._id!);
       return acc;
     }, {} as Record<string, { amount: number; ids: string[] }>);
-
     for (const [account, info] of Object.entries(byAccount)) {
       await addPayment({
         date: today,
