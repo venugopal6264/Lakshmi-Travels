@@ -78,8 +78,8 @@ export default function EditTicketModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="w-full max-w-2xl mx-4 my-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto p-4 flex items-center justify-center z-50">
+            <div className="w-full max-w-2xl mx-auto">
                 {/* Colorful gradient border wrapper */}
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
@@ -119,7 +119,7 @@ export default function EditTicketModal({
                             </button>
                         </div>
 
-                        <div className="p-6 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)]">
+                        <div className="p-6 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] overflow-y-auto max-h-[70vh]">
                             {activeTab === 'edit' ? (
                                 <div className="space-y-4">
                                     <TicketForm

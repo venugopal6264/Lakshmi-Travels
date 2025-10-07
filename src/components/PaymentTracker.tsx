@@ -666,8 +666,8 @@ export default function PaymentTracker({
         </div>
 
         {showAddPayment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn">
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto p-4 flex items-center justify-center">
+            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn max-h-[90vh]">
               {/* Modal Header */}
               <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 px-6 py-4 flex items-center justify-between">
                 <div>
@@ -682,7 +682,7 @@ export default function PaymentTracker({
                   aria-label="Close"
                 >✕</button>
               </div>
-              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+              <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6 overflow-y-auto max-h-[70vh]">
                 {/* Account (only those with open tickets) */}
                 <div className="flex flex-col gap-1 group">
                   <label className="text-xs font-semibold tracking-wide text-gray-600 group-focus-within:text-emerald-600">Account (open tickets only)</label>

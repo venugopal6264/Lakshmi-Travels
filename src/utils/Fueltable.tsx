@@ -151,9 +151,9 @@ export function FuelTableBody({
                 })}
             </tbody>
             {toDelete && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/40" onClick={() => setToDelete(null)} />
-                    <div className="relative z-10 w-full max-w-md rounded-lg border bg-white shadow-lg">
+                <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black/40" onClick={() => setToDelete(null)} />
+                    <div className="relative z-10 w-full max-w-md rounded-lg border bg-white shadow-lg max-h-[90vh] overflow-y-auto">
                         <div className="p-4 border-b">
                             <h3 className="text-lg font-semibold text-gray-800">Delete this entry?</h3>
                             <p className="text-sm text-gray-600">This action cannot be undone.</p>

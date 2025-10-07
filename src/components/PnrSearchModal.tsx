@@ -54,10 +54,10 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
     const existingServices = Array.from(new Set((tickets || []).map(t => t.service).filter(Boolean)));
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-3xl m-4 my-10">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-3xl m-4 my-10 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
-                    <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
                         <div className="flex items-center justify-between px-5 sm:px-6 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                             <div className="inline-flex items-center gap-2">
                                 <Search className="w-5 h-5" />
@@ -69,7 +69,7 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
                         </div>
                         <div className="h-1 w-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-emerald-400" />
 
-                        <div className="p-4 sm:p-6 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)]">
+                        <div className="p-4 sm:p-6 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] overflow-y-auto max-h-[70vh]">
                             <div className="relative mb-4">
                                 <input
                                     autoFocus

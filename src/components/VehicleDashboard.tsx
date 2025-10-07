@@ -30,22 +30,12 @@ function hexToRgb(hex: string) {
     return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
 }
 function clamp(n: number, a = 0, b = 255) { return Math.max(a, Math.min(b, n)); }
-function shade(hex: string, amt: number) {
-    // amt in [-1,1], negative = darker, positive = lighter
-    const { r, g, b } = hexToRgb(hex);
-    const t = amt >= 0 ? 255 : 0;
-    const p = Math.abs(amt);
-    const nr = clamp(Math.round((t - r) * p) + r);
-    const ng = clamp(Math.round((t - g) * p) + g);
-    const nb = clamp(Math.round((t - b) * p) + b);
-    return `rgb(${nr}, ${ng}, ${nb})`;
-}
 function withAlpha(hex: string, alpha: number) {
     const { r, g, b } = hexToRgb(hex);
     return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`;
 }
 
-function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel: ApiFuel[] }) {
+function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicles: VehicleDoc[]; fuel: ApiFuel[]; onSelect?: (v: VehicleDoc) => void; selectedId?: string | null }) {
     // Single-open accordion behavior
     const [openId, setOpenId] = useState<string | null>(null);
     const toggle = (id: string) => setOpenId(curr => (curr === id ? null : id));
@@ -99,8 +89,13 @@ function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel:
                     return (
                         <div
                             key={c.vehicle._id}
-                            className={`relative rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition border-l-4`}
-                            style={{ borderLeftColor: accentColor }}
+                            className={`relative rounded-lg border bg-white p-4 shadow-sm transition border-l-4 cursor-pointer ${selectedId === c.vehicle._id ? 'ring-2 ring-offset-2' : 'hover:shadow-md'}`}
+                            style={{
+                                borderLeftColor: accentColor,
+                                borderColor: selectedId === c.vehicle._id ? withAlpha(accentColor, 0.35) : '#e5e7eb',
+                                boxShadow: selectedId === c.vehicle._id ? `0 0 0 2px ${withAlpha(accentColor, 0.15)} inset` : undefined,
+                            }}
+                            onClick={() => onSelect?.(c.vehicle)}
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
@@ -123,7 +118,7 @@ function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel:
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => toggle(c.vehicle._id)}
+                                    onClick={(e) => { e.stopPropagation(); toggle(c.vehicle._id); }}
                                     className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 border border-transparent hover:border-gray-200"
                                     title={openId === c.vehicle._id ? 'Hide info' : 'Show info'}
                                 >
@@ -274,11 +269,10 @@ export default function VehicleDashboard() {
     }
 
     const theme = selectedVehicleColor || '#3b82f6';
-    const headerBg = `linear-gradient(90deg, ${shade(theme, -0.1)} 0%, ${theme} 50%, ${shade(theme, 0.2)} 100%)`;
     return (
         <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
             {/* Colorful header (tinted with selected color) */}
-            <div className="px-6 py-4" style={{ background: headerBg }}>
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                         <Car className="w-5 h-5" />
@@ -321,7 +315,18 @@ export default function VehicleDashboard() {
             <div className="p-6">
                 {/* All Vehicles - Last Service / Repair Overview (per-card expandable info) */}
                 {vehicles.length > 0 && (
-                    <LastServiceOverview vehicles={vehicles} fuel={fuel} />
+                    <LastServiceOverview
+                        vehicles={vehicles}
+                        fuel={fuel}
+                        selectedId={activeVehicleId}
+                        onSelect={(v) => {
+                            setActiveVehicle(v.type);
+                            setActiveVehicleId(v._id);
+                            setSelectedVehicleId(v._id);
+                            setSelectedVehicleName(v.name);
+                            setSelectedVehicleColor(v.color || selectedVehicleColor);
+                        }}
+                    />
                 )}
                 {/* Toolbar: Vehicle and Period selectors */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end mb-4">
@@ -424,11 +429,13 @@ export default function VehicleDashboard() {
                         setActiveVehicle(v.type);
                         setVehicleModalOpen(false);
                     }}
+                    color={selectedVehicleColor}
                 />
             )}
             {vehicleManagerOpen && (
                 <VehicleManagerModal
                     vehicles={vehicles}
+                    color={selectedVehicleColor}
                     onClose={() => setVehicleManagerOpen(false)}
                     onUpdated={(v) => {
                         setVehicles(prev => prev.map(x => x._id === v._id ? v : x));
@@ -452,13 +459,14 @@ export default function VehicleDashboard() {
                         setEntryModalOpen(false);
                         setEditingEntry(null);
                     }}
+                    color={selectedVehicleColor}
                 />
             )}
         </div>
     );
 }
 
-function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onAdded: (v: { _id: string; name: string; type: VehicleType; active: boolean }) => void }) {
+function AddVehicleModal({ onClose, onAdded, color }: { onClose: () => void; onAdded: (v: { _id: string; name: string; type: VehicleType; active: boolean }) => void; color?: string }) {
     const [form, setForm] = useState({
         name: '',
         type: 'car' as VehicleType,
@@ -508,76 +516,86 @@ function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onAdded: (
         }
     };
 
+    // live accent uses chosen form.color if set, else fall back to provided color
+    const accent = form.color || color || '#3b82f6';
     return (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4">
-                <h3 className="text-lg font-semibold mb-3">Add vehicle</h3>
-                <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
-                        <div className="flex items-center gap-2">
-                            <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
-                            <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="w-full max-w-xl m-0">
+                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
+                            <h3 className="text-base sm:text-lg font-semibold">Add vehicle</h3>
+                            <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
-                            <option value="car">Car</option>
-                            <option value="bike">Bike</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
-                        <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} placeholder="e.g., Breeza, FZs" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                        <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} placeholder="e.g., ZDi, FZ-S V3" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
-                        <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
-                        <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
-                        <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
-                            {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
-                        <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                        <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                        <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
-                    </div>
+                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
+                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
+                                <div className="flex items-center gap-2">
+                                    <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
+                                    <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
+                                    <option value="car">Car</option>
+                                    <option value="bike">Bike</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
+                                <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} placeholder="e.g., Breeza, FZs" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} placeholder="e.g., ZDi, FZ-S V3" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
+                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
+                                <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
+                                <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
+                                    {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
+                                <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
+                                <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
+                                <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
+                            </div>
 
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
+                            </div>
+                            {error && <p className="text-red-600 text-sm md:col-span-2">{error}</p>}
+                            <div className="md:col-span-2 flex justify-end gap-2 pt-1">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
+                                <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving...' : 'Save'}</button>
+                            </div>
+                        </form>
                     </div>
-                    {error && <p className="text-red-600 text-sm md:col-span-2">{error}</p>}
-                    <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                        <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                        <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     );
 }
 
-function VehicleManagerModal({ vehicles, onClose, onUpdated, onDeleted }: { vehicles: VehicleDoc[]; onClose: () => void; onUpdated: (v: VehicleDoc) => void; onDeleted: (id: string) => void }) {
+function VehicleManagerModal({ vehicles, onClose, onUpdated, onDeleted, color }: { vehicles: VehicleDoc[]; onClose: () => void; onUpdated: (v: VehicleDoc) => void; onDeleted: (id: string) => void; color?: string }) {
     const [editing, setEditing] = useState<VehicleDoc | null>(null);
     const [busyId, setBusyId] = useState<string | null>(null);
     const remove = async (id: string) => {
@@ -589,61 +607,68 @@ function VehicleManagerModal({ vehicles, onClose, onUpdated, onDeleted }: { vehi
             setBusyId(null);
         }
     };
+    const accent = color || '#3b82f6';
     return (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">Manage vehicles</h3>
-                    <button onClick={onClose} className="px-2 py-1 text-gray-600">Close</button>
-                </div>
-                <div className="divide-y">
-                    {vehicles.map(v => (
-                        <div key={v._id} className="py-3">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <div className="font-medium flex items-center gap-2">
-                                        <span>{v.name}</span>
-                                        <span className="text-xs capitalize inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 ring-1 ring-gray-200">{v.type}</span>
-                                    </div>
-                                    <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
-                                        {v.model && <div><span className="text-gray-500">Model: </span>{v.model}</div>}
-                                        {v.color && (
-                                            <div className="inline-flex items-center gap-2"><span className="text-gray-500">Color: </span><span className="h-3 w-3 rounded-sm inline-block" style={{ backgroundColor: v.color }} /> <span>{v.color}</span></div>
-                                        )}
-                                        {v.manufacturerDate && (
-                                            <div>
-                                                <span className="text-gray-500">Mfg: </span>
-                                                {new Date(v.manufacturerDate).toLocaleDateString('en-GB', { month: '2-digit', year: 'numeric' }).replace('/', '-')}
-                                            </div>
-                                        )}
-                                        {v.licensePlate && <div><span className="text-gray-500">Plate: </span>{v.licensePlate}</div>}
-
-                                        {v.fuelType && <div><span className="text-gray-500">Fuel: </span>{v.fuelType}</div>}
-                                        {v.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span>{v.fuelCapacity} L</div>}
-                                        {v.buyDate && <div><span className="text-gray-500">Buy: </span>{String(v.buyDate).slice(0, 10)}</div>}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <button className="text-indigo-600" onClick={() => setEditing(v)}>Edit</button>
-                                    <button className="text-red-600" disabled={busyId === v._id} onClick={() => remove(v._id)}>{busyId === v._id ? 'Deleting…' : 'Delete'}</button>
-                                </div>
-                            </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="w-full max-w-3xl m-0">
+                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
+                            <h3 className="text-base sm:text-lg font-semibold">Manage vehicles</h3>
+                            <button onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
-                    ))}
+                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
+                        <div className="divide-y overflow-y-auto p-4 flex-1">
+                            {vehicles.map(v => (
+                                <div key={v._id} className="py-3">
+                                    <div className="flex items-start justify-between gap-4 border-l-4 pl-3" style={{ borderLeftColor: v.color || withAlpha(accent, 0.7) }}>
+                                        <div>
+                                            <div className="font-medium flex items-center gap-2">
+                                                <span>{v.name}</span>
+                                                <span className="text-xs capitalize inline-flex items-center px-2 py-0.5 rounded-full ring-1" style={{ background: withAlpha(v.color || accent, 0.12), color: v.color || accent, borderColor: withAlpha(v.color || accent, 0.3) }}>{v.type}</span>
+                                            </div>
+                                            <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
+                                                {v.model && <div><span className="text-gray-500">Model: </span>{v.model}</div>}
+                                                {v.color && (
+                                                    <div className="inline-flex items-center gap-2"><span className="text-gray-500">Color: </span><span className="h-3 w-3 rounded-sm inline-block ring-1 ring-gray-300" style={{ backgroundColor: v.color }} /> <span>{v.color}</span></div>
+                                                )}
+                                                {v.manufacturerDate && (
+                                                    <div>
+                                                        <span className="text-gray-500">Mfg: </span>
+                                                        {new Date(v.manufacturerDate).toLocaleDateString('en-GB', { month: '2-digit', year: 'numeric' }).replace('/', '-')}
+                                                    </div>
+                                                )}
+                                                {v.licensePlate && <div><span className="text-gray-500">Plate: </span>{v.licensePlate}</div>}
+
+                                                {v.fuelType && <div><span className="text-gray-500">Fuel: </span>{v.fuelType}</div>}
+                                                {v.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span>{v.fuelCapacity} L</div>}
+                                                {v.buyDate && <div><span className="text-gray-500">Buy: </span>{String(v.buyDate).slice(0, 10)}</div>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button className="text-indigo-600" onClick={() => setEditing(v)}>Edit</button>
+                                            <button className="text-red-600" disabled={busyId === v._id} onClick={() => remove(v._id)}>{busyId === v._id ? 'Deleting…' : 'Delete'}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {editing && (
+                            <EditVehicleModal
+                                vehicle={editing}
+                                color={editing.color || accent}
+                                onClose={() => setEditing(null)}
+                                onSaved={(v) => { onUpdated(v); setEditing(null); }}
+                            />
+                        )}
+                    </div>
                 </div>
-                {editing && (
-                    <EditVehicleModal
-                        vehicle={editing}
-                        onClose={() => setEditing(null)}
-                        onSaved={(v) => { onUpdated(v); setEditing(null); }}
-                    />
-                )}
             </div>
         </div>
     );
 }
 
-function EditVehicleModal({ vehicle, onClose, onSaved }: { vehicle: VehicleDoc; onClose: () => void; onSaved: (v: VehicleDoc) => void }) {
+function EditVehicleModal({ vehicle, onClose, onSaved, color }: { vehicle: VehicleDoc; onClose: () => void; onSaved: (v: VehicleDoc) => void; color?: string }) {
     const [form, setForm] = useState({
         name: vehicle.name || '',
         type: vehicle.type as VehicleType,
@@ -683,75 +708,84 @@ function EditVehicleModal({ vehicle, onClose, onSaved }: { vehicle: VehicleDoc; 
             onSaved(v as VehicleDoc);
         } finally { setSaving(false); }
     };
+    const accent = form.color || color || '#3b82f6';
     return (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4">
-                <h3 className="text-lg font-semibold mb-3">Edit vehicle</h3>
-                <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
-                        <div className="flex items-center gap-2">
-                            <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
-                            <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="w-full max-w-xl m-0">
+                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
+                            <h3 className="text-base sm:text-lg font-semibold">Edit vehicle</h3>
+                            <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
-                            <option value="car">Car</option>
-                            <option value="bike">Bike</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
-                        <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                        <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
-                        <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
-                        <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
-                        <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
-                            {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
-                        <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                        <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                        <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
-                    </div>
+                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
+                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
+                                <div className="flex items-center gap-2">
+                                    <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
+                                    <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
+                                    <option value="car">Car</option>
+                                    <option value="bike">Bike</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
+                                <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
+                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
+                                <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
+                                <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
+                                    {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
+                                <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
+                                <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
+                                <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
+                            </div>
 
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
+                            </div>
+                            <div className="md:col-span-2 flex items-center justify-between gap-2 pt-1">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
+                                <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving…' : 'Save'}</button>
+                            </div>
+                        </form>
                     </div>
-                    <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                        <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                        <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     );
 }
 
-function FuelEntryModal({ initial, defaultVehicle, vehicles, onClose, onSave }: { initial: ApiFuel | null; defaultVehicle: { id: string | null; name: string; type: VehicleType }; vehicles: VehicleDoc[]; onClose: () => void; onSave: (payload: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'>, id?: string) => void }) {
+function FuelEntryModal({ initial, defaultVehicle, vehicles, onClose, onSave, color }: { initial: ApiFuel | null; defaultVehicle: { id: string | null; name: string; type: VehicleType }; vehicles: VehicleDoc[]; onClose: () => void; onSave: (payload: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'>, id?: string) => void; color?: string }) {
     const getToday = () => {
         const d = new Date();
         const yyyy = d.getFullYear();
@@ -792,79 +826,88 @@ function FuelEntryModal({ initial, defaultVehicle, vehicles, onClose, onSave }: 
         };
         onSave(payload, initial?._id);
     };
+    const accent = color || '#3b82f6';
     return (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4">
-                <h3 className="text-lg font-semibold mb-3">{initial ? 'Edit entry' : 'Add entry'}</h3>
-                <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" className="w-full px-3 py-2 border rounded-md" value={date} onChange={e => setDate(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
-                        <select className="w-full px-3 py-2 border rounded-md" value={vehicleId ?? ''} onChange={e => {
-                            const id = e.target.value || null;
-                            setVehicleId(id);
-                            const v = vehicles.find(x => x._id === id);
-                            if (v) setVehicleType(v.type);
-                        }}>
-                            <option value="">Select…</option>
-                            <optgroup label="Cars">
-                                {vehicles.filter(v => v.type === 'car').map(v => (
-                                    <option key={v._id} value={v._id}>{v.name}</option>
-                                ))}
-                            </optgroup>
-                            <optgroup label="Bikes">
-                                {vehicles.filter(v => v.type === 'bike').map(v => (
-                                    <option key={v._id} value={v._id}>{v.name}</option>
-                                ))}
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select className="w-full px-3 py-2 border rounded-md" value={entryType} onChange={e => setEntryType(e.target.value as ApiFuel['entryType'])}>
-                            <option value="refueling">Refueling</option>
-                            <option value="service">Service</option>
-                            <option value="repair">Repair</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Odometer (km)</label>
-                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={odometer} onChange={e => setOdometer(e.target.value)} />
-                    </div>
-                    {entryType === 'refueling' && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Liters</label>
-                                <input type="number" className="w-full px-3 py-2 border rounded-md" value={liters} onChange={e => setLiters(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Price / Liter (₹)</label>
-                                <input type="number" className="w-full px-3 py-2 border rounded-md" value={pricePerLiter} onChange={e => setPricePerLiter(e.target.value)} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Total (₹)</label>
-                                <input type="number" className="w-full px-3 py-2 border rounded-md" value={computedTotal || total} onChange={e => setTotal(e.target.value)} />
-                            </div>
-                        </>
-                    )}
-                    {(entryType === 'service' || entryType === 'repair') && (
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{entryType === 'service' ? 'Service' : 'Repair'} Amount (₹)</label>
-                            <input type="number" className="w-full px-3 py-2 border rounded-md" value={total} onChange={e => setTotal(e.target.value)} />
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="w-full max-w-xl m-0">
+                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
+                            <h3 className="text-base sm:text-lg font-semibold">{initial ? 'Edit entry' : 'Add entry'}</h3>
+                            <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
-                    )}
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea className="w-full px-3 py-2 border rounded-md" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
+                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="date" className="w-full px-3 py-2 border rounded-md" value={date} onChange={e => setDate(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+                                <select className="w-full px-3 py-2 border rounded-md" value={vehicleId ?? ''} onChange={e => {
+                                    const id = e.target.value || null;
+                                    setVehicleId(id);
+                                    const v = vehicles.find(x => x._id === id);
+                                    if (v) setVehicleType(v.type);
+                                }}>
+                                    <option value="">Select…</option>
+                                    <optgroup label="Cars">
+                                        {vehicles.filter(v => v.type === 'car').map(v => (
+                                            <option key={v._id} value={v._id}>{v.name}</option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Bikes">
+                                        {vehicles.filter(v => v.type === 'bike').map(v => (
+                                            <option key={v._id} value={v._id}>{v.name}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select className="w-full px-3 py-2 border rounded-md" value={entryType} onChange={e => setEntryType(e.target.value as ApiFuel['entryType'])}>
+                                    <option value="refueling">Refueling</option>
+                                    <option value="service">Service</option>
+                                    <option value="repair">Repair</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Odometer (km)</label>
+                                <input type="number" className="w-full px-3 py-2 border rounded-md" value={odometer} onChange={e => setOdometer(e.target.value)} />
+                            </div>
+                            {entryType === 'refueling' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Liters</label>
+                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={liters} onChange={e => setLiters(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Price / Liter (₹)</label>
+                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={pricePerLiter} onChange={e => setPricePerLiter(e.target.value)} />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Total (₹)</label>
+                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={computedTotal || total} onChange={e => setTotal(e.target.value)} />
+                                    </div>
+                                </>
+                            )}
+                            {(entryType === 'service' || entryType === 'repair') && (
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{entryType === 'service' ? 'Service' : 'Repair'} Amount (₹)</label>
+                                    <input type="number" className="w-full px-3 py-2 border rounded-md" value={total} onChange={e => setTotal(e.target.value)} />
+                                </div>
+                            )}
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea className="w-full px-3 py-2 border rounded-md" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+                            </div>
+                            <div className="md:col-span-2 flex justify-end gap-2 pt-1">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
+                                <button type="submit" className="px-3 py-2 rounded-md text-white" style={{ backgroundColor: accent }}>Save</button>
+                            </div>
+                        </form>
                     </div>
-                    <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                        <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                        <button type="submit" className="px-3 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Save</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     );

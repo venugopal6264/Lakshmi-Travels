@@ -213,7 +213,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <>
       {!hideHeading && (
         <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
           {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -456,6 +456,6 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           </button>
         </div>
       </form>
-    </div>
+    </>
   );
 }

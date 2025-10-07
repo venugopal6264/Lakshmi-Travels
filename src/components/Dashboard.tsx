@@ -518,7 +518,7 @@ export default function Dashboard({
                     <div className="w-full max-w-5xl m-4 my-8">
                         {/* Gradient border wrapper for colorful feel */}
                         <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
-                            <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
+                            <div className="bg-white rounded-2xl max-h-[90vh] flex flex-col">
                                 {/* Gradient header with larger close icon */}
                                 <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm">
                                     <h3 className="text-lg sm:text-xl font-semibold tracking-wide">Create New Ticket</h3>
@@ -533,7 +533,7 @@ export default function Dashboard({
                                 {/* Subtle decorative top bar under header */}
                                 <div className="h-1 w-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-emerald-400" />
 
-                                <div className="px-4 sm:px-6 py-4 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)]">
+                                <div className="px-4 sm:px-6 py-4 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] flex-1 overflow-y-auto touch-pan-y [-webkit-overflow-scrolling:touch]">
                                     <TicketForm
                                         onAddTicket={handleAddTicketFromModal}
                                         loading={loading}

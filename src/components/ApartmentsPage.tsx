@@ -103,9 +103,9 @@ export default function ApartmentsPage() {
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 px-6 py-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2"><Home className="w-5 h-5" /> Apartments</h2>
-                <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2 flex-shrink-0"><Home className="w-5 h-5" /> Apartments</h2>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <div className="flex items-center gap-2 bg-white/15 text-white rounded-full px-3 py-2 ring-1 ring-white/30">
                         <Calendar className="w-4 h-4" />
                         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="bg-transparent focus:outline-none" />
@@ -128,10 +128,10 @@ export default function ApartmentsPage() {
             {loading ? (
                 <div className="text-center text-gray-500">Loading…</div>
             ) : (
-                <div className="-mx-6 overflow-x-auto">
-                    <table className="min-w-full table-fixed">
+                <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
+                    <table className="min-w-[920px] md:min-w-full table-auto">
                         <thead>
-                            <tr className="text-left text-sm text-gray-600">
+                            <tr className="text-left text-sm text-gray-600 whitespace-nowrap">
                                 <th className="px-4 py-2">S No</th>
                                 <th className="px-4 py-2">Flat Number</th>
                                 <th className="px-4 py-2">Member Name</th>
@@ -142,7 +142,7 @@ export default function ApartmentsPage() {
                                 <th className="px-4 py-2">Occupied History</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 whitespace-nowrap">
                             {filteredFlats.map((f, idx) => {
                                 const rr = rentByFlat[f._id!];
                                 const tenant = f.currentTenant as ApiTenant | null;
@@ -287,15 +287,15 @@ function AddFlatModal({ onClose, onCreate }: { onClose: () => void; onCreate: (n
     const [number, setNumber] = useState('');
     const [notes, setNotes] = useState('');
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md m-4 mt-16">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 shadow-xl">
-                    <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
                         <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                             <h3 className="font-semibold">Add Flat</h3>
                             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="p-5 space-y-3">
+                        <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Flat Number</label>
                                 <input value={number} onChange={e => setNumber(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" placeholder="A-101" />
@@ -327,15 +327,15 @@ function EditTenantModal({ tenant, onClose, onSave }: { tenant: ApiTenant; onClo
         await onSave({ name, phone, aadharNumber, startDate, rentAmount, deposit });
     };
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md m-4 mt-16">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-sky-600 via-indigo-600 to-emerald-600 shadow-xl">
-                    <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
                         <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                             <h3 className="font-semibold">Edit Tenant</h3>
                             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="p-5 space-y-3">
+                        <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Tenant Name</label>
                                 <input value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
@@ -376,15 +376,15 @@ function EditTenantModal({ tenant, onClose, onSave }: { tenant: ApiTenant; onClo
 
 function HistoryModal({ flat, history, onClose }: { flat: ApiFlat; history: ApiTenant[] | null; onClose: () => void }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-lg m-4 mt-16">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-lg m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 shadow-xl">
-                    <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
                         <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                             <h3 className="font-semibold">Tenant History - Flat {flat.number}</h3>
                             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="p-5">
+                        <div className="p-5 overflow-y-auto max-h-[70vh]">
                             {!history ? (
                                 <div className="text-center text-gray-500">Loading…</div>
                             ) : history.length === 0 ? (
@@ -418,15 +418,15 @@ function AddTenantModal({ flat, onClose, onCreate }: { flat: ApiFlat; onClose: (
     const [rentAmount, setRentAmount] = useState<number>(0);
     const [deposit, setDeposit] = useState<number>(0);
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md m-4 mt-16">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-600 via-indigo-600 to-fuchsia-600 shadow-xl">
-                    <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
                         <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                             <h3 className="font-semibold">Add/Change Tenant for Flat {flat.number}</h3>
                             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="p-5 space-y-3">
+                        <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Tenant Name</label>
                                 <input value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" placeholder="John Doe" />
@@ -552,10 +552,10 @@ function ViewMemberModal({ tenant, onClose, onEdit }: { tenant: ApiTenant; onClo
         }
     };
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md m-4 mt-16">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 shadow-xl">
-                    <div className="bg-white rounded-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
                         <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                             <h3 className="font-semibold">Member Details</h3>
                             <div className="flex items-center gap-1">
@@ -565,7 +565,7 @@ function ViewMemberModal({ tenant, onClose, onEdit }: { tenant: ApiTenant; onClo
                                 <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                             </div>
                         </div>
-                        <div className="p-5 space-y-3 text-sm">
+                        <div className="p-5 space-y-3 text-sm overflow-y-auto max-h-[70vh]">
                             <div className="flex justify-between"><span className="text-gray-600">Name</span><span className="font-medium">{tenant.name}</span></div>
                             {tenant.phone && <div className="flex justify-between"><span className="text-gray-600">Phone</span><span>{tenant.phone}</span></div>}
                             {tenant.aadharNumber && <div className="flex justify-between"><span className="text-gray-600">Aadhar</span><span>{tenant.aadharNumber}</span></div>}
