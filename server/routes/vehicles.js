@@ -50,6 +50,7 @@ router.post('/', async (req, res) => {
     const doc = {
       name,
       type,
+      color: (b.color ?? '#3b82f6').toString().trim(),
       model: (b.model ?? '').toString().trim(),
       manufacturerDate: b.manufacturerDate ? parseMonthYear(b.manufacturerDate) : null,
       buyDate: b.buyDate ? new Date(b.buyDate) : null,
@@ -74,14 +75,15 @@ router.put('/:id', async (req, res) => {
     const patch = {};
     if (b.name !== undefined) patch.name = (b.name ?? '').toString().trim();
     if (b.type !== undefined) patch.type = b.type;
+    if (b.color !== undefined) patch.color = (b.color ?? '').toString().trim();
     if (b.model !== undefined) patch.model = (b.model ?? '').toString().trim();
-  if (b.manufacturerDate !== undefined) patch.manufacturerDate = b.manufacturerDate ? parseMonthYear(b.manufacturerDate) : null;
+    if (b.manufacturerDate !== undefined) patch.manufacturerDate = b.manufacturerDate ? parseMonthYear(b.manufacturerDate) : null;
     if (b.buyDate !== undefined) patch.buyDate = b.buyDate ? new Date(b.buyDate) : null;
     if (b.fuelType !== undefined) patch.fuelType = b.fuelType;
     if (b.fuelCapacity !== undefined) patch.fuelCapacity = b.fuelCapacity === '' || b.fuelCapacity == null ? null : Number(b.fuelCapacity);
     if (b.licensePlate !== undefined) patch.licensePlate = (b.licensePlate ?? '').toString().trim();
     if (b.chassisNumber !== undefined) patch.chassisNumber = (b.chassisNumber ?? '').toString().trim();
-  if (b.notes !== undefined) patch.notes = (b.notes ?? '').toString().trim();
+    if (b.notes !== undefined) patch.notes = (b.notes ?? '').toString().trim();
     if (b.active !== undefined) patch.active = !!b.active;
 
     const updated = await Vehicle.findByIdAndUpdate(

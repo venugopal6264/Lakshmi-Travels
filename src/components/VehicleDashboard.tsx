@@ -12,6 +12,7 @@ type VehicleDoc = {
     name: string;
     type: VehicleType;
     active: boolean;
+    color?: string;
     model?: string;
     manufacturerDate?: string | null;
     buyDate?: string | null;
@@ -21,6 +22,28 @@ type VehicleDoc = {
     chassisNumber?: string;
     notes?: string;
 };
+
+// Small helpers for color manipulation (works with #RRGGBB)
+function hexToRgb(hex: string) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return { r: 59, g: 130, b: 246 }; // fallback blue-500
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+function clamp(n: number, a = 0, b = 255) { return Math.max(a, Math.min(b, n)); }
+function shade(hex: string, amt: number) {
+    // amt in [-1,1], negative = darker, positive = lighter
+    const { r, g, b } = hexToRgb(hex);
+    const t = amt >= 0 ? 255 : 0;
+    const p = Math.abs(amt);
+    const nr = clamp(Math.round((t - r) * p) + r);
+    const ng = clamp(Math.round((t - g) * p) + g);
+    const nb = clamp(Math.round((t - b) * p) + b);
+    return `rgb(${nr}, ${ng}, ${nb})`;
+}
+function withAlpha(hex: string, alpha: number) {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`;
+}
 
 function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel: ApiFuel[] }) {
     // Single-open accordion behavior
@@ -72,21 +95,29 @@ function LastServiceOverview({ vehicles, fuel }: { vehicles: VehicleDoc[]; fuel:
                 {cards.map(c => {
                     const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : null;
                     const daysAgo = c.last?.date ? Math.floor((today - new Date(c.last.date).getTime()) / (1000 * 60 * 60 * 24)) : null;
-                    const accent = c.vehicle.type === 'car' ? 'border-l-blue-500' : 'border-l-green-500';
+                    const accentColor = c.vehicle.color || (c.vehicle.type === 'car' ? '#3b82f6' : '#16a34a');
                     return (
                         <div
                             key={c.vehicle._id}
-                            className={`relative rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition ${accent} border-l-4`}
+                            className={`relative rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition border-l-4`}
+                            style={{ borderLeftColor: accentColor }}
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
                                     {c.vehicle.type === 'car' ? (
-                                        <Car className="h-4 w-4 text-blue-600" />
+                                        <Car className="h-4 w-4" style={{ color: accentColor }} />
                                     ) : (
-                                        <Bike className="h-4 w-4 text-green-600" />
+                                        <Bike className="h-4 w-4" style={{ color: accentColor }} />
                                     )}
                                     <span>{c.vehicle.name}</span>
-                                    <span className="ml-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 capitalize ring-1 ring-gray-200">
+                                    <span
+                                        className="ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ring-1"
+                                        style={{
+                                            backgroundColor: withAlpha(accentColor, 0.1),
+                                            color: accentColor,
+                                            borderColor: withAlpha(accentColor, 0.25)
+                                        }}
+                                    >
                                         {c.vehicle.type}
                                     </span>
                                 </div>
@@ -157,6 +188,7 @@ export default function VehicleDashboard() {
     const [vehicleManagerOpen, setVehicleManagerOpen] = useState(false);
     const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
     const [selectedVehicleName, setSelectedVehicleName] = useState<string>(vehicleDisplay['car']);
+    const [selectedVehicleColor, setSelectedVehicleColor] = useState<string>('#3b82f6');
     useEffect(() => {
         (async () => {
             try {
@@ -168,6 +200,7 @@ export default function VehicleDashboard() {
                 if (preferred) {
                     setSelectedVehicleId(preferred._id);
                     setSelectedVehicleName(preferred.name);
+                    setSelectedVehicleColor(preferred.color || '#3b82f6');
                     setActiveVehicle(preferred.type);
                     setActiveVehicleId(preferred._id);
                 }
@@ -240,15 +273,20 @@ export default function VehicleDashboard() {
         return `${dd}/${mm}/${yyyy}`;
     }
 
+    const theme = selectedVehicleColor || '#3b82f6';
+    const headerBg = `linear-gradient(90deg, ${shade(theme, -0.1)} 0%, ${theme} 50%, ${shade(theme, 0.2)} 100%)`;
     return (
         <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
-            {/* Colorful header */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+            {/* Colorful header (tinted with selected color) */}
+            <div className="px-6 py-4" style={{ background: headerBg }}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                         <Car className="w-5 h-5" />
                         Vehicles
-                        <span className="ml-2 inline-flex items-center rounded-full text-xs px-2 py-0.5 bg-white/20 text-white capitalize">
+                        <span
+                            className="ml-2 inline-flex items-center rounded-full text-xs px-2 py-0.5 capitalize ring-1"
+                            style={{ background: withAlpha(theme, 0.15), color: '#ffffff', borderColor: withAlpha('#ffffff', 0.35) }}
+                        >
                             {selectedVehicleName}
                         </span>
                     </h2>
@@ -295,13 +333,12 @@ export default function VehicleDashboard() {
                             onChange={(e) => {
                                 const id = e.target.value || null;
                                 setActiveVehicleId(id);
-                                if (id) {
-                                    const v = vehicles.find(x => x._id === id);
-                                    if (v) {
-                                        setActiveVehicle(v.type);
-                                        setSelectedVehicleId(v._id);
-                                        setSelectedVehicleName(v.name);
-                                    }
+                                const found = vehicles.find(x => x._id === id);
+                                if (found) {
+                                    setActiveVehicle(found.type);
+                                    setSelectedVehicleColor(found.color || selectedVehicleColor);
+                                    setSelectedVehicleId(found._id);
+                                    setSelectedVehicleName(found.name);
                                 }
                             }}
                         >
@@ -335,7 +372,14 @@ export default function VehicleDashboard() {
                     <div className='md:col-span-1'>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Display Period</label>
                         {rangeInfo && (
-                            <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-1 text-sm text-indigo-900 ring-1 ring-indigo-200">
+                            <span
+                                className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ring-1"
+                                style={{
+                                    background: withAlpha(theme, 0.08),
+                                    color: theme,
+                                    borderColor: withAlpha(theme, 0.25)
+                                }}
+                            >
                                 {rangeInfo.entriesCount} entries {rangeInfo.firstDate && rangeInfo.lastDate ? `(${fmtDate(rangeInfo.firstDate)} - ${fmtDate(rangeInfo.lastDate)})` : ''} • Last {rangeInfo.rangeDays} days
                             </span>
                         )}
@@ -350,6 +394,7 @@ export default function VehicleDashboard() {
                             items={periodFilteredFuel}
                             vehicleId={activeVehicleId}
                             vehicleName={undefined}
+                            color={selectedVehicleColor}
                             onEdit={(e) => {
                                 setEditingEntry(e);
                                 setEntryModalOpen(true);
@@ -361,7 +406,7 @@ export default function VehicleDashboard() {
                     </div>
                 )}
 
-                <FuelSummarySection items={periodFilteredFuel} />
+                <FuelSummarySection items={periodFilteredFuel} color={selectedVehicleColor} />
             </div>
             {vehicleModalOpen && (
                 <AddVehicleModal
@@ -375,6 +420,7 @@ export default function VehicleDashboard() {
                         });
                         setSelectedVehicleId(v._id);
                         setSelectedVehicleName(v.name);
+                        setSelectedVehicleColor(v.color || '#3b82f6');
                         setActiveVehicle(v.type);
                         setVehicleModalOpen(false);
                     }}
@@ -384,7 +430,10 @@ export default function VehicleDashboard() {
                 <VehicleManagerModal
                     vehicles={vehicles}
                     onClose={() => setVehicleManagerOpen(false)}
-                    onUpdated={(v) => setVehicles(prev => prev.map(x => x._id === v._id ? v : x))}
+                    onUpdated={(v) => {
+                        setVehicles(prev => prev.map(x => x._id === v._id ? v : x));
+                        if (v._id === selectedVehicleId) setSelectedVehicleColor(v.color || selectedVehicleColor);
+                    }}
                     onDeleted={(id) => setVehicles(prev => prev.filter(x => x._id !== id))}
                 />
             )}
@@ -413,6 +462,7 @@ function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onAdded: (
     const [form, setForm] = useState({
         name: '',
         type: 'car' as VehicleType,
+        color: '#3b82f6',
         model: '',
         manufacturerDate: '',
         buyDate: '',
@@ -439,6 +489,7 @@ function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onAdded: (
             const payload = {
                 name: form.name.trim(),
                 type: form.type,
+                color: form.color,
                 model: form.model.trim(),
                 manufacturerDate: form.manufacturerDate || null,
                 buyDate: form.buyDate || null,
@@ -462,6 +513,13 @@ function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onAdded: (
             <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4">
                 <h3 className="text-lg font-semibold mb-3">Add vehicle</h3>
                 <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
+                        <div className="flex items-center gap-2">
+                            <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
+                            <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+                        </div>
+                    </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
@@ -549,6 +607,9 @@ function VehicleManagerModal({ vehicles, onClose, onUpdated, onDeleted }: { vehi
                                     </div>
                                     <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
                                         {v.model && <div><span className="text-gray-500">Model: </span>{v.model}</div>}
+                                        {v.color && (
+                                            <div className="inline-flex items-center gap-2"><span className="text-gray-500">Color: </span><span className="h-3 w-3 rounded-sm inline-block" style={{ backgroundColor: v.color }} /> <span>{v.color}</span></div>
+                                        )}
                                         {v.manufacturerDate && (
                                             <div>
                                                 <span className="text-gray-500">Mfg: </span>
@@ -586,6 +647,7 @@ function EditVehicleModal({ vehicle, onClose, onSaved }: { vehicle: VehicleDoc; 
     const [form, setForm] = useState({
         name: vehicle.name || '',
         type: vehicle.type as VehicleType,
+        color: vehicle.color || '#3b82f6',
         model: vehicle.model || '',
         manufacturerDate: vehicle.manufacturerDate ? String(vehicle.manufacturerDate).slice(0, 7) : '',
         buyDate: vehicle.buyDate ? String(vehicle.buyDate).slice(0, 10) : '',
@@ -603,9 +665,10 @@ function EditVehicleModal({ vehicle, onClose, onSaved }: { vehicle: VehicleDoc; 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        const payload: Partial<{ name: string; type: VehicleType; model: string; manufacturerDate: string | null; buyDate: string | null; fuelType: string; fuelCapacity: number | null; licensePlate: string; chassisNumber: string; notes: string }> = {
+        const payload: Partial<{ name: string; type: VehicleType; color: string; model: string; manufacturerDate: string | null; buyDate: string | null; fuelType: string; fuelCapacity: number | null; licensePlate: string; chassisNumber: string; notes: string }> = {
             name: form.name,
             type: form.type,
+            color: form.color,
             model: form.model,
             manufacturerDate: form.manufacturerDate || null,
             buyDate: form.buyDate || null,
@@ -625,6 +688,13 @@ function EditVehicleModal({ vehicle, onClose, onSaved }: { vehicle: VehicleDoc; 
             <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4">
                 <h3 className="text-lg font-semibold mb-3">Edit vehicle</h3>
                 <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
+                        <div className="flex items-center gap-2">
+                            <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
+                            <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+                        </div>
+                    </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>

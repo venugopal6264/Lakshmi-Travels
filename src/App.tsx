@@ -6,7 +6,9 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import AccountsPage from './components/AccountsPage';
 import Navigation from './components/Navigation';
+import PnrSearchModal from './components/PnrSearchModal';
 import VehicleDashboard from './components/VehicleDashboard';
+import ApartmentsPage from './components/ApartmentsPage';
 import PaymentTracker from './components/PaymentTracker';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket, apiService } from './services/api';
@@ -25,6 +27,7 @@ function InnerApp() {
     else if (path.includes('payment')) setCurrentPage('payments');
     else if (path.includes('accounts')) setCurrentPage('accounts');
     else if (path.includes('vehicles')) setCurrentPage('fuel');
+    else if (path.includes('apartments')) setCurrentPage('apartments');
     else setCurrentPage('dashboard');
 
     const onPop = () => {
@@ -33,6 +36,7 @@ function InnerApp() {
       else if (p.includes('payment')) setCurrentPage('payments');
       else if (p.includes('accounts')) setCurrentPage('accounts');
       else if (p.includes('vehicles')) setCurrentPage('fuel');
+      else if (p.includes('apartments')) setCurrentPage('apartments');
       else setCurrentPage('dashboard');
     };
     window.addEventListener('popstate', onPop);
@@ -47,7 +51,8 @@ function InnerApp() {
           : currentPage === 'payments' ? '/payment-tracker'
             : currentPage === 'accounts' ? '/accounts'
               : currentPage === 'fuel' ? '/vehicles'
-                : '/dashboard';
+                : currentPage === 'apartments' ? '/apartments'
+                  : '/dashboard';
     const currentUrl = window.location.pathname;
     if (currentUrl !== basePath) {
       window.history.pushState({}, '', basePath);
@@ -76,12 +81,17 @@ function InnerApp() {
     }
     return <AuthedApp currentPage={currentPage} />;
   };
+  const [showPnr, setShowPnr] = useState(false);
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
-      <div className="mx-auto px-4 py-4">
+      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} onOpenPnrSearch={() => setShowPnr(true)} />
+      <div className="container mx-auto py-4">
         {renderCurrentPage()}
       </div>
+      {/* PNR Search is rendered only when authenticated, so we mount it below */}
+      {user && (
+        <AuthedPnrPortal open={showPnr} onClose={() => setShowPnr(false)} />
+      )}
     </div>
   );
 }
@@ -222,6 +232,8 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
         return <VehicleDashboard />;
       case 'accounts':
         return <AccountsPage />;
+      case 'apartments':
+        return <ApartmentsPage />;
       default:
         return null;
     }
@@ -249,6 +261,24 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     );
   }
   return render();
+}
+
+// Small helper to access hooks and wire data into PNR modal
+function AuthedPnrPortal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { tickets, updateTicket, processRefund, deleteTicket } = useTickets();
+  const { payments } = usePayments();
+  if (!open) return null;
+  return (
+    <PnrSearchModal
+      isOpen={open}
+      onClose={onClose}
+      tickets={tickets}
+      payments={payments}
+      onUpdateTicket={async (id, data) => { await updateTicket(id, data); }}
+      onProcessRefund={async (id, data) => { await processRefund(id, data); }}
+      onDeleteTicket={async (id) => { await deleteTicket(id); }}
+    />
+  );
 }
 
 export default function App() {

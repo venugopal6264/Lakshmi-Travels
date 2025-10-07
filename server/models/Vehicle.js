@@ -4,6 +4,7 @@ const vehicleSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true }, // Display name, e.g., Breeza, FZs
         type: { type: String, enum: ['car', 'bike'], required: true },
+        color: { type: String, default: '#3b82f6' }, // UI theme color (hex)
         model: { type: String, default: '' }, // Model variant
         manufacturerDate: { type: Date, default: null },
         buyDate: { type: Date, default: null },

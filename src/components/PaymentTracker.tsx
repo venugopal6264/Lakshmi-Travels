@@ -453,7 +453,6 @@ export default function PaymentTracker({
         </div>
       </div>
       <div className="p-6">
-
         {/* Local Date Filter (independent of Dashboard) */}
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 p-3 rounded-md border border-indigo-100">
           <div>
@@ -481,7 +480,6 @@ export default function PaymentTracker({
           </div>
         </div>
 
-        {/* Profit by Type */}
         {/* Summary widgets (date-filtered tickets) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8 mb-6">
           <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500">
@@ -533,14 +531,13 @@ export default function PaymentTracker({
             tickets={dateFilteredTickets}
             paidTickets={paidTicketIds}
             onDeleteTicket={onDeleteTicket}
-            onUpdateTicket={async () => { /* updates handled on Dashboard for now */ }}
+            onUpdateTicket={async () => { }}
             onProcessRefund={handleRefundForPaidTicket}
-            onMarkAsPaid={async () => { /* no-op on paid view */ }}
-            onBulkMarkAsPaid={async () => { /* no-op on paid view */ }}
+            onMarkAsPaid={async () => { }}
+            onBulkMarkAsPaid={async () => { }}
             loading={loading}
             dateRange={{ from, to }}
-            view="paid"
-          />
+            view="paid" payments={[]} />
         </div>
 
         {/* Combined Account Breakdown with scope toggle */}
@@ -667,8 +664,6 @@ export default function PaymentTracker({
             )}
           </div>
         </div>
-
-
 
         {showAddPayment && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

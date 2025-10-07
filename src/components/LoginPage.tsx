@@ -30,17 +30,7 @@ export default function LoginPage() {
         const msg = (data && typeof data === 'object' && 'message' in data) ? (data as { message?: string }).message : undefined;
         throw new Error(msg || `Login failed (${res.status})`);
       }
-      const data: { bounce?: string } = await res.json().catch(() => ({}));
-      // On iOS Chrome/Edge (WebKit-based), cookies set via fetch may not persist; bounce via top-level navigation
-      const ua = navigator.userAgent;
-      const isiOS = /iPad|iPhone|iPod/.test(ua);
-      const isWebKit = /WebKit/i.test(ua);
-      const isSafari = /Safari/i.test(ua) && !/CriOS|EdgiOS/i.test(ua);
-      const isNonSafari = isiOS && isWebKit && !isSafari; // e.g., CriOS (Chrome on iOS) or EdgiOS (Edge on iOS)
-      if (isNonSafari && data?.bounce) {
-        window.location.href = data.bounce as string;
-        return;
-      }
+      await res.json().catch(() => ({}));
       window.location.href = '/dashboard';
     } catch (e: unknown) {
       let message = e instanceof Error ? e.message : 'Login failed';

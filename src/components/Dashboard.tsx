@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Download, TrendingUp, Plus } from 'lucide-react';
+import { BarChart3, Calendar, Download, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
@@ -396,79 +396,70 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    {/* Account Breakdown (OPEN tickets only) */}
+                    {/* Account Breakdown (OPEN tickets only) - header bar removed to keep a single header on the page */}
                     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4 border-indigo-500">
-                        <div className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5" />
-                                Account Breakdown
-                            </h3>
-                        </div>
-                        <div className="p-6">
-                            <div className="overflow-x-auto max-h-[50vh] relative">
-                                <table className="w-full table-auto">
-                                    <thead className="sticky top-0 z-10">
-                                        <tr className="bg-purple-500 text-white">
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Partial</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Booking</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Profit</th>
+                        <div className="overflow-x-auto max-h-[50vh] relative">
+                            <table className="w-full table-auto">
+                                <thead className="sticky top-0 z-10">
+                                    <tr className="bg-purple-500 text-white">
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Partial</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Booking</th>
+                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Profit</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 text-xs">
+                                    {Object.entries(accountBreakdown).map(([account, totals]) => (
+                                        <tr
+                                            key={account}
+                                            className={`transition-colors odd:bg-white even:bg-indigo-50 hover:bg-indigo-100 ${accountFilter === account ? 'ring-2 ring-indigo-400' : ''}`}
+                                        >
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSelectAccountFromBreakdown(account)}
+                                                    className={`text-left hover:underline focus:outline-none ${accountFilter === account ? 'text-indigo-700' : ''}`}
+                                                    aria-label={`Filter tickets by account ${account}`}
+                                                    title="Click to filter tickets by this account"
+                                                >
+                                                    {account}
+                                                </button>
+                                            </td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(totals.due).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-indigo-900">₹{Math.round(totals.booking).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-green-900">₹{Math.round(totals.profit).toLocaleString()}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 text-xs">
-                                        {Object.entries(accountBreakdown).map(([account, totals]) => (
-                                            <tr
-                                                key={account}
-                                                className={`transition-colors odd:bg-white even:bg-indigo-50 hover:bg-indigo-100 ${accountFilter === account ? 'ring-2 ring-indigo-400' : ''}`}
-                                            >
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleSelectAccountFromBreakdown(account)}
-                                                        className={`text-left hover:underline focus:outline-none ${accountFilter === account ? 'text-indigo-700' : ''}`}
-                                                        aria-label={`Filter tickets by account ${account}`}
-                                                        title="Click to filter tickets by this account"
-                                                    >
-                                                        {account}
-                                                    </button>
-                                                </td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(totals.due).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-indigo-900">₹{Math.round(totals.booking).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-green-900">₹{Math.round(totals.profit).toLocaleString()}</td>
-                                            </tr>
-                                        ))}
-                                        {/* Totals Row */}
-                                        {Object.keys(accountBreakdown).length > 0 && (
-                                            <tr className="bg-gradient-to-r from-purple-100 to-purple-200 font-semibold text-xs">
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4">Totals</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.due, 0)).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-amber-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.partial, 0)).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-indigo-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.booking, 0)).toLocaleString()}</td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-green-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.profit, 0)).toLocaleString()}</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                                {Object.keys(accountBreakdown).length === 0 && (
-                                    <div className="text-center py-8 text-gray-500">
-                                        No tickets found for the selected date range.
-                                    </div>
-                                )}
-                            </div>
-                            <p className="mt-3 text-[10px] text-gray-500">Remaining Due = Total Ticket - Refund - Partial Paid. Partial payments are cumulative and do not increase ticket count.</p>
-
+                                    ))}
+                                    {/* Totals Row */}
+                                    {Object.keys(accountBreakdown).length > 0 && (
+                                        <tr className="bg-gradient-to-r from-purple-100 to-purple-200 font-semibold text-xs">
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4">Totals</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.due, 0)).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-amber-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.partial, 0)).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-indigo-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.booking, 0)).toLocaleString()}</td>
+                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-green-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.profit, 0)).toLocaleString()}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                            {Object.keys(accountBreakdown).length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    No tickets found for the selected date range.
+                                </div>
+                            )}
                         </div>
+                        <p className="mt-3 text-[10px] text-gray-500">Remaining Due = Total Ticket - Refund - Partial Paid. Partial payments are cumulative and do not increase ticket count.</p>
                     </div>
 
                     {/* OPEN tickets table */}
@@ -486,6 +477,7 @@ export default function Dashboard({
                         accountFilter={accountFilter}
                         onAccountFilterChange={setAccountFilter}
                         view="open"
+                        headerVariant="accountBreakdown"
                     />
 
                     {/*No Tickets - will display create tickets form */}
@@ -499,22 +491,59 @@ export default function Dashboard({
                 </div>
             </div>
 
+            {/* Mobile floating Create Ticket button (Meta-like ring) */}
+            {!showCreateModal && (
+                <button
+                    type="button"
+                    onClick={() => setShowCreateModal(true)}
+                    aria-label="Create Ticket"
+                    title="Create Ticket"
+                    className="fixed bottom-6 right-5 z-40 active:scale-95 transition-transform"
+                >
+                    <span className="relative block h-14 w-14">
+                        <span className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(at_50%_50%,#4f46e5_0deg,#7c3aed_90deg,#06b6d4_180deg,#10b981_270deg,#4f46e5_360deg)] animate-[spin_4s_linear_infinite] shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+                            <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                                <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-indigo-600 to-emerald-600 text-white shadow-md">
+                                    <Plus className="w-5 h-5" />
+                                </span>
+                            </span>
+                        </span>
+                    </span>
+                </button>
+            )}
+
             {/* Create Ticket Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto">
-                    <div className="bg-white w-full max-w-5xl rounded-lg shadow-lg p-0 sm:p-0 m-4 my-8 max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
-                            <h3 className="text-lg font-medium">Create New Ticket</h3>
-                            <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
-                        </div>
-                        <div className="px-4 sm:px-6 py-4">
-                            <TicketForm
-                                onAddTicket={handleAddTicketFromModal}
-                                loading={loading}
-                                existingAccounts={existingAccounts}
-                                existingServices={existingServices}
-                                existingPnrs={existingPnrs}
-                            />
+                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto">
+                    <div className="w-full max-w-5xl m-4 my-8">
+                        {/* Gradient border wrapper for colorful feel */}
+                        <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
+                            <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
+                                {/* Gradient header with larger close icon */}
+                                <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm">
+                                    <h3 className="text-lg sm:text-xl font-semibold tracking-wide">Create New Ticket</h3>
+                                    <button
+                                        onClick={() => setShowCreateModal(false)}
+                                        aria-label="Close"
+                                        className="p-2 rounded-full bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/60 transition"
+                                    >
+                                        <X className="w-6 h-6" />
+                                    </button>
+                                </div>
+                                {/* Subtle decorative top bar under header */}
+                                <div className="h-1 w-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-emerald-400" />
+
+                                <div className="px-4 sm:px-6 py-4 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)]">
+                                    <TicketForm
+                                        onAddTicket={handleAddTicketFromModal}
+                                        loading={loading}
+                                        existingAccounts={existingAccounts}
+                                        existingServices={existingServices}
+                                        existingPnrs={existingPnrs}
+                                        hideHeading
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

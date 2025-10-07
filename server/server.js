@@ -8,6 +8,7 @@ import paymentsRouter from './routes/payments.js';
 import ticketsRouter from './routes/tickets.js';
 import fuelRouter from './routes/fuel.js';
 import vehiclesRouter from './routes/vehicles.js';
+import tenancyRouter from './routes/tenancy.js';
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 
@@ -212,6 +213,7 @@ app.use('/api/tickets', verifySession, ticketsRouter);
 app.use('/api/payments', verifySession, paymentsRouter);
 app.use('/api/fuel', verifySession, fuelRouter);
 app.use('/api/vehicles', verifySession, vehiclesRouter);
+app.use('/api/tenancy', verifySession, tenancyRouter);
 
 // Admin utilities
 function requireAdmin(req, res, next) {
@@ -253,9 +255,6 @@ app.put('/api/admin/users/:id/password', verifySession, async (req, res) => {
   }
 });
 
-// --- Users API (removed admin management per request) ---
-
-
 // Login with username/password -> sets session cookie (for local or password-based fallback)
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -267,38 +266,10 @@ app.post('/api/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
     const sessionToken = signSession({ sub: String(user._id), username: user.username, role: user.role }, !!remember);
     res.cookie('session', sessionToken, getCookieOptions(req, !!remember));
-    // Provide a bounce URL to set cookie in a top-level navigation for iOS Chrome/Edge
-    const clientBase = req.headers.origin && (req.headers.origin === clientOrigin || req.headers.origin === 'http://localhost:5173' || req.headers.origin === 'http://127.0.0.1:5173')
-      ? req.headers.origin
-      : clientOrigin;
-    const redirectTarget = `${clientBase}/dashboard`;
-    const bounce = `${serverOrigin}/api/auth/bounce?token=${encodeURIComponent(sessionToken)}&redirect=${encodeURIComponent(redirectTarget)}`;
-    res.json({ user: { sub: String(user._id), username: user.username, role: user.role }, bounce });
+    res.json({ user: { sub: String(user._id), username: user.username, role: user.role } });
   } catch (e) {
     console.error('Password login failed', e);
     res.status(500).json({ message: 'Login failed' });
-  }
-});
-
-// Bounce endpoint: set cookie during top-level navigation then redirect back to client
-app.get('/api/auth/bounce', (req, res) => {
-  try {
-    const { token, redirect } = req.query;
-    if (!token || typeof token !== 'string') return res.status(400).send('Missing token');
-    // Verify token before setting it as session
-    const payload = jwt.verify(token, JWT_SECRET);
-    // Set cookie again in a first-party context (works on iOS Chrome/Edge)
-    res.cookie('session', token, getCookieOptions(req));
-    let target = typeof redirect === 'string' ? redirect : '/';
-    // Prevent open redirect: only allow redirects back to known client origins
-    const allowed = [clientOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'];
-    if (!allowed.some((o) => target.startsWith(o))) {
-      target = clientOrigin;
-    }
-    return res.redirect(target);
-  } catch (err) {
-    console.error('Bounce failed', err);
-    return res.status(400).send('Invalid bounce request');
   }
 });
 

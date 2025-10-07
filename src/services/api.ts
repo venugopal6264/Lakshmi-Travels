@@ -64,6 +64,11 @@ export interface FuelSummaryResponse {
   yearToDate: FuelSummaryBucket;
 }
 
+// Tenancy types
+export interface ApiFlat { _id?: string; number: string; notes?: string; currentTenant?: ApiTenant | null; createdAt?: string; updatedAt?: string }
+export interface ApiTenant { _id?: string; name: string; phone?: string; aadharNumber?: string; startDate: string; endDate?: string | null; rentAmount: number; deposit?: number; flat: string | ApiFlat; active?: boolean; createdAt?: string; updatedAt?: string }
+export interface ApiRentRecord { _id?: string; flat: string | ApiFlat; tenant: string | ApiTenant; month: string; amount: number; paid: boolean; paidDate?: string | null; notes?: string; createdAt?: string; updatedAt?: string }
+
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_URL}${endpoint}`;
@@ -177,14 +182,14 @@ class ApiService {
   }
 
   // Vehicles API methods
-  async getVehicles(includeInactive = false): Promise<Array<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>> {
+  async getVehicles(includeInactive = false): Promise<Array<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean; color?: string; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>> {
     const q = includeInactive ? '?includeInactive=true' : '';
     return this.request(`/vehicles${q}`);
   }
-  async createVehicle(v: { name: string; type: 'car' | 'bike'; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }> {
+  async createVehicle(v: { name: string; type: 'car' | 'bike'; color?: string; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean; color?: string }> {
     return this.request('/vehicles', { method: 'POST', body: JSON.stringify(v) });
   }
-  async updateVehicle(id: string, patch: Partial<{ name: string; type: 'car' | 'bike'; active: boolean; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean }> {
+  async updateVehicle(id: string, patch: Partial<{ name: string; type: 'car' | 'bike'; active: boolean; color?: string; model?: string; manufacturerDate?: string | null; buyDate?: string | null; fuelType?: string; fuelCapacity?: number | null; licensePlate?: string; chassisNumber?: string; notes?: string }>): Promise<{ _id: string; name: string; type: 'car' | 'bike'; active: boolean; color?: string }> {
     return this.request(`/vehicles/${id}`, { method: 'PUT', body: JSON.stringify(patch) });
   }
   async deleteVehicle(id: string, mode: 'soft' | 'hard' = 'soft'): Promise<{ success: boolean; deleted?: boolean }> {
@@ -194,6 +199,17 @@ class ApiService {
   async getVehicle(id: string) {
     return this.request(`/vehicles/${id}`);
   }
+
+  // Tenancy API methods
+  async getFlats(): Promise<ApiFlat[]> { return this.request('/tenancy/flats'); }
+  async createFlat(number: string, notes = ''): Promise<ApiFlat> { return this.request('/tenancy/flats', { method: 'POST', body: JSON.stringify({ number, notes }) }); }
+  async getTenants(): Promise<ApiTenant[]> { return this.request('/tenancy/tenants'); }
+  async getFlatTenants(flatId: string): Promise<ApiTenant[]> { return this.request(`/tenancy/flats/${flatId}/tenants`); }
+  async createTenant(input: { name: string; phone?: string; aadharNumber?: string; startDate: string; endDate?: string | null; rentAmount: number; deposit?: number; flatId: string }): Promise<ApiTenant> { return this.request('/tenancy/tenants', { method: 'POST', body: JSON.stringify(input) }); }
+  async updateTenant(id: string, patch: Partial<ApiTenant>): Promise<ApiTenant> { return this.request(`/tenancy/tenants/${id}`, { method: 'PUT', body: JSON.stringify(patch) }); }
+  async getRents(month?: string): Promise<ApiRentRecord[]> { const q = month ? `?month=${encodeURIComponent(month)}` : ''; return this.request(`/tenancy/rents${q}`); }
+  async upsertRent(input: { flatId: string; tenantId: string; month: string; amount: number; paid?: boolean; paidDate?: string | null; notes?: string }): Promise<ApiRentRecord> { return this.request('/tenancy/rents/upsert', { method: 'POST', body: JSON.stringify(input) }); }
+  async toggleRent(id: string): Promise<ApiRentRecord> { return this.request(`/tenancy/rents/${id}/toggle`, { method: 'PUT' }); }
 
   // Health check
   async healthCheck(): Promise<{ message: string; timestamp: string }> {

@@ -1,13 +1,14 @@
-import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X } from 'lucide-react';
+import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X, Search, Home } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 interface NavigationProps {
     currentPage: string;
     onPageChange: (page: string) => void;
+    onOpenPnrSearch?: () => void;
 }
 
-export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
+export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch }: NavigationProps) {
     const { user, loading, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     const hasAdminRole = (u: unknown): u is { role: string } => {
@@ -18,7 +19,8 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
-        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' }
+        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' },
+        { id: 'apartments', label: 'Apartments', icon: Home, path: '/apartments' }
         // Accounts entry removed – access now via clicking the user icon (admin only)
     ];
 
@@ -69,6 +71,15 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                         })}
                         {!loading && user && (
                             <div className="ml-3 pl-3 border-l border-white/20 flex items-center">
+                                {/* PNR Search trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenPnrSearch?.()}
+                                    className="mr-3 inline-flex items-center justify-center rounded-full p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+                                    title="PNR Search"
+                                >
+                                    <Search className="w-5 h-5" />
+                                </button>
                                 {/* User avatar/icon – clickable for admins to open Accounts page */}
                                 {user.picture ? (
                                     <button
@@ -131,6 +142,14 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                         {!loading && user && (
                             <div className="border-t border-white/10 mt-2 pt-2 mx-1 flex items-center justify-between px-4">
                                 <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenPnrSearch?.()}
+                                        className="rounded-full p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+                                        title="PNR Search"
+                                    >
+                                        <Search className="w-5 h-5" />
+                                    </button>
                                     {(hasAdminRole(user) && user.role === 'admin') ? (
                                         <button
                                             type="button"

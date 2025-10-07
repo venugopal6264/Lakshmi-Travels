@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MonthRow } from "../common/utils";
 
 // NEW: dependency-free stacked monthly bar chart with tooltips
-export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
+export function MonthlyFuelServiceBarChart({ rows, color }: { rows: MonthRow[]; color?: string }) {
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     // NEW: track container width for responsive layout
@@ -36,9 +36,10 @@ export function MonthlyFuelServiceBarChart({ rows }: { rows: MonthRow[] }) {
 
     const maxTotal = useMemo(() => Math.max(1, ...data.map(d => d.total)), [data]);
 
-    // Custom palette: Fuel=Blue, Service=Orange, Repair=Gray
-    const fuelColor = '#1a80bb';      // Blue
-    const fuelStroke = '#166a99';     // Darker Blue for border
+    // Custom palette: Fuel=Theme color, Service=Orange, Repair=Gray
+    const theme = color || '#1a80bb'; // Blue fallback
+    const fuelColor = theme;
+    const fuelStroke = theme;
     const serviceColor = '#ea801c';   // Orange
     const serviceStroke = '#b06014';  // Darker Orange for border
     const repairColor = '#b8b8b8';    // Gray

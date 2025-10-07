@@ -19,6 +19,8 @@ interface TicketTableProps {
   onAccountFilterChange?: (value: string) => void;
   // Control which table(s) to show: open, paid, or both (default)
   view?: 'open' | 'paid' | 'both';
+  // Optional: use Account Breakdown-style purple header for the table head
+  headerVariant?: 'default' | 'accountBreakdown';
 }
 
 export default function TicketTable({
@@ -34,6 +36,7 @@ export default function TicketTable({
   accountFilter: accountFilterProp,
   onAccountFilterChange,
   view = 'both',
+  headerVariant = 'default',
   // date handler removed
 }: TicketTableProps) {
   // Lightweight SPA navigation helper (syncs with App's popstate listener)
@@ -85,6 +88,8 @@ export default function TicketTable({
     ? 'border-orange-300 focus:ring-orange-500 focus:border-orange-400'
     : 'border-green-300 focus:ring-green-500 focus:border-green-400';
   const controlIcon = isOpenView ? 'text-orange-400' : 'text-green-500';
+  // Header text color for th
+  const headerTextColor = headerVariant === 'accountBreakdown' ? 'text-white' : 'text-gray-500';
 
   // Place column is now word-wrapped, not resizable
 
@@ -371,10 +376,10 @@ export default function TicketTable({
         )}
 
         <table className="w-full table-auto">
-          <thead className={`sticky top-0 z-10 ${headerGradient} ${headerBorder}`}>
-            <tr>
+          <thead className={`sticky top-0 z-10 ${headerVariant === 'accountBreakdown' ? '' : `${headerGradient} ${headerBorder}`}`}>
+            <tr className={`${headerVariant === 'accountBreakdown' ? 'bg-purple-500 text-white' : ''}`}>
               {activeTable === 'open' && (
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                   <input
                     type="checkbox"
                     checked={selectedTickets.length === sortedTickets.length && sortedTickets.length > 0}
@@ -385,25 +390,25 @@ export default function TicketTable({
               )}
               {/* Account */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('account')}
               >
                 Account {sortField === 'account' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Booking Date */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('bookingDate')}
               >
                 B Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* PNR */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                 PNR
               </th>
               {/* Passenger Name */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('passengerName')}
                 style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
               >
@@ -411,49 +416,49 @@ export default function TicketTable({
               </th>
               {/* Ticket Amount */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('ticketAmount')}
               >
                 Ticket Amount {sortField === 'ticketAmount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Booking Amount */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                 Booking Amount
               </th>
               {/* Refund */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('refund')}
               >
                 Refund {sortField === 'refund' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Profit */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('profit')}
               >
                 Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Place */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider select-none"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider select-none ${headerTextColor}`}
               >
                 Place
               </th>
               {/* Service */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                 Service
               </th>
               {/* Type */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('type')}
               >
                 Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Actions */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}
               >
                 Actions
               </th>

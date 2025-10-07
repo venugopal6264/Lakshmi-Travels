@@ -8,13 +8,14 @@ interface TicketFormProps {
   mode?: 'create' | 'edit';
   initial?: Partial<ApiTicket> | null;
   heading?: string;
+  hideHeading?: boolean;
   loading?: boolean;
   existingAccounts?: string[];
   existingServices?: string[];
   existingPnrs?: string[]; // for duplicate PNR warning (non-blocking)
 }
 
-export default function TicketForm({ onAddTicket, onSave, mode = 'create', initial = null, heading, loading = false, existingAccounts = [], existingServices = [], existingPnrs = [] }: TicketFormProps) {
+export default function TicketForm({ onAddTicket, onSave, mode = 'create', initial = null, heading, hideHeading = false, loading = false, existingAccounts = [], existingServices = [], existingPnrs = [] }: TicketFormProps) {
   // Helper to get today's date in YYYY-MM-DD (local) for <input type="date"/>
   const getToday = () => {
     const d = new Date();
@@ -213,10 +214,12 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-        {heading || (mode === 'edit' ? 'Edit Ticket' : 'Add New Ticket')}
-      </h2>
+      {!hideHeading && (
+        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+          {heading || (mode === 'edit' ? 'Edit Ticket' : 'Add New Ticket')}
+        </h2>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

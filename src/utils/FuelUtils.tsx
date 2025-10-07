@@ -5,7 +5,7 @@ import { fmtINR, fmtMonthYY, fmtShort, VehicleType } from "./common/utils";
 import { FuelTableBody, FuelTableFooter } from "./Fueltable";
 
 /** Donut chart: compares Refueling vs Service totals */
-function CostComparisonDonut({ items }: { items: ApiFuel[] }) {
+function CostComparisonDonut({ items, color }: { items: ApiFuel[]; color?: string }) {
   // Measure container for responsive sizing
   const wrapRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(0);
@@ -37,13 +37,15 @@ function CostComparisonDonut({ items }: { items: ApiFuel[] }) {
       else if (e.entryType === 'service' || e.entryType === 'repair') service += t;
     }
     const total = refuel + service;
+    const theme = color || '#10b981';
+    const alt = '#1a80bb';
     return {
       parts: [
-        { key: 'Refueling', value: refuel, color: '#10b981' }, // emerald-500
-        { key: 'Service', value: service, color: '#1a80bb' },  // user-specified blue
+        { key: 'Refueling', value: refuel, color: theme },
+        { key: 'Service', value: service, color: alt },
       ], total
     } as const;
-  }, [items]);
+  }, [items, color]);
 
   // Responsive size (min 180, max 360)
   const size = Math.max(180, Math.min(containerW || 220, 360));
@@ -108,7 +110,7 @@ function CostComparisonDonut({ items }: { items: ApiFuel[] }) {
 }
 
 /** Odometer line chart: plots odometer vs date with simple grid */
-function OdometerLine({ items }: { items: ApiFuel[] }) {
+function OdometerLine({ items, color }: { items: ApiFuel[]; color?: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(0);
   useEffect(() => {
@@ -193,9 +195,10 @@ function OdometerLine({ items }: { items: ApiFuel[] }) {
   };
   const onLeave = () => { setCross(null); hide(); };
 
+  const stroke = color || '#06b6d4';
   return (
     <div ref={wrapRef} className="relative w-full">
-      <div className="mb-2 flex items-center gap-2 text-xs text-gray-600"><span className="h-0.5 w-6 bg-cyan-500" />Odometer (km)</div>
+      <div className="mb-2 flex items-center gap-2 text-xs text-gray-600"><span className="h-0.5 w-6" style={{ backgroundColor: stroke }} />Odometer (km)</div>
       <svg width={width} height={height}>
         {/* grid */}
         {yTicks.map((ty, i) => (
@@ -205,16 +208,16 @@ function OdometerLine({ items }: { items: ApiFuel[] }) {
           </g>
         ))}
         {/* line */}
-        <path d={d} fill="none" stroke="#06b6d4" strokeWidth={2.5} />
+        <path d={d} fill="none" stroke={stroke} strokeWidth={2.5} />
         {/* points */}
         {points.map((p, i) => (
-          <circle key={i} cx={x(p.x)} cy={y(p.y)} r={2.5} fill="#06b6d4" />
+          <circle key={i} cx={x(p.x)} cy={y(p.y)} r={2.5} fill={stroke} />
         ))}
         {/* crosshair */}
         {cross && (
           <g>
             <line x1={cross.x} y1={pad.t} x2={cross.x} y2={pad.t + innerH} stroke="#94a3b8" strokeDasharray="3,3" />
-            <circle cx={cross.x} cy={cross.y} r={3} fill="#06b6d4" />
+            <circle cx={cross.x} cy={cross.y} r={3} fill={stroke} />
           </g>
         )}
         {/* x-axis ticks (min/mid/max) */}
@@ -235,13 +238,14 @@ function OdometerLine({ items }: { items: ApiFuel[] }) {
 }
 
 /** Per-vehicle dashboard: tabs General | Refueling | Service */
-export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, onDelete }: {
+export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, onDelete, color }: {
   vehicle: VehicleType;
   vehicleId?: string | null;
   vehicleName?: string | null;
   items: ApiFuel[];
   onEdit?: (e: ApiFuel) => void;
   onDelete?: (e: ApiFuel) => void;
+  color?: string;
 }) {
   const list = useMemo(() => items.filter(i => {
     if (i.vehicle !== vehicle) return false;
@@ -312,6 +316,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
   const inr3 = (n = 0) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
 
 
+  const themeColor = color || (vehicle === 'car' ? '#ef4444' : '#16a34a');
   return (
     <section className="mt-4">
       <div>
@@ -380,72 +385,70 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
         </div>
 
-        <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4 ${vehicle === 'car' ? 'border-red-500' : 'border-green-600'}`}>
-          <div className={`px-6 py-3 bg-gradient-to-r ${vehicle === 'car' ? 'from-red-600 to-rose-600' : 'from-green-700 to-emerald-700'} text-white flex items-center justify-between`}>
+        <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
+          <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Fuel className="w-5 h-5" />
               Refueling History
             </h3>
           </div>
-          <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-red-200' : 'divide-green-200'}`}>
-                <thead className={vehicle === 'car' ? 'bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200' : 'bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200'}>
-                  <tr>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Date</th>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Mileage (km/L)</th>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Odometer</th>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Liters</th>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Price</th>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Total</th>
-                    <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Notes</th>
-                    {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Actions</th>}
-                  </tr>
-                </thead>
-                <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
-                <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" hasActions={Boolean(onEdit || onDelete)} />
-              </table>
-            </div>
+          <div className="overflow-x-auto">
+            <table className={`min-w-full divide-y`} style={{ borderColor: themeColor }}>
+              <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
+                <tr>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Mileage (km/L)</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Liters</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Price</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
+                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
+                </tr>
+              </thead>
+              <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
+              <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" hasActions={Boolean(onEdit || onDelete)} />
+            </table>
           </div>
         </div>
 
         {/* Charts: Cost comparison (donut) and Odometer line */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          <div className="bg-white rounded-lg shadow-md p-4 border-t-4 border-t-amber-500">
+          <div className="bg-white rounded-lg shadow-md p-4 border-t-4" style={{ borderTopColor: themeColor }}>
             <h3 className="text-base font-semibold text-gray-800 mb-2">Cost comparison chart</h3>
-            <CostComparisonDonut items={sorted} />
+            <CostComparisonDonut items={sorted} color={themeColor} />
           </div>
-          <div className="bg-white rounded-lg shadow-md px-4 pt-4 pb-0 border-t-4 border-t-sky-500">
+          <div className="bg-white rounded-lg shadow-md px-4 pt-4 pb-0 border-t-4" style={{ borderTopColor: themeColor }}>
             <h3 className="text-base font-semibold text-gray-800 mb-4">Odometer chart</h3>
-            <OdometerLine items={sorted} />
+            <OdometerLine items={sorted} color={themeColor} />
           </div>
         </div>
       </div>
-      <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4 ${vehicle === 'car' ? 'border-red-500' : 'border-green-600'}`}>
-        <div className={`px-6 py-3 bg-gradient-to-r ${vehicle === 'car' ? 'from-red-600 to-rose-600' : 'from-green-700 to-emerald-700'} text-white flex items-center justify-between`}>
+      <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
+        <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Wrench className="w-5 h-5" />
             Service History
           </h3>
         </div>
-        <div className="p-6">
+        <>
           <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y ${vehicle === 'car' ? 'divide-red-200' : 'divide-green-200'}`}>
-              <thead className={vehicle === 'car' ? 'bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200' : 'bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200'}>
+            <table className={`min-w-full divide-y`} style={{ borderColor: themeColor }}>
+              <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
                 <tr>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Date</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Type</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Odometer</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Total</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Notes</th>
-                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${vehicle === 'car' ? 'text-red-700' : 'text-green-800'}`}>Actions</th>}
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Type</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
+                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
                 </tr>
               </thead>
               <FuelTableBody items={items} vehicle={vehicle} onlyType="service" onEdit={onEdit} onDelete={onDelete} />
               <FuelTableFooter items={items} vehicle={vehicle} onlyType="service" hasActions={Boolean(onEdit || onDelete)} />
             </table>
           </div>
-        </div>
+        </>
       </div>
     </section>
   );

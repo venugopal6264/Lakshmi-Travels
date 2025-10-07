@@ -4,7 +4,7 @@ import { MonthRow } from "../common/utils";
 import { MonthlyFuelServiceBarChart } from "./MonthlyFuelServiceBarChart";
 
 export function FuelSummarySection(
-    { items }: { items?: ApiFuel[] } = {}
+    { items, color }: { items?: ApiFuel[]; color?: string } = {}
 ) {
     const [summary, setSummary] = useState<FuelSummaryResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -86,13 +86,14 @@ export function FuelSummarySection(
     if (error) return <p className="text-red-500 text-sm mt-6">{error}</p>;
     if (!summary) return null;
 
+    const theme = color || '#6366f1';
     return (
         <div className="mt-10">
             {monthlyRows.length > 0 && (
-                <div className="rounded-xl border border-blue-200/60 bg-gradient-to-br from-blue-50 to-green-50 p-4 border-t-4 border-t-indigo-500">
-                    <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">Monthly Summary (All Time)</h3>
+                <div className="rounded-xl border p-4 border-t-4" style={{ borderTopColor: theme, borderColor: `${theme}40`, background: `linear-gradient(135deg, ${theme}0D, #10b9810D)` }}>
+                    <h3 className="text-lg font-semibold" style={{ color: theme }}>Monthly Summary (All Time)</h3>
                     <div className="mt-3">
-                        <MonthlyFuelServiceBarChart rows={monthlyRows} />
+                        <MonthlyFuelServiceBarChart rows={monthlyRows} color={theme} />
                     </div>
                 </div>
             )}
