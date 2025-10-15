@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X, Search, Home } from 'lucide-react';
+import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X, Search, Home, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -18,16 +18,15 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
     };
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-        { id: 'payments', label: 'Payment Tracker', icon: DollarSign, path: '/payment-tracker' },
+        { id: 'payments', label: 'Payments', icon: DollarSign, path: '/payment-tracker' },
+        { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
         { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' },
         { id: 'apartments', label: 'Apartments', icon: Home, path: '/apartments' }
-        // Accounts entry removed – access now via clicking the user icon (admin only)
     ];
 
     const buildHref = (basePath: string) => basePath;
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-        // Allow open-in-new-tab/window via modifier keys; only SPA-navigate on plain left-click
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
         e.preventDefault();
         onPageChange(id);

@@ -5,7 +5,6 @@ import { useDateRange } from '../context/useDateRange';
 import { downloadPDFReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
 import TicketForm from './TicketForm';
-import CustomersDetails from './CustomersDetails';
 import OverviewPanels from './OverviewPanels';
 
 interface DashboardProps {
@@ -33,11 +32,10 @@ export default function Dashboard({
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showCustomersDetails, setShowCustomersDetails] = useState(false);
+    const exportToastTimer = useRef<number | null>(null);
     const [accountFilter, setAccountFilter] = useState<string>('all');
     const [exportingTickets, setExportingTickets] = useState(false);
     const [showExportToast, setShowExportToast] = useState(false);
-    const exportToastTimer = useRef<number | null>(null);
 
     // Cleanup toast timer on unmount
     useEffect(() => {
@@ -316,72 +314,53 @@ export default function Dashboard({
                 </div>
                 {/* Body */}
                 <div className="p-4 space-y-6">
-                    <OverviewPanels
-                        metrics={{
-                            totalRemainingDue,
-                            totalPartialPaid,
-                            totalBookingAmount,
-                            totalFare,
-                            totalProfit,
-                            totalRefundAmount,
-                            refundedTicketsCount,
-                        }}
-                        openTickets={openTickets}
-                        payments={payments}
-                        dateRange={dateRange}
-                        accountFilter={accountFilter}
-                        onSelectAccount={handleSelectAccountFromBreakdown}
-                    />
+                    <>
+                        <OverviewPanels
+                            metrics={{
+                                totalRemainingDue,
+                                totalPartialPaid,
+                                totalBookingAmount,
+                                totalFare,
+                                totalProfit,
+                                totalRefundAmount,
+                                refundedTicketsCount,
+                            }}
+                            openTickets={openTickets}
+                            payments={payments}
+                            dateRange={dateRange}
+                            accountFilter={accountFilter}
+                            onSelectAccount={handleSelectAccountFromBreakdown}
+                        />
 
-                    {/* OPEN tickets table */}
-                    <TicketTable
-                        tickets={tickets}
-                        paidTickets={paidTicketIds}
-                        payments={payments}
-                        onDeleteTicket={onDeleteTicket}
-                        onUpdateTicket={onUpdateTicket}
-                        onProcessRefund={onProcessRefund}
-                        onMarkAsPaid={onMarkAsPaid}
-                        onBulkMarkAsPaid={onBulkMarkAsPaid}
-                        loading={loading}
-                        dateRange={dateRange}
-                        accountFilter={accountFilter}
-                        onAccountFilterChange={setAccountFilter}
-                        view="open"
-                        headerVariant="accountBreakdown"
-                    />
+                        {/* OPEN tickets table */}
+                        <TicketTable
+                            tickets={tickets}
+                            paidTickets={paidTicketIds}
+                            payments={payments}
+                            onDeleteTicket={onDeleteTicket}
+                            onUpdateTicket={onUpdateTicket}
+                            onProcessRefund={onProcessRefund}
+                            onMarkAsPaid={onMarkAsPaid}
+                            onBulkMarkAsPaid={onBulkMarkAsPaid}
+                            loading={loading}
+                            dateRange={dateRange}
+                            accountFilter={accountFilter}
+                            onAccountFilterChange={setAccountFilter}
+                            view="open"
+                            headerVariant="accountBreakdown"
+                        />
 
-                    {/*No Tickets - will display create tickets form */}
-                    {tickets.length === 0 && !loading && (
-                        <div className="text-center py-12">
-                            <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets yet</h3>
-                            <p className="text-gray-600">Add your first travel ticket to get started</p>
-                        </div>
-                    )}
+                        {/*No Tickets - will display create tickets form */}
+                        {tickets.length === 0 && !loading && (
+                            <div className="text-center py-12">
+                                <BarChart3 className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets yet</h3>
+                                <p className="text-gray-600">Add your first travel ticket to get started</p>
+                            </div>
+                        )}
+                    </>
                 </div>
             </div>
-
-            {/* Floating Names button (Meta-like ring) */}
-            {!showCustomersDetails && (
-                <button
-                    type="button"
-                    onClick={() => setShowCustomersDetails(true)}
-                    aria-label="Customers"
-                    title="Customers"
-                    className="fixed bottom-24 right-5 z-40 active:scale-95 transition-transform"
-                >
-                    <span className="relative block h-14 w-14">
-                        <span className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(at_50%_50%,#10b981_0deg,#06b6d4_90deg,#7c3aed_180deg,#4f46e5_270deg,#10b981_360deg)] animate-[spin_4s_linear_infinite] shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                            <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                                <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-emerald-600 to-indigo-600 text-white shadow-md text-[10px] font-semibold">
-                                    Customers
-                                </span>
-                            </span>
-                        </span>
-                    </span>
-                </button>
-            )}
 
             {!showCreateModal && (
                 <button
@@ -389,22 +368,11 @@ export default function Dashboard({
                     onClick={() => setShowCreateModal(true)}
                     aria-label="Create Ticket"
                     title="Create Ticket"
-                    className="fixed bottom-6 right-5 z-40 active:scale-95 transition-transform"
+                    className="fixed bottom-6 right-6 z-[55] h-14 w-14 rounded-full bg-gradient-to-r from-indigo-600 to-emerald-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition transform"
                 >
-                    <span className="relative block h-14 w-14">
-                        <span className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(at_50%_50%,#4f46e5_0deg,#7c3aed_90deg,#06b6d4_180deg,#10b981_270deg,#4f46e5_360deg)] animate-[spin_4s_linear_infinite] shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                            <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                                <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-indigo-600 to-emerald-600 text-white shadow-md">
-                                    <Plus className="w-5 h-5" />
-                                </span>
-                            </span>
-                        </span>
-                    </span>
+                    <Plus className="w-6 h-6 mx-auto" />
                 </button>
             )}
-
-            {/* Customers Popup Modal */}
-            <CustomersDetails open={showCustomersDetails} onClose={() => setShowCustomersDetails(false)} existingAccounts={existingAccounts} />
 
             {/* Create Ticket Modal */}
             {showCreateModal && (

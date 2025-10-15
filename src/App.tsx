@@ -10,6 +10,7 @@ import PnrSearchModal from './components/PnrSearchModal';
 import VehicleDashboard from './components/VehicleDashboard';
 import ApartmentsPage from './components/ApartmentsPage';
 import PaymentTracker from './components/PaymentTracker';
+import CustomersDetails from './components/CustomersDetails';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket } from './services/api';
 
@@ -28,6 +29,7 @@ function InnerApp() {
     else if (path.includes('accounts')) setCurrentPage('accounts');
     else if (path.includes('vehicles')) setCurrentPage('fuel');
     else if (path.includes('apartments')) setCurrentPage('apartments');
+    else if (path.includes('customers')) setCurrentPage('customers');
     else setCurrentPage('dashboard');
 
     const onPop = () => {
@@ -37,6 +39,7 @@ function InnerApp() {
       else if (p.includes('accounts')) setCurrentPage('accounts');
       else if (p.includes('vehicles')) setCurrentPage('fuel');
       else if (p.includes('apartments')) setCurrentPage('apartments');
+      else if (p.includes('customers')) setCurrentPage('customers');
       else setCurrentPage('dashboard');
     };
     window.addEventListener('popstate', onPop);
@@ -52,7 +55,8 @@ function InnerApp() {
             : currentPage === 'accounts' ? '/accounts'
               : currentPage === 'fuel' ? '/vehicles'
                 : currentPage === 'apartments' ? '/apartments'
-                  : '/dashboard';
+                  : currentPage === 'customers' ? '/customers'
+                    : '/dashboard';
     const currentUrl = window.location.pathname;
     if (currentUrl !== basePath) {
       window.history.pushState({}, '', basePath);
@@ -223,6 +227,10 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
         return <AccountsPage />;
       case 'apartments':
         return <ApartmentsPage />;
+      case 'customers': {
+        const existingAccounts = Array.from(new Set((tickets || []).map(t => t.account).filter(Boolean))) as string[];
+        return <CustomersDetails open existingAccounts={existingAccounts} />;
+      }
       default:
         return null;
     }
@@ -274,7 +282,11 @@ export default function App() {
   return (
     <AuthProvider>
       <DateRangeProvider>
-        <InnerApp />
+        <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto py-4">
+            <InnerApp />
+          </div>
+        </div>
       </DateRangeProvider>
     </AuthProvider>
   );
