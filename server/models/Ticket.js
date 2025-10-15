@@ -11,7 +11,7 @@ const ticketSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['train', 'bus', 'flight'],
+    enum: ['train', 'bus', 'flight', 'passport', 'other'],
     required: true
   },
   service: {

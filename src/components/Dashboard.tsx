@@ -5,7 +5,7 @@ import { useDateRange } from '../context/useDateRange';
 import { downloadPDFReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
 import TicketForm from './TicketForm';
-import NamesModal from './NamesModal';
+import CustomersDetails from './CustomersDetails';
 import OverviewPanels from './OverviewPanels';
 
 interface DashboardProps {
@@ -33,9 +33,7 @@ export default function Dashboard({
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
-    // Names popup state
-    const [showNamesModal, setShowNamesModal] = useState(false);
-    // Filters and export UI state
+    const [showCustomersDetails, setShowCustomersDetails] = useState(false);
     const [accountFilter, setAccountFilter] = useState<string>('all');
     const [exportingTickets, setExportingTickets] = useState(false);
     const [showExportToast, setShowExportToast] = useState(false);
@@ -365,19 +363,19 @@ export default function Dashboard({
             </div>
 
             {/* Floating Names button (Meta-like ring) */}
-            {!showNamesModal && (
+            {!showCustomersDetails && (
                 <button
                     type="button"
-                    onClick={() => setShowNamesModal(true)}
-                    aria-label="Names"
-                    title="Names"
+                    onClick={() => setShowCustomersDetails(true)}
+                    aria-label="Customers"
+                    title="Customers"
                     className="fixed bottom-24 right-5 z-40 active:scale-95 transition-transform"
                 >
                     <span className="relative block h-14 w-14">
                         <span className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(at_50%_50%,#10b981_0deg,#06b6d4_90deg,#7c3aed_180deg,#4f46e5_270deg,#10b981_360deg)] animate-[spin_4s_linear_infinite] shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                             <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
                                 <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-emerald-600 to-indigo-600 text-white shadow-md text-[10px] font-semibold">
-                                    Names
+                                    Customers
                                 </span>
                             </span>
                         </span>
@@ -405,8 +403,8 @@ export default function Dashboard({
                 </button>
             )}
 
-            {/* Names Popup Modal */}
-            <NamesModal open={showNamesModal} onClose={() => setShowNamesModal(false)} existingAccounts={existingAccounts} />
+            {/* Customers Popup Modal */}
+            <CustomersDetails open={showCustomersDetails} onClose={() => setShowCustomersDetails(false)} existingAccounts={existingAccounts} />
 
             {/* Create Ticket Modal */}
             {showCreateModal && (

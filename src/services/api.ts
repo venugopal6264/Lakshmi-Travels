@@ -1,6 +1,3 @@
-// PDF upload removed
-
-// Resolve API base URL from Vite env. Must be prefixed with VITE_ to be exposed to the client.
 // Fallback to local server when not provided.
 const API_URL: string = import.meta.env?.VITE_API_URL || "http://localhost:5050/api";
 export interface ApiTicket {
@@ -68,30 +65,60 @@ export interface ApiFlat { _id?: string; number: string; notes?: string; current
 export interface ApiTenant { _id?: string; name: string; phone?: string; aadharNumber?: string; startDate: string; endDate?: string | null; rentAmount: number; deposit?: number; flat: string | ApiFlat; active?: boolean; createdAt?: string; updatedAt?: string }
 export interface ApiRentRecord { _id?: string; flat: string | ApiFlat; tenant: string | ApiTenant; month: string; amount: number; paid: boolean; paidDate?: string | null; notes?: string; createdAt?: string; updatedAt?: string }
 
+export interface CustomersDetails {
+  _id?: string;
+  name: string;
+  age?: number | null;
+  dob?: string | null; // ISO date string
+  account?: string | null;
+  gender?: 'male' | 'female';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CreateCustomerPayload = {
+  name: string;
+  age?: number | null;
+  dob?: string | Date | null;
+  account?: string;
+  gender?: 'male' | 'female';
+};
+
 export interface ApiName {
   _id?: string;
   name: string;
   age?: number | null;
   dob?: string | null; // ISO date string
   account?: string | null;
+  gender?: 'male' | 'female';
+  aadharNumber?: string | null; // NEW
   createdAt?: string;
   updatedAt?: string;
 }
 
-export const apiNames = {
-  async list(): Promise<ApiName[]> {
-    const res = await fetch(`${API_URL}/names`, { credentials: 'include' });
+export type CreateNamePayload = {
+  name: string;
+  age?: number | null;
+  dob?: string | Date | null;
+  account?: string;
+  gender?: 'male' | 'female';
+  aadharNumber?: string; // NEW
+};
+
+export const CustomersDetails = {
+  async list(): Promise<CustomersDetails[]> {
+    const res = await fetch(`${API_URL}/customers`, { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to fetch names');
     return res.json();
   },
-  async create(body: { name: string; age?: number | null; dob?: string | null; account?: string | null }): Promise<ApiName> {
-    const res = await fetch(`${API_URL}/names`, {
+  async create(body: { name: string; age?: number | null; dob?: string | null; account?: string | null }): Promise<CustomersDetails> {
+    const res = await fetch(`${API_URL}/customers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('Failed to create name');
+    if (!res.ok) throw new Error('Failed to create customer');
     return res.json();
   },
 };
@@ -153,7 +180,6 @@ class ApiService {
       body: JSON.stringify(refundData),
     });
   }
-
 
   // Payment API methods
   async getPayments(): Promise<ApiPayment[]> {
@@ -263,7 +289,28 @@ class ApiService {
     });
   }
 
-  // PDF upload removed
+  // Customers API methods (canonical)
+  async getCustomers(): Promise<ApiName[]> {
+    return this.request<ApiName[]>('/customers');
+  }
+
+  async createCustomer(input: CreateNamePayload): Promise<ApiName> {
+    return this.request<ApiName>('/customers', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateCustomer(id: string, patch: Partial<CreateNamePayload>): Promise<ApiName> {
+    return this.request<ApiName>(`/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async deleteCustomer(id: string): Promise<void> {
+    await this.request(`/customers/${id}`, { method: 'DELETE' });
+  }
 }
 
 export const apiService = new ApiService();

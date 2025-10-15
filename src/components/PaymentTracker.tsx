@@ -541,7 +541,7 @@ export default function PaymentTracker({
         </div>
 
         {/* Combined Account Breakdown with scope toggle */}
-        <div className="bg-white rounded-lg shadow-md p-4 border-t-4 border-t-indigo-500 mt-4">
+        <div className="bg-white rounded-lg shadow-md p-2 border-t-4 border-t-indigo-500 mt-4">
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
               <Layers className="w-4 h-4" /> Account Breakdown
@@ -605,7 +605,7 @@ export default function PaymentTracker({
         </div>
 
         {/* Monthly Performance */}
-        <div className="bg-white rounded-lg shadow-md p-4 mt-6 border-t-4 border-t-purple-500">
+        <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-purple-500">
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Monthly Performance
@@ -808,7 +808,7 @@ export default function PaymentTracker({
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md p-6 mt-6 border-t-4 border-t-green-500">
+        <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-green-500">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold text-green-700">Payment History</h2>
           </div>
