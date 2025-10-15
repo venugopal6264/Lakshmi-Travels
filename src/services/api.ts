@@ -6,20 +6,19 @@ const API_URL: string = import.meta.env?.VITE_API_URL || "http://localhost:5050/
 export interface ApiTicket {
   _id?: string;
   ticketAmount: number;
+  bookingAmount: number;
   profit: number;
-  type: 'train' | 'bus' | 'flight';
+  type: 'train' | 'bus' | 'flight' | 'passport' | 'other';
   service: string;
   account: string;
   bookingDate: string;
   passengerName: string;
   place: string;
   pnr: string;
-  bookingAmount: number;
-  refund: number;
-  // Optional refund details (present when a refund is processed)
+  refund?: number;
   refundDate?: string;
   refundReason?: string;
-  remarks: string;
+  remarks?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -68,6 +67,34 @@ export interface FuelSummaryResponse {
 export interface ApiFlat { _id?: string; number: string; notes?: string; currentTenant?: ApiTenant | null; createdAt?: string; updatedAt?: string }
 export interface ApiTenant { _id?: string; name: string; phone?: string; aadharNumber?: string; startDate: string; endDate?: string | null; rentAmount: number; deposit?: number; flat: string | ApiFlat; active?: boolean; createdAt?: string; updatedAt?: string }
 export interface ApiRentRecord { _id?: string; flat: string | ApiFlat; tenant: string | ApiTenant; month: string; amount: number; paid: boolean; paidDate?: string | null; notes?: string; createdAt?: string; updatedAt?: string }
+
+export interface ApiName {
+  _id?: string;
+  name: string;
+  age?: number | null;
+  dob?: string | null; // ISO date string
+  account?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const apiNames = {
+  async list(): Promise<ApiName[]> {
+    const res = await fetch(`${API_URL}/names`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to fetch names');
+    return res.json();
+  },
+  async create(body: { name: string; age?: number | null; dob?: string | null; account?: string | null }): Promise<ApiName> {
+    const res = await fetch(`${API_URL}/names`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Failed to create name');
+    return res.json();
+  },
+};
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {

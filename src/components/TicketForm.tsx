@@ -28,7 +28,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
   type TicketFormState = {
     ticketAmount: string;
     profit: string;
-    type: 'train' | 'bus' | 'flight';
+    type: 'train' | 'bus' | 'flight' | 'passport' | 'other';
     service: string;
     account: string;
     bookingDate: string;
@@ -236,6 +236,8 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               <option value="train">Train</option>
               <option value="bus">Bus</option>
               <option value="flight">Flight</option>
+              <option value="passport">Passport</option>
+              <option value="other">Other</option>
             </select>
           </div>
           <div data-testId="service-input">

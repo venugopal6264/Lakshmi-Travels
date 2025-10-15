@@ -541,7 +541,7 @@ export default function PaymentTracker({
         </div>
 
         {/* Combined Account Breakdown with scope toggle */}
-        <div className="bg-white rounded-lg shadow-md p-4 border-t-4 border-t-indigo-500">
+        <div className="bg-white rounded-lg shadow-md p-4 border-t-4 border-t-indigo-500 mt-4">
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
               <Layers className="w-4 h-4" /> Account Breakdown

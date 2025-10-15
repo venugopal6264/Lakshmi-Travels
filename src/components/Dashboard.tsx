@@ -5,6 +5,8 @@ import { useDateRange } from '../context/useDateRange';
 import { downloadPDFReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
 import TicketForm from './TicketForm';
+import NamesModal from './NamesModal';
+import OverviewPanels from './OverviewPanels';
 
 interface DashboardProps {
     tickets: ApiTicket[];
@@ -31,8 +33,10 @@ export default function Dashboard({
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
+    // Names popup state
+    const [showNamesModal, setShowNamesModal] = useState(false);
+    // Filters and export UI state
     const [accountFilter, setAccountFilter] = useState<string>('all');
-    // Export UI state
     const [exportingTickets, setExportingTickets] = useState(false);
     const [showExportToast, setShowExportToast] = useState(false);
     const exportToastTimer = useRef<number | null>(null);
@@ -91,12 +95,7 @@ export default function Dashboard({
         return true;
     });
 
-    // Payments are not used in Dashboard KPIs (open tickets only)
-
-    // Only OPEN tickets (unpaid per-ticket) should drive Dashboard widgets
     const openTickets = dateFilteredTickets.filter(t => !paidTicketIds.includes(t._id || ''));
-
-    // KPI totals for OPEN tickets in the selected range
     const totalBookingAmount = openTickets.reduce((sum, t) => sum + (t.ticketAmount || 0), 0); // total ticket amount
     const totalFare = openTickets.reduce((sum, t) => sum + (t.bookingAmount || 0), 0); // total booking amount
     // Profit: ticketAmount - bookingAmount (refunds do NOT reduce profit)
@@ -115,51 +114,7 @@ export default function Dashboard({
     // Remaining due formula: total ticket - refund - partial (>=0)
     const totalRemainingDue = Math.max(0, totalBookingAmount - totalRefundAmount - totalPartialPaid);
 
-    // Calculate account breakdown (OPEN tickets only) + partial payments impact
-    const getAccountBreakdown = () => {
-        type Row = { amount: number; booking: number; refund: number; partial: number; due: number; profit: number; count: number };
-        const accountTotals: Record<string, Row> = {};
-        // Base aggregates from open (unpaid) tickets
-        openTickets.forEach(ticket => {
-            const acc = ticket.account;
-            if (!accountTotals[acc]) {
-                accountTotals[acc] = { amount: 0, booking: 0, refund: 0, partial: 0, due: 0, profit: 0, count: 0 };
-            }
-            const amt = Number(ticket.ticketAmount || 0);
-            const book = Number(ticket.bookingAmount || 0);
-            const ref = Number(ticket.refund || 0);
-            accountTotals[acc].amount += amt;
-            accountTotals[acc].booking += book;
-            accountTotals[acc].refund += ref;
-            accountTotals[acc].profit += (amt - book);
-            accountTotals[acc].count += 1;
-        });
-        // Aggregate partial payments within date range (same filter logic as tickets)
-        const fromDate = parseLocalDate(dateRange.from);
-        const toDate = parseLocalDate(dateRange.to);
-        payments.forEach(p => {
-            if (!p.isPartial) return;
-            const payDate = parseLocalDate(p.date) || new Date(p.date);
-            if (fromDate && payDate < fromDate) return;
-            if (toDate && payDate > toDate) return;
-            const acc = p.account;
-            if (!acc) return;
-            if (!accountTotals[acc]) {
-                // Account has partial payment but no open tickets – still show with zero tickets
-                accountTotals[acc] = { amount: 0, booking: 0, refund: 0, partial: 0, due: 0, profit: 0, count: 0 };
-            }
-            accountTotals[acc].partial += Number(p.amount || 0);
-        });
-        // Compute due per requirement: due = total - refund - partial (clamped >= 0)
-        Object.values(accountTotals).forEach(row => {
-            row.due = Math.max(0, (row.amount - row.refund - row.partial));
-        });
-        return accountTotals;
-    };
-
-    const accountBreakdown = getAccountBreakdown();
-
-    // Simplified cohesive styling for Account Breakdown rows handled via zebra + hover classes
+    // Account breakdown computation moved to OverviewPanels
 
     const exportReport = async () => {
         if (tickets.length === 0) {
@@ -362,105 +317,23 @@ export default function Dashboard({
                     </div>
                 </div>
                 {/* Body */}
-                <div className="p-6 space-y-6">
-                    {/* Dashboard widgets: OPEN tickets only */}
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-6 lg:gap-8">
-                        {/* Moved: Remaining Due first */}
-                        <div className="bg-blue-50 p-4 rounded-lg border-t-4 border-blue-500 order-1">
-                            <h3 className="text-sm font-medium text-blue-600">Total Remaining Due</h3>
-                            <p className="text-2xl font-bold text-blue-900">₹{Math.round(totalRemainingDue).toLocaleString()}</p>
-                            <p className="text-[10px] text-blue-600">Ticket - Refund - Partial</p>
-                        </div>
-                        {/* Moved: Partial Paid second */}
-                        <div className="bg-amber-50 p-4 rounded-lg border-t-4 border-amber-500 order-2">
-                            <h3 className="text-sm font-medium text-amber-600">Total Partial Paid</h3>
-                            <p className="text-2xl font-bold text-amber-900">₹{Math.round(totalPartialPaid).toLocaleString()}</p>
-                        </div>
-                        <div className="bg-purple-50 p-4 rounded-lg border-t-4 border-purple-500 order-3">
-                            <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
-                            <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalBookingAmount).toLocaleString()}</p>
-                            <p className="text-xs text-purple-600">{openTickets.length} open tickets</p>
-                        </div>
-                        <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500 order-4">
-                            <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
-                            <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalFare).toLocaleString()}</p>
-                        </div>
-                        <div className="bg-green-50 p-4 rounded-lg border-t-4 border-green-500 order-5">
-                            <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
-                            <p className="text-2xl font-bold text-green-900">₹{Math.round(totalProfit).toLocaleString()}</p>
-                        </div>
-                        <div className="bg-red-50 p-4 rounded-lg border-t-4 border-red-500 order-6">
-                            <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
-                            <p className="text-2xl font-bold text-red-900">₹{Math.round(totalRefundAmount).toLocaleString()}</p>
-                            <p className="text-xs text-red-600">{refundedTicketsCount} tickets refunded</p>
-                        </div>
-                    </div>
-
-                    {/* Account Breakdown (OPEN tickets only) - header bar removed to keep a single header on the page */}
-                    <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4 border-indigo-500">
-                        <div className="overflow-x-auto max-h-[50vh] relative">
-                            <table className="w-full table-auto">
-                                <thead className="sticky top-0 z-10">
-                                    <tr className="bg-purple-500 text-white">
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Partial</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Booking</th>
-                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Profit</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 text-xs">
-                                    {Object.entries(accountBreakdown).map(([account, totals]) => (
-                                        <tr
-                                            key={account}
-                                            className={`transition-colors odd:bg-white even:bg-indigo-50 hover:bg-indigo-100 ${accountFilter === account ? 'ring-2 ring-indigo-400' : ''}`}
-                                        >
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleSelectAccountFromBreakdown(account)}
-                                                    className={`text-left hover:underline focus:outline-none ${accountFilter === account ? 'text-indigo-700' : ''}`}
-                                                    aria-label={`Filter tickets by account ${account}`}
-                                                    title="Click to filter tickets by this account"
-                                                >
-                                                    {account}
-                                                </button>
-                                            </td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(totals.due).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-indigo-900">₹{Math.round(totals.booking).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-green-900">₹{Math.round(totals.profit).toLocaleString()}</td>
-                                        </tr>
-                                    ))}
-                                    {/* Totals Row */}
-                                    {Object.keys(accountBreakdown).length > 0 && (
-                                        <tr className="bg-gradient-to-r from-purple-100 to-purple-200 font-semibold text-xs">
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4">Totals</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.due, 0)).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-amber-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.partial, 0)).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-indigo-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.booking, 0)).toLocaleString()}</td>
-                                            <td className="px-3 py-3 sm:px-4 sm:py-4 text-green-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.profit, 0)).toLocaleString()}</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                            {Object.keys(accountBreakdown).length === 0 && (
-                                <div className="text-center py-8 text-gray-500">
-                                    No tickets found for the selected date range.
-                                </div>
-                            )}
-                        </div>
-                        <p className="mt-3 text-[10px] text-gray-500">Remaining Due = Total Ticket - Refund - Partial Paid. Partial payments are cumulative and do not increase ticket count.</p>
-                    </div>
+                <div className="p-4 space-y-6">
+                    <OverviewPanels
+                        metrics={{
+                            totalRemainingDue,
+                            totalPartialPaid,
+                            totalBookingAmount,
+                            totalFare,
+                            totalProfit,
+                            totalRefundAmount,
+                            refundedTicketsCount,
+                        }}
+                        openTickets={openTickets}
+                        payments={payments}
+                        dateRange={dateRange}
+                        accountFilter={accountFilter}
+                        onSelectAccount={handleSelectAccountFromBreakdown}
+                    />
 
                     {/* OPEN tickets table */}
                     <TicketTable
@@ -491,7 +364,27 @@ export default function Dashboard({
                 </div>
             </div>
 
-            {/* Mobile floating Create Ticket button (Meta-like ring) */}
+            {/* Floating Names button (Meta-like ring) */}
+            {!showNamesModal && (
+                <button
+                    type="button"
+                    onClick={() => setShowNamesModal(true)}
+                    aria-label="Names"
+                    title="Names"
+                    className="fixed bottom-24 right-5 z-40 active:scale-95 transition-transform"
+                >
+                    <span className="relative block h-14 w-14">
+                        <span className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(at_50%_50%,#10b981_0deg,#06b6d4_90deg,#7c3aed_180deg,#4f46e5_270deg,#10b981_360deg)] animate-[spin_4s_linear_infinite] shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+                            <span className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                                <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-emerald-600 to-indigo-600 text-white shadow-md text-[10px] font-semibold">
+                                    Names
+                                </span>
+                            </span>
+                        </span>
+                    </span>
+                </button>
+            )}
+
             {!showCreateModal && (
                 <button
                     type="button"
@@ -511,6 +404,9 @@ export default function Dashboard({
                     </span>
                 </button>
             )}
+
+            {/* Names Popup Modal */}
+            <NamesModal open={showNamesModal} onClose={() => setShowNamesModal(false)} existingAccounts={existingAccounts} />
 
             {/* Create Ticket Modal */}
             {showCreateModal && (

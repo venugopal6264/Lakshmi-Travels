@@ -6,7 +6,7 @@ import EditTicketModal from './EditTicketModal';
 interface TicketTableProps {
   tickets: ApiTicket[];
   paidTickets: string[];
-  payments: ApiPayment[]; // needed for partial payment aggregation in bulk confirm modal
+  payments: ApiPayment[];
   onDeleteTicket: (id: string) => Promise<void>;
   onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
   onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
@@ -14,12 +14,9 @@ interface TicketTableProps {
   onBulkMarkAsPaid: (ticketIds: string[]) => Promise<void>;
   loading?: boolean;
   dateRange: { from: string; to: string };
-  // Date range is controlled by parent; no handler here
   accountFilter?: string;
   onAccountFilterChange?: (value: string) => void;
-  // Control which table(s) to show: open, paid, or both (default)
   view?: 'open' | 'paid' | 'both';
-  // Optional: use Account Breakdown-style purple header for the table head
   headerVariant?: 'default' | 'accountBreakdown';
 }
 
@@ -37,9 +34,8 @@ export default function TicketTable({
   onAccountFilterChange,
   view = 'both',
   headerVariant = 'default',
-  // date handler removed
 }: TicketTableProps) {
-  // Lightweight SPA navigation helper (syncs with App's popstate listener)
+
   const navigateTo = (path: string) => {
     if (!path) return;
     window.history.pushState({}, '', path);
@@ -70,10 +66,8 @@ export default function TicketTable({
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [showConfirmBulk, setShowConfirmBulk] = useState<boolean>(false);
-  // Fixed width for Passenger Name column (wrap content)
   const passengerColWidth = 160;
 
-  // Theming: colorful styles for Open vs Paid tables
   const isOpenView = activeTable === 'open';
   const headerGradient = isOpenView
     ? 'bg-gradient-to-r from-amber-50 to-orange-100'
@@ -82,7 +76,6 @@ export default function TicketTable({
   const titleColor = isOpenView ? 'text-orange-700' : 'text-green-700';
   const hoverRow = isOpenView ? 'hover:bg-orange-50/60' : 'hover:bg-green-50/60';
   const rowLeftBorder = isOpenView ? 'border-l-4 border-orange-400' : 'border-l-4 border-green-400';
-  const totalsBg = isOpenView ? 'bg-orange-50' : 'bg-green-50';
   // Accent styling for inputs/selects based on view
   const controlBorder = isOpenView
     ? 'border-orange-300 focus:ring-orange-500 focus:border-orange-400'
@@ -90,8 +83,6 @@ export default function TicketTable({
   const controlIcon = isOpenView ? 'text-orange-400' : 'text-green-500';
   // Header text color for th
   const headerTextColor = headerVariant === 'accountBreakdown' ? 'text-white' : 'text-gray-500';
-
-  // Place column is now word-wrapped, not resizable
 
   // Filter tickets by date range
   const dateFilteredTickets = tickets.filter(ticket => {
@@ -184,8 +175,6 @@ export default function TicketTable({
     }
   };
 
-  // per-row mark-as-paid handler removed
-
   const handleBulkMarkAsPaid = async () => {
     if (selectedTickets.length === 0) return;
 
@@ -217,12 +206,12 @@ export default function TicketTable({
   };
 
   // Date range is provided by parent via props
-
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
     const month = d.toLocaleString('en-US', { month: 'short' });
     const day = String(d.getDate()).padStart(2, '0');
-    return `${month}-${day}`;
+    // Return dd-mmm (e.g., 02-Sep)
+    return `${day}-${month}`;
   };
 
   const getTypeColor = (type: string) => {
@@ -238,7 +227,7 @@ export default function TicketTable({
     return Number(ticket.refund || 0) > 0;
   };
   return (
-    <div className={`bg-white rounded-lg shadow-md p-6 ${isOpenView ? 'border-t-4 border-orange-400' : 'border-t-4 border-green-500'}`}>
+    <div className='bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-indigo-500 p-2'>
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-4">
         <h2 className={`text-xl font-semibold ${titleColor}`}>
           {activeTable === 'open' ? 'Open Tickets' : 'Paid Tickets'}
@@ -315,7 +304,7 @@ export default function TicketTable({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 mt-4">
         <div className="relative w-full sm:flex-1">
           <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${controlIcon}`} />
           <input
@@ -367,7 +356,7 @@ export default function TicketTable({
         </div>
       </div>
 
-      <div className={`overflow-x-auto overflow-y-auto max-h-[60vh] relative pb-12`}>
+      <div className={`rounded-lg overflow-x-auto overflow-y-auto ${isOpenView ? 'max-h-[78vh]' : 'max-h-[60vh]'} relative pb-16`}>
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -560,17 +549,22 @@ export default function TicketTable({
               </tr>
             ))}
             {/* Totals Row (sticky at bottom) */}
-            <tr className={`${totalsBg} font-semibold sticky bottom-0 z-10 border-t border-gray-200 text-xs`}>
+            <tr className="bg-gray-50 font-semibold text-xs border-t border-gray-200">
+              {/* If your "open" table has a leading selection/status col, keep an empty td */}
               {activeTable === 'open' && <td className="px-4 py-3"></td>}
-              {/* Totals label spanning Account, Booking Date, PNR, Passenger Name */}
-              <td className="px-4 py-3" colSpan={4}>Totals ({totals.count} tickets)</td>
-              {/* Ticket and Booking totals */}
+
+              {/* Adjust colSpan to match your first N descriptive columns */}
+              <td className="px-4 py-3" colSpan={4}>
+                Totals ({totals.count} tickets)
+              </td>
+
+              {/* Amount columns – keep the same order you have in the header */}
               <td className="px-4 py-3">₹{Math.round(totals.ticketAmount).toLocaleString()}</td>
               <td className="px-4 py-3">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
-              {/* Refund total */}
               <td className="px-4 py-3 text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
               <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
-              {/* Place, Service, Type, Actions placeholders */}
+
+              {/* If your table has trailing columns (place/service/type/actions), keep placeholders */}
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
               <td className="px-4 py-3"></td>
@@ -641,7 +635,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Confirm Mark as Paid</h3>
-            <p className="text-sm text-gray-700 mb-4">The following accounts will be marked as paid. Remaining Due = (Ticket - Refund) - Partial Paid. Any partial payment records shown will be cleared when you confirm.</p>
+            <p className="text-sm text-gray-700 mb-4">The following accounts will be marked as paid. Remaining Due = (Ticket - Refund) - Partial Paid. Existing partial payment records will be kept; full payment - partial payment should be created.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border">
                 <thead>
@@ -703,7 +697,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-[10px] text-gray-500">On confirm: partial payment records (if any) are deleted and replaced with full payment(s) for the selected tickets.</p>
+            <p className="mt-3 text-[10px] text-gray-500">On confirm: full payment - partial payment should be created and linked to the selected tickets. Existing partial payment records are kept.</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
