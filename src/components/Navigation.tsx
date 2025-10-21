@@ -11,16 +11,18 @@ interface NavigationProps {
 export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch }: NavigationProps) {
     const { user, loading, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const hasAdminRole = (u: unknown): u is { role: string } => {
+    const hasAdminRole = (u: unknown): u is {
+        picture?: string | null; role: string
+    } => {
         if (!u || typeof u !== 'object') return false;
         const obj = u as Record<string, unknown>;
-        return typeof obj.role === 'string';
+        return typeof obj.role === 'string' && (obj.picture == null || typeof obj.picture === 'string');
     };
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'payments', label: 'Payments', icon: DollarSign, path: '/payment-tracker' },
         { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
-        { id: 'fuel', label: 'Vehicles', icon: Car, path: '/vehicles' },
+        { id: 'vehicles', label: 'Vehicles', icon: Car, path: '/vehicles' },
         { id: 'apartments', label: 'Apartments', icon: Home, path: '/apartments' }
     ];
 

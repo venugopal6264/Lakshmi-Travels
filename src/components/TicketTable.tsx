@@ -53,6 +53,7 @@ export default function TicketTable({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteTicket, setConfirmDeleteTicket] = useState<ApiTicket | null>(null);
+  const [savingEdit, setSavingEdit] = useState<boolean>(false);
   // per-row processing state removed as Mark as Paid button is hidden
   // Date filter is controlled in Dashboard header
   const [activeTable, setActiveTable] = useState<'open' | 'paid'>(view === 'paid' ? 'paid' : 'open');
@@ -66,6 +67,9 @@ export default function TicketTable({
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [showConfirmBulk, setShowConfirmBulk] = useState<boolean>(false);
   const passengerColWidth = 160;
+
+  // Aggregate busy flag for disabling interactive controls during long API calls
+  const actionsBusy = savingEdit || deletingId !== null || bulkLoading;
 
   const isOpenView = activeTable === 'open';
   const headerGradient = isOpenView
@@ -467,6 +471,7 @@ export default function TicketTable({
                       checked={selectedTickets.includes(ticket._id!)}
                       onChange={() => handleSelectTicket(ticket._id!)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      disabled={actionsBusy}
                     />
                   </td>
                 )}
@@ -526,14 +531,15 @@ export default function TicketTable({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditingTicket(ticket)}
-                      className="text-blue-600 hover:text-blue-900 transition-colors"
+                      className="text-blue-600 hover:text-blue-900 transition-colors disabled:opacity-50"
                       title="Edit ticket"
+                      disabled={actionsBusy}
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setConfirmDeleteTicket(ticket)}
-                      disabled={deletingId === ticket._id}
+                      disabled={deletingId === ticket._id || actionsBusy}
                       className="text-red-600 hover:text-red-900 transition-colors disabled:opacity-50"
                       title="Delete ticket"
                     >
@@ -579,14 +585,47 @@ export default function TicketTable({
         )}
       </div>
 
+      {(savingEdit || bulkLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white px-5 py-4 rounded-md shadow text-sm text-gray-800 flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            Processing…
+          </div>
+        </div>
+      )}
+
       {editingTicket && (
         <EditTicketModal
           ticket={editingTicket}
           isOpen={true}
           onClose={() => setEditingTicket(null)}
-          onSave={(ticketData) => onUpdateTicket(editingTicket._id!, ticketData)}
-          onRefund={(refundData) => onProcessRefund(editingTicket._id!, refundData)}
-          onDelete={() => onDeleteTicket(editingTicket._id!)}
+          onSave={async (ticketData) => {
+            setSavingEdit(true);
+            try {
+              await onUpdateTicket(editingTicket._id!, ticketData);
+              setEditingTicket(null);
+            } finally {
+              setSavingEdit(false);
+            }
+          }}
+          onRefund={async (refundData) => {
+            setSavingEdit(true);
+            try {
+              await onProcessRefund(editingTicket._id!, refundData);
+              setEditingTicket(null);
+            } finally {
+              setSavingEdit(false);
+            }
+          }}
+          onDelete={async () => {
+            setSavingEdit(true);
+            try {
+              await onDeleteTicket(editingTicket._id!);
+              setEditingTicket(null);
+            } finally {
+              setSavingEdit(false);
+            }
+          }}
           existingAccounts={uniqueAccounts}
           existingServices={uniqueServices}
         />
@@ -608,7 +647,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                 type="button"
                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 onClick={() => setConfirmDeleteTicket(null)}
-                disabled={deletingId === confirmDeleteTicket._id}
+                disabled={deletingId === confirmDeleteTicket._id || actionsBusy}
               >
                 Cancel
               </button>
@@ -620,7 +659,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                   await handleDelete(confirmDeleteTicket._id);
                   setConfirmDeleteTicket(null);
                 }}
-                disabled={deletingId === confirmDeleteTicket._id}
+                disabled={deletingId === confirmDeleteTicket._id || actionsBusy}
               >
                 {deletingId === confirmDeleteTicket._id ? 'Deleting...' : 'Delete'}
               </button>
@@ -711,7 +750,9 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                 className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition disabled:opacity-50"
                 onClick={async () => {
                   setShowConfirmBulk(false);
+                  setBulkLoading(true);
                   await handleBulkMarkAsPaid();
+                  setBulkLoading(false);
                 }}
                 disabled={bulkLoading}
               >

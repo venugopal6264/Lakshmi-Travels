@@ -14,33 +14,36 @@ import CustomersDetails from './components/CustomersDetails';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket } from './services/api';
 
+// Router helpers (module scope, stable references)
+type Page = 'dashboard' | 'login' | 'payments' | 'accounts' | 'vehicles' | 'apartments' | 'customers';
+const pageToPath: Record<Page, string> = {
+  dashboard: '/dashboard',
+  login: '/login',
+  payments: '/payment-tracker',
+  accounts: '/accounts',
+  vehicles: '/vehicles',
+  apartments: '/apartments',
+  customers: '/customers',
+};
+const resolvePageFromPath = (pathname: string): Page => {
+  const p = pathname.toLowerCase();
+  for (const [page, base] of Object.entries(pageToPath)) {
+    if (p.startsWith(base)) return page as Page;
+  }
+  return 'dashboard';
+};
+
 function InnerApp() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const { user, loading } = useAuth();
 
-  // Note: data hooks are moved into AuthedApp to avoid unauthorized calls before login
-
   // Lightweight router: sync currentPage with URL and browser history (no date range in URL)
   useEffect(() => {
     // On initial load, derive page from path
-    const path = window.location.pathname.toLowerCase();
-    if (path.includes('login')) setCurrentPage('login');
-    else if (path.includes('payment')) setCurrentPage('payments');
-    else if (path.includes('accounts')) setCurrentPage('accounts');
-    else if (path.includes('vehicles')) setCurrentPage('fuel');
-    else if (path.includes('apartments')) setCurrentPage('apartments');
-    else if (path.includes('customers')) setCurrentPage('customers');
-    else setCurrentPage('dashboard');
+    setCurrentPage(resolvePageFromPath(window.location.pathname));
 
     const onPop = () => {
-      const p = window.location.pathname.toLowerCase();
-      if (p.includes('login')) setCurrentPage('login');
-      else if (p.includes('payment')) setCurrentPage('payments');
-      else if (p.includes('accounts')) setCurrentPage('accounts');
-      else if (p.includes('vehicles')) setCurrentPage('fuel');
-      else if (p.includes('apartments')) setCurrentPage('apartments');
-      else if (p.includes('customers')) setCurrentPage('customers');
-      else setCurrentPage('dashboard');
+      setCurrentPage(resolvePageFromPath(window.location.pathname));
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -48,15 +51,7 @@ function InnerApp() {
 
   useEffect(() => {
     // Push a readable path for the current page (no query params)
-    const basePath =
-      currentPage === 'dashboard' ? '/dashboard'
-        : currentPage === 'login' ? '/login'
-          : currentPage === 'payments' ? '/payment-tracker'
-            : currentPage === 'accounts' ? '/accounts'
-              : currentPage === 'fuel' ? '/vehicles'
-                : currentPage === 'apartments' ? '/apartments'
-                  : currentPage === 'customers' ? '/customers'
-                    : '/dashboard';
+    const basePath = pageToPath[(currentPage as Page)] || '/dashboard';
     const currentUrl = window.location.pathname;
     if (currentUrl !== basePath) {
       window.history.pushState({}, '', basePath);
@@ -119,13 +114,31 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     deletePayment: deletePayment
   } = usePayments();
 
+  // Normalize passenger name: comma-separated list, each name title-cased
+  const normalizePassengerName = (input?: string): string => {
+    if (!input) return '';
+    const normalizedSeparators = input.replace(/[;|\n]+/g, ',');
+    return normalizedSeparators
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(seg => seg.split(/\s+/).map(w => w ? (w[0].toUpperCase() + w.slice(1).toLowerCase()) : '').join(' '))
+      .join(', ');
+  };
+
+  const normalizeTicketForSave = (t: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => ({
+    ...t,
+    passengerName: normalizePassengerName(t.passengerName),
+  });
+
   const handleAddTicket = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
-    await addTicket(ticketData);
+    const normalized = normalizeTicketForSave(ticketData);
+    await addTicket(normalized);
     // Navigate to dashboard and show basic success toast
     window.history.pushState({}, '', '/dashboard');
     // Simple feedback; can be replaced with a toast lib later
     setTimeout(() => {
-      alert('Ticket has been registered successfully.');
+      alert(`${normalized.passengerName} Ticket has been created successfully.`);
     }, 50);
   };
 
@@ -134,7 +147,17 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
   };
 
   const handleUpdateTicket = async (id: string, ticketData: Partial<ApiTicket>) => {
-    await updateTicket(id, ticketData);
+    const payload = { ...ticketData };
+    if (payload.passengerName) {
+      payload.passengerName = normalizePassengerName(payload.passengerName);
+    }
+    await updateTicket(id, payload);
+  };
+
+  // For Payments page, add tickets without navigating away, while still normalizing name
+  const addTicketNormalizedNoNavigate = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
+    const normalized = normalizeTicketForSave(ticketData);
+    await addTicket(normalized);
   };
 
   const handleProcessRefund = async (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => {
@@ -203,12 +226,12 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
             payments={payments}
             tickets={tickets}
             onAddPayment={async (paymentData) => { await addPayment(paymentData); }}
-            onAddTicket={async (ticketData) => { await addTicket(ticketData); }}
+            onAddTicket={async (ticketData) => { await addTicketNormalizedNoNavigate(ticketData); }}
             onDeleteTicket={async (id) => { await deleteTicket(id); }}
             loading={paymentsLoading}
           />
         );
-      case 'fuel':
+      case 'vehicles':
         return <VehicleDashboard />;
       case 'accounts':
         return <AccountsPage />;

@@ -30,6 +30,7 @@ export default function Dashboard({
 }: DashboardProps) {
     const { dateRange, setDateRange } = useDateRange();
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [savingTicket, setSavingTicket] = useState(false);
     const exportToastTimer = useRef<number | null>(null);
     const [accountFilter, setAccountFilter] = useState<string>('all');
     const [exportingTickets, setExportingTickets] = useState(false);
@@ -173,8 +174,13 @@ export default function Dashboard({
     const existingPnrs = Array.from(new Set((tickets || []).map(t => t.pnr).filter(Boolean)));
 
     const handleAddTicketFromModal = async (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
-        await onAddTicket(ticket);
-        setShowCreateModal(false);
+        try {
+            setSavingTicket(true);
+            await onAddTicket(ticket);
+            setShowCreateModal(false);
+        } finally {
+            setSavingTicket(false);
+        }
     };
 
     // Local quick range selection, synced with context
@@ -260,7 +266,7 @@ export default function Dashboard({
                                             }}
                                             className="ml-2 px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
                                         >
-                                            Cancel
+                                            Close
                                         </button>
                                     </div>
                                 </div>
@@ -284,10 +290,11 @@ export default function Dashboard({
                             </div>
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-emerald-600 hover:to-teal-600 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
+                                disabled={savingTicket}
+                                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-emerald-600 hover:to-teal-600 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 <Plus className="w-4 h-4" />
-                                Create Ticket
+                                {savingTicket ? 'Saving…' : 'Create Ticket'}
                             </button>
                             <button
                                 onClick={exportReport}
@@ -365,7 +372,8 @@ export default function Dashboard({
                     onClick={() => setShowCreateModal(true)}
                     aria-label="Create Ticket"
                     title="Create Ticket"
-                    className="fixed bottom-6 right-6 z-[55] h-14 w-14 rounded-full bg-gradient-to-r from-indigo-600 to-emerald-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition transform"
+                    disabled={savingTicket}
+                    className="fixed bottom-6 right-6 z-[55] h-14 w-14 rounded-full bg-gradient-to-r from-indigo-600 to-emerald-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition transform disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-6 h-6 mx-auto" />
                 </button>
@@ -395,7 +403,7 @@ export default function Dashboard({
                                 <div className="px-4 sm:px-6 py-4 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] flex-1 overflow-y-auto touch-pan-y [-webkit-overflow-scrolling:touch]">
                                     <TicketForm
                                         onAddTicket={handleAddTicketFromModal}
-                                        loading={loading}
+                                        loading={loading || savingTicket}
                                         existingAccounts={existingAccounts}
                                         existingServices={existingServices}
                                         existingPnrs={existingPnrs}
