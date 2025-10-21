@@ -14,7 +14,6 @@ interface DashboardProps {
     onDeleteTicket: (id: string) => Promise<void>;
     onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
     onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
-    onMarkAsPaid: (ticketId: string) => Promise<void>;
     onBulkMarkAsPaid: (ticketIds: string[]) => Promise<void>;
     loading: boolean;
 }
@@ -26,7 +25,6 @@ export default function Dashboard({
     onDeleteTicket,
     onUpdateTicket,
     onProcessRefund,
-    onMarkAsPaid,
     onBulkMarkAsPaid,
     loading
 }: DashboardProps) {
@@ -340,7 +338,6 @@ export default function Dashboard({
                             onDeleteTicket={onDeleteTicket}
                             onUpdateTicket={onUpdateTicket}
                             onProcessRefund={onProcessRefund}
-                            onMarkAsPaid={onMarkAsPaid}
                             onBulkMarkAsPaid={onBulkMarkAsPaid}
                             loading={loading}
                             dateRange={dateRange}

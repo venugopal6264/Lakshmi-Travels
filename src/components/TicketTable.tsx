@@ -10,7 +10,6 @@ interface TicketTableProps {
   onDeleteTicket: (id: string) => Promise<void>;
   onUpdateTicket: (id: string, ticketData: Partial<ApiTicket>) => Promise<void>;
   onProcessRefund: (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => Promise<void>;
-  onMarkAsPaid: (ticketId: string) => Promise<void>;
   onBulkMarkAsPaid: (ticketIds: string[]) => Promise<void>;
   loading?: boolean;
   dateRange: { from: string; to: string };

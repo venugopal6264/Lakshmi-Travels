@@ -115,7 +115,8 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     payments,
     loading: paymentsLoading,
     error: paymentsError,
-    addPayment
+    addPayment,
+    deletePayment: deletePayment
   } = usePayments();
 
   const handleAddTicket = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
@@ -140,54 +141,41 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     await processRefund(id, refundData);
   };
 
-  const handleMarkAsPaid = async (ticketId: string) => {
-    const ticket = tickets.find(t => t._id === ticketId);
-    if (!ticket) return;
-    const account = ticket.account;
-    // Compute existing partial amount for this account (kept, not deleted)
-    const partialTotal = payments
-      .filter(p => p.isPartial && p.account === account)
-      .reduce((s, p) => s + Number(p.amount || 0), 0);
-
-    // New rule: create a payment of ticketAmount - total partial amount (never below 0)
-    const netAmount = Math.max(0, Number(ticket.ticketAmount || 0) - partialTotal);
-
-    const today = new Date().toISOString().split('T')[0];
-    await addPayment({
-      date: today,
-      amount: netAmount,
-      period: `Payment for ticket ${ticket.pnr}`,
-      account: ticket.account,
-      tickets: [ticketId]
-    });
-  };
-
   const handleBulkMarkAsPaid = async (ticketIds: string[]) => {
     const selectedTickets = tickets.filter(t => ticketIds.includes(t._id!));
     if (selectedTickets.length === 0) return;
 
-    // Group selected tickets by account and sum their ticket amounts
+    // Group selected tickets by account and compute totals: ticket - refund
     const byAccount = selectedTickets.reduce((acc, t) => {
       const key = t.account || 'Unknown';
-      if (!acc[key]) acc[key] = { amount: 0, ids: [] as string[] };
-      acc[key].amount += Number(t.ticketAmount || 0);
+      if (!acc[key]) acc[key] = { net: 0, ids: [] as string[] };
+      const ticketAmt = Number(t.ticketAmount || 0);
+      const refundAmt = Number(t.refund || 0);
+      acc[key].net += (ticketAmt - refundAmt);
       acc[key].ids.push(t._id!);
       return acc;
-    }, {} as Record<string, { amount: number; ids: string[] }>);
+    }, {} as Record<string, { net: number; ids: string[] }>);
 
     const today = new Date().toISOString().split('T')[0];
 
-    // For each account, compute net amount after considering existing partial payments (which are kept)
+    // For each account: delete existing partial payments, then create a full payment for net amount
     for (const [account, info] of Object.entries(byAccount)) {
-      const partialTotal = payments
-        .filter(p => p.isPartial && p.account === account)
-        .reduce((s, p) => s + Number(p.amount || 0), 0);
-      const netAmount = Math.max(0, info.amount - partialTotal);
+      // Delete partial payments for this account
+      const partials = payments.filter(p => p.isPartial && p.account === account);
+      for (const p of partials) {
+        try {
+          // Prefer hook delete if available
+          await (deletePayment ? deletePayment(p._id!) : Promise.resolve());
+        } catch (e) {
+          console.error('Failed to delete partial payment', p._id, e);
+        }
+      }
 
+      const fullAmount = Math.max(0, info.net);
       await addPayment({
         date: today,
-        amount: netAmount,
-        period: `Bulk payment for ${info.ids.length} tickets (net of partials)`,
+        amount: fullAmount,
+        period: `Bulk payment for ${info.ids.length} tickets (full)`,
         account,
         tickets: info.ids
       });
@@ -205,7 +193,6 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
             onDeleteTicket={handleDeleteTicket}
             onUpdateTicket={handleUpdateTicket}
             onProcessRefund={handleProcessRefund}
-            onMarkAsPaid={handleMarkAsPaid}
             onBulkMarkAsPaid={handleBulkMarkAsPaid}
             loading={ticketsLoading}
           />

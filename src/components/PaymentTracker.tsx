@@ -533,7 +533,6 @@ export default function PaymentTracker({
             onDeleteTicket={onDeleteTicket}
             onUpdateTicket={async () => { }}
             onProcessRefund={handleRefundForPaidTicket}
-            onMarkAsPaid={async () => { }}
             onBulkMarkAsPaid={async () => { }}
             loading={loading}
             dateRange={{ from, to }}
