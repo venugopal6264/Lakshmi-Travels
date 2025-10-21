@@ -37,7 +37,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
 
     return (
         <nav className="sticky top-0 z-40 bg-gradient-to-r from-blue-700 via-indigo-600 to-emerald-600 shadow-md">
-            <div className="container mx-auto px-3 sm:px-4">
+            <div className="mx-auto px-3 sm:px-4">
                 <div className="flex items-center justify-between h-14 sm:h-16">
                     <div className="flex items-center gap-3">
                         {/* Place your logo file at public/logo.png */}
@@ -47,6 +47,17 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                             className="h-8 w-8 object-contain bg-white rounded-md p-0.5 ring-1 ring-white/30 shadow-sm"
                         />
                         <h1 className="text-lg sm:text-xl font-bold text-white">Lakshmi Travels</h1>
+                        {/* PNR Search trigger moved beside brand */}
+                        {!loading && user && (
+                            <button
+                                type="button"
+                                onClick={() => onOpenPnrSearch?.()}
+                                className="hidden md:inline-flex items-center justify-center rounded-full p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 ml-1"
+                                title="PNR Search"
+                            >
+                                <Search className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Desktop nav */}
@@ -72,15 +83,6 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         })}
                         {!loading && user && (
                             <div className="ml-3 pl-3 border-l border-white/20 flex items-center">
-                                {/* PNR Search trigger */}
-                                <button
-                                    type="button"
-                                    onClick={() => onOpenPnrSearch?.()}
-                                    className="mr-3 inline-flex items-center justify-center rounded-full p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-                                    title="PNR Search"
-                                >
-                                    <Search className="w-5 h-5" />
-                                </button>
                                 {/* User avatar/icon – clickable for admins to open Accounts page */}
                                 {user.picture ? (
                                     <button

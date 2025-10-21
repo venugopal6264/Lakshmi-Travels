@@ -85,6 +85,31 @@ export default function PaymentTracker({
     return true;
   });
 
+  // Monthly payments aggregation (amount received per month)
+  const monthlyPayments = React.useMemo(() => {
+    type Row = { key: string; label: string; amount: number };
+    const map: Record<string, Row> = {};
+    for (const p of dateFilteredPayments) {
+      const d = new Date(p.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+      if (!map[key]) map[key] = { key, label, amount: 0 };
+      map[key].amount += Number(p.amount || 0);
+    }
+    const rows = Object.values(map).sort((a, b) => (a.key < b.key ? -1 : 1)); // asc by month
+    const total = rows.reduce((s, r) => s + r.amount, 0);
+    return { rows, total };
+  }, [dateFilteredPayments]);
+
+  const maxMonthlyReceived = React.useMemo(() => {
+    const vals = monthlyPayments.rows.map(r => Math.max(0, Number(r.amount || 0)));
+    return Math.max(1, ...vals);
+  }, [monthlyPayments.rows]);
+  // Spread bars when few months; otherwise scroll
+  const payBarWrapCls = (monthlyPayments.rows.length <= 8)
+    ? 'flex items-end gap-3 h-40 w-full justify-between'
+    : 'flex items-end gap-3 h-40 min-w-max';
+
   // Build paid ticket IDs within date range (for per-range views)
   const paidTicketIds = React.useMemo(() => dateFilteredPayments.flatMap(p => p.tickets || []), [dateFilteredPayments]);
   // Global set of all paid ticket IDs (across all payments) for gating add-payment logic
@@ -94,11 +119,6 @@ export default function PaymentTracker({
   // Accounts having at least one open ticket
   const openAccounts = React.useMemo(() => Array.from(new Set(openTickets.map(t => t.account))).sort(), [openTickets]);
 
-  // Payments are listed below; add per-account widgets
-
-  // (Removed legacy all-accounts list; breakdown uses dateFilteredTickets directly)
-
-  // Helper: compute per-account aggregates for All/Open/Paid subsets
   const breakdowns = React.useMemo(() => {
     type Agg = {
       booking: number;
@@ -325,6 +345,14 @@ export default function PaymentTracker({
     }, { trainCount: 0, trainProfit: 0, flightCount: 0, flightProfit: 0, busCount: 0, busProfit: 0, totalProfit: 0, totalTickets: 0 });
     return { rows, totals };
   }, [dateFilteredTickets]);
+
+  const maxMonthlyProfit = React.useMemo(() => {
+    const vals = monthlyStats.rows.map(r => Math.max(0, Number(r.totalProfit || 0)));
+    return Math.max(1, ...vals);
+  }, [monthlyStats.rows]);
+  const perfBarWrapCls = (monthlyStats.rows.length <= 8)
+    ? 'flex items-end gap-3 h-48 w-full justify-between'
+    : 'flex items-end gap-3 h-48 min-w-max';
 
   // Map ticket id -> ticket for deriving account when missing on old payments
   const ticketById = React.useMemo(() => {
@@ -611,6 +639,31 @@ export default function PaymentTracker({
             </h3>
             <div className="text-xs text-purple-700 bg-purple-50 px-3 py-1 rounded border border-purple-200">Filtered: {from} → {to}</div>
           </div>
+
+          {/* Monthly Profit Bar Chart */}
+          <div className="overflow-x-auto rounded-md border border-purple-100 bg-gradient-to-b from-white to-purple-50/40 p-3 mb-3">
+            <div className={perfBarWrapCls}>
+              {monthlyStats.rows.map((r) => {
+                const profit = Math.max(0, Number(r.totalProfit || 0));
+                const height = Math.max(4, Math.round((profit / maxMonthlyProfit) * 160));
+                const value = `₹${Math.round(profit).toLocaleString()}`;
+                const monthLabel = r.label.split(' ')[0];
+                return (
+                  <div key={r.key} className="group flex flex-col items-center justify-end">
+                    <div
+                      className="relative w-8 sm:w-10 rounded-t-md bg-gradient-to-t from-violet-600 to-purple-500 shadow-sm"
+                      style={{ height: `${height}px` }}
+                      title={`${r.label}: ${value}`}
+                    >
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white/90 [writing-mode:vertical-rl] [text-orientation:mixed]">{value}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-gray-600 w-10 text-center truncate" title={r.label}>{monthLabel}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="overflow-x-auto max-h-[60vh] relative rounded-md">
             <table className="w-full table-auto">
               <thead className="sticky top-0 z-10">
@@ -750,7 +803,7 @@ export default function PaymentTracker({
                         onClick={() => setPaymentData(p => ({ ...p, isPartial: !p.isPartial }))}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${paymentData.isPartial ? 'bg-emerald-600' : 'bg-gray-300'}`}
                         aria-pressed={paymentData.isPartial}
-                        disabled={!accountDueInfo || accountDueInfo.remainingDue === 0}
+                        disabled={!accountDueInfo || (accountDueInfo?.remainingDue ?? 0) === 0}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${paymentData.isPartial ? 'translate-x-5' : 'translate-x-1'}`}
@@ -771,7 +824,7 @@ export default function PaymentTracker({
                         <div className="px-2 py-1 rounded bg-white/70 border border-emerald-200 text-emerald-700">Refund Total: ₹{Math.round(accountDueInfo.refundTotal).toLocaleString()}</div>
                         <div className="px-2 py-1 rounded bg-white/70 border border-amber-300 text-amber-700">Partial Paid: ₹{Math.round(accountDueInfo.partialTotal).toLocaleString()}</div>
                         <div className="px-2 py-1 rounded bg-emerald-600 text-white border border-emerald-700 shadow-sm">Remaining Due: ₹{Math.round(accountDueInfo.remainingDue).toLocaleString()}</div>
-                        <div className="px-2 py-1 rounded border text-xs font-semibold tracking-wide ${paymentData.isPartial ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-emerald-500 bg-emerald-100 text-emerald-700'}">
+                        <div className={`px-2 py-1 rounded border text-xs font-semibold tracking-wide ${paymentData.isPartial ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-emerald-500 bg-emerald-100 text-emerald-700'}`}>
                           {paymentData.isPartial ? 'Partial Payment' : 'Full Payment'}
                         </div>
                       </div>
@@ -811,6 +864,31 @@ export default function PaymentTracker({
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold text-green-700">Payment History</h2>
           </div>
+
+          {/* Monthly Amount Received Bar Chart */}
+          <div className="overflow-x-auto rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-3 mb-3">
+            <div className={payBarWrapCls}>
+              {monthlyPayments.rows.map((r) => {
+                const amt = Math.max(0, Number(r.amount || 0));
+                const height = Math.max(4, Math.round((amt / maxMonthlyReceived) * 120));
+                const value = `₹${Math.round(amt).toLocaleString()}`;
+                const monthLabel = r.label.split(' ')[0];
+                return (
+                  <div key={r.key} className="group flex flex-col items-center justify-end">
+                    <div
+                      className="relative w-8 sm:w-10 rounded-t-md bg-gradient-to-t from-emerald-600 to-green-500 shadow-sm"
+                      style={{ height: `${height}px` }}
+                      title={`${r.label}: ${value}`}
+                    >
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white/90 [writing-mode:vertical-rl] [text-orientation:mixed]">{value}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-gray-600 w-10 text-center truncate" title={r.label}>{monthLabel}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {loading && (
             <div className="text-center py-4">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>

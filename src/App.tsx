@@ -293,7 +293,7 @@ export default function App() {
     <AuthProvider>
       <DateRangeProvider>
         <div className="min-h-screen bg-gray-50">
-          <div className="container mx-auto py-4">
+          <div className="mx-auto py-4">
             <InnerApp />
           </div>
         </div>
