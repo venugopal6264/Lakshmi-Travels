@@ -57,7 +57,8 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
             accountTotals[acc].partial += Number(p.amount || 0);
         });
         Object.values(accountTotals).forEach(row => {
-            row.due = Math.max(0, (row.amount - row.refund - row.partial));
+            // Allow negative due when refunds exceed (amount - partial)
+            row.due = (row.amount - row.refund - row.partial);
         });
         return accountTotals;
     };
@@ -106,7 +107,7 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                 </div>
             </div>
 
-            {/* Account Breakdown (OPEN tickets only) - header bar removed to keep a single header on the page */}
+            {/* Account Breakdown (OPEN tickets only) */}
             <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4 border-indigo-500 mt-6">
                 <div className="overflow-x-auto max-h-[50vh] relative">
                     <table className="w-full table-auto">
@@ -126,7 +127,7 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                             {Object.entries(accountBreakdown).map(([account, totals]) => (
                                 <tr
                                     key={account}
-                                    className={`transition-colors odd:bg-white even:bg-indigo-50 hover:bg-indigo-100 ${accountFilter === account ? 'ring-2 ring-indigo-400' : ''}`}
+                                    className={`transition-colors odd:bg-white even:bg-indigo-50 hover:bg-indigo-100 ${accountFilter === account ? 'ring-2 ring-indigo-400' : ''} ${totals.due < 0 ? 'bg-rose-50 hover:bg-rose-100' : ''}`}
                                 >
                                     <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
                                         <button
@@ -139,7 +140,7 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                                             {account}
                                         </button>
                                     </td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold text-blue-700">₹{Math.round(totals.due).toLocaleString()}</td>
+                                    <td className={`px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold ${totals.due < 0 ? 'text-red-700' : 'text-blue-700'}`}>₹{Math.round(totals.due).toLocaleString()}</td>
                                     <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
                                     <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
                                     <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>

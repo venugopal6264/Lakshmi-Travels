@@ -33,6 +33,10 @@ export default function PaymentTracker({
     isPartial: false
   });
   const [accountDueInfo, setAccountDueInfo] = useState<{ ticketTotal: number; refundTotal: number; partialTotal: number; remainingDue: number } | null>(null);
+  // Payment History account filter
+  const [paymentAccountFilter, setPaymentAccountFilter] = useState<string>('all');
+  // Payment History type filter
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<'partial' | 'full'>('full');
 
   // Local date filter (independent of Dashboard): default from Jan 1st of current year to today
   const toIso = (d: Date) => {
@@ -85,11 +89,28 @@ export default function PaymentTracker({
     return true;
   });
 
+  // Unique accounts present in date-filtered payments (non-empty)
+  const paymentAccounts = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const p of dateFilteredPayments) {
+      if (p.account) set.add(p.account);
+    }
+    return Array.from(set).sort();
+  }, [dateFilteredPayments]);
+
+  // Apply account filter to payments for Payment History (chart + table)
+  const accountFilteredPayments = React.useMemo(() => {
+    let arr = dateFilteredPayments;
+    if (paymentAccountFilter !== 'all') arr = arr.filter(p => p.account === paymentAccountFilter);
+    arr = arr.filter(p => (paymentTypeFilter === 'partial' ? !!p.isPartial : !p.isPartial));
+    return arr;
+  }, [dateFilteredPayments, paymentAccountFilter, paymentTypeFilter]);
+
   // Monthly payments aggregation (amount received per month)
   const monthlyPayments = React.useMemo(() => {
     type Row = { key: string; label: string; amount: number };
     const map: Record<string, Row> = {};
-    for (const p of dateFilteredPayments) {
+    for (const p of accountFilteredPayments) {
       const d = new Date(p.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
@@ -99,7 +120,7 @@ export default function PaymentTracker({
     const rows = Object.values(map).sort((a, b) => (a.key < b.key ? -1 : 1)); // asc by month
     const total = rows.reduce((s, r) => s + r.amount, 0);
     return { rows, total };
-  }, [dateFilteredPayments]);
+  }, [accountFilteredPayments]);
 
   const maxMonthlyReceived = React.useMemo(() => {
     const vals = monthlyPayments.rows.map(r => Math.max(0, Number(r.amount || 0)));
@@ -252,7 +273,7 @@ export default function PaymentTracker({
     const refundTotal = related.reduce((s, t) => s + Number(t.refund || 0), 0);
     const partialTotal = payments.filter(p => p.isPartial && p.account === paymentData.account)
       .reduce((s, p) => s + Number(p.amount || 0), 0);
-    const remainingDue = Math.max(0, ticketTotal - refundTotal - partialTotal);
+    const remainingDue = (ticketTotal - refundTotal - partialTotal);
     setAccountDueInfo({ ticketTotal, refundTotal, partialTotal, remainingDue });
   }, [paymentData.account, openTickets, openAccounts, payments]);
 
@@ -365,12 +386,12 @@ export default function PaymentTracker({
 
   // Sort payment history by date descending (most recent first)
   const sortedPayments = React.useMemo(() => {
-    return [...dateFilteredPayments].sort((a, b) => {
+    return [...accountFilteredPayments].sort((a, b) => {
       const ad = new Date(a.date).getTime();
       const bd = new Date(b.date).getTime();
       return bd - ad;
     });
-  }, [dateFilteredPayments]);
+  }, [accountFilteredPayments]);
 
   // Helper to compute per-payment aggregates from its tickets
   const aggregatesForPayment = React.useCallback((p: ApiPayment) => {
@@ -529,6 +550,7 @@ export default function PaymentTracker({
             <p className="text-xs text-red-600">{totalsAll.refundedCount} tickets refunded</p>
           </div>
         </div>
+        {/* Summary Profit widgets */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-6">
           <div className="bg-gradient-to-r from-blue-50 to-sky-100 p-4 rounded-lg flex items-center justify-between border border-blue-100 border-t-4 border-t-blue-500">
             <div>
@@ -565,6 +587,141 @@ export default function PaymentTracker({
             loading={loading}
             dateRange={{ from, to }}
             view="paid" payments={[]} />
+        </div>
+
+        {/* Payment History */}
+        <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-green-500">
+          <div className="flex justify-between items-center mb-3 gap-2">
+            <h2 className="text-xl font-semibold text-green-700">Payment History</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600">Account</label>
+              <select
+                value={paymentAccountFilter}
+                onChange={(e) => setPaymentAccountFilter(e.target.value)}
+                className="px-2 py-1.5 text-xs border border-green-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+              >
+                <option value="all">All</option>
+                {paymentAccounts.map(acc => (
+                  <option key={acc} value={acc}>{acc}</option>
+                ))}
+              </select>
+              <div className="flex gap-2 ml-2">
+                <button
+                  type="button"
+                  className={`px-3 py-1 rounded border text-xs ${paymentTypeFilter === 'partial' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  onClick={() => setPaymentTypeFilter('partial')}
+                >
+                  Partial
+                </button>
+                <button
+                  type="button"
+                  className={`px-3 py-1 rounded border text-xs ${paymentTypeFilter === 'full' ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-700 border-gray-300'}`}
+                  onClick={() => setPaymentTypeFilter('full')}
+                >
+                  Full
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Monthly Amount Received Bar Chart */}
+          <div className="overflow-x-auto rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-3 mb-3">
+            <div className={payBarWrapCls}>
+              {monthlyPayments.rows.map((r) => {
+                const amt = Math.max(0, Number(r.amount || 0));
+                const height = Math.max(4, Math.round((amt / maxMonthlyReceived) * 120));
+                const value = `₹${Math.round(amt).toLocaleString()}`;
+                const monthLabel = r.label.split(' ')[0];
+                return (
+                  <div key={r.key} className="group flex flex-col items-center justify-end">
+                    <div
+                      className="relative w-8 sm:w-10 rounded-t-md bg-gradient-to-t from-emerald-600 to-green-500 shadow-sm"
+                      style={{ height: `${height}px` }}
+                      title={`${r.label}: ${value}`}
+                    >
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white/90 [writing-mode:vertical-rl] [text-orientation:mixed]">{value}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-gray-600 w-10 text-center truncate" title={r.label}>{monthLabel}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {loading && (
+            <div className="text-center py-4">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <p className="mt-2 text-gray-600">Loading payments...</p>
+            </div>
+          )}
+          {sortedPayments.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No payments recorded yet.</p>
+          ) : (
+            <div className="overflow-x-auto max-h-[50vh] relative rounded-md">
+              <table className="w-full table-auto">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received Date</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">No. of Tickets</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Refund</th>
+                    <th className="px-3 py-2 text-left font-semibold uppercase">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white text-xs">
+                  {sortedPayments.map((p, idx) => {
+                    // Derive account if missing
+                    let accLabel: string = p.account || '';
+                    if (!accLabel) {
+                      const accs = new Set<string>();
+                      for (const id of p.tickets || []) {
+                        const t = ticketById[id];
+                        if (t?.account) accs.add(t.account);
+                      }
+                      if (accs.size === 1) accLabel = Array.from(accs)[0];
+                      else if (accs.size > 1) accLabel = 'Multiple';
+                      else accLabel = '—';
+                    }
+                    const agg = aggregatesForPayment(p);
+                    // Odd rows white, even rows light green
+                    const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-green-50';
+                    const typeLabel = p.isPartial ? 'Partial' : 'Full';
+                    const isPartial = !!p.isPartial;
+                    const receivedVal = isPartial ? Number(p.amount || 0) : (agg.ticketSum - agg.refundSum);
+                    const ticketVal = isPartial ? Number(p.amount || 0) : agg.ticketSum;
+                    return (
+                      <tr key={p._id || idx} className={`${rowBg} hover:brightness-95 ${p.isPartial ? 'border-l-4 border-l-amber-500' : ''}`}>
+                        <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
+                        <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">{agg.count}</td>
+                        <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(receivedVal).toLocaleString()}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(ticketVal).toLocaleString()}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-emerald-800">₹{Math.round(agg.profitNetSum).toLocaleString()}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-red-700">₹{Math.round(agg.refundSum).toLocaleString()}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded text-[10px] font-semibold ${p.isPartial ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{typeLabel}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Totals row */}
+                  <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold text-xs">
+                    <td className="px-3 py-2">Totals</td>
+                    <td className="px-3 py-2"></td>
+                    <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).count, 0)}</td>
+                    <td className="px-3 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + (p.isPartial ? Number(p.amount || 0) : (aggregatesForPayment(p).ticketSum - aggregatesForPayment(p).refundSum)), 0)).toLocaleString()}</td>
+                    <td className="px-3 py-2">₹{Math.round(sortedPayments.reduce((s, p) => s + (p.isPartial ? Number(p.amount || 0) : aggregatesForPayment(p).ticketSum), 0)).toLocaleString()}</td>
+                    <td className="px-3 py-2 text-emerald-800">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).profitNetSum, 0)).toLocaleString()}</td>
+                    <td className="px-3 py-2 text-red-700">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).refundSum, 0)).toLocaleString()}</td>
+                    <td className="px-3 py-2"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Combined Account Breakdown with scope toggle */}
@@ -860,107 +1017,8 @@ export default function PaymentTracker({
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-green-500">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xl font-semibold text-green-700">Payment History</h2>
-          </div>
 
-          {/* Monthly Amount Received Bar Chart */}
-          <div className="overflow-x-auto rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-3 mb-3">
-            <div className={payBarWrapCls}>
-              {monthlyPayments.rows.map((r) => {
-                const amt = Math.max(0, Number(r.amount || 0));
-                const height = Math.max(4, Math.round((amt / maxMonthlyReceived) * 120));
-                const value = `₹${Math.round(amt).toLocaleString()}`;
-                const monthLabel = r.label.split(' ')[0];
-                return (
-                  <div key={r.key} className="group flex flex-col items-center justify-end">
-                    <div
-                      className="relative w-8 sm:w-10 rounded-t-md bg-gradient-to-t from-emerald-600 to-green-500 shadow-sm"
-                      style={{ height: `${height}px` }}
-                      title={`${r.label}: ${value}`}
-                    >
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white/90 [writing-mode:vertical-rl] [text-orientation:mixed]">{value}</span>
-                    </div>
-                    <div className="mt-1 text-[10px] text-gray-600 w-10 text-center truncate" title={r.label}>{monthLabel}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {loading && (
-            <div className="text-center py-4">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-              <p className="mt-2 text-gray-600">Loading payments...</p>
-            </div>
-          )}
-          {sortedPayments.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No payments recorded yet.</p>
-          ) : (
-            <div className="overflow-x-auto max-h-[50vh] relative rounded-md">
-              <table className="w-full table-auto">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received Date</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">No. of Tickets</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Refund</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Type</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white text-xs">
-                  {sortedPayments.map((p, idx) => {
-                    // Derive account if missing
-                    let accLabel: string = p.account || '';
-                    if (!accLabel) {
-                      const accs = new Set<string>();
-                      for (const id of p.tickets || []) {
-                        const t = ticketById[id];
-                        if (t?.account) accs.add(t.account);
-                      }
-                      if (accs.size === 1) accLabel = Array.from(accs)[0];
-                      else if (accs.size > 1) accLabel = 'Multiple';
-                      else accLabel = '—';
-                    }
-                    const agg = aggregatesForPayment(p);
-                    // Odd rows white, even rows light green
-                    const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-green-50';
-                    const typeLabel = p.isPartial ? 'Partial' : 'Full';
-                    return (
-                      <tr key={p._id || idx} className={`${rowBg} hover:brightness-95 ${p.isPartial ? 'border-l-4 border-l-amber-500' : ''}`}>
-                        <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
-                        <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">{agg.count}</td>
-                        <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(agg.ticketSum - agg.refundSum).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(agg.ticketSum).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-emerald-800">₹{Math.round(agg.profitNetSum).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-red-700">₹{Math.round(agg.refundSum).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <span className={`px-2 py-1 rounded text-[10px] font-semibold ${p.isPartial ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{typeLabel}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {/* Totals row */}
-                  <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold text-xs">
-                    <td className="px-3 py-2">Totals</td>
-                    <td className="px-3 py-2"></td>
-                    <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).count, 0)}</td>
-                    <td className="px-3 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + (aggregatesForPayment(p).ticketSum - aggregatesForPayment(p).refundSum), 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).ticketSum, 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2 text-emerald-800">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).profitNetSum, 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2 text-red-700">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).refundSum, 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
       {/* Export confirmation popup */}
       {showExportToast && (

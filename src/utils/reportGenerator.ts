@@ -41,7 +41,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     ticket.pnr,
     ticket.place,
     ticket.bookingAmount.toString(),
-    ticket.refund.toString(),
+    (Number(ticket.refund) || 0).toString(),
     ticket.remarks || ''
   ]);
 
@@ -116,10 +116,7 @@ const loadImageAsDataUrl = async (url: string): Promise<string | null> => {
   }
 };
 
-export const downloadPDFReport = async (
-  tickets: ApiTicket[],
-  opts?: { accountLabel?: string; startLabel?: string; endLabel?: string; filename?: string; partialTotal?: number }
-) => {
+export async function downloadPDFReport(tickets: ApiTicket[], options: { accountLabel?: string; startLabel?: string; endLabel?: string; filename?: string; partialTotal?: number; partialPayments?: Array<{ date: string; amount: number; account: string }>; }) {
   if (!tickets || tickets.length === 0) return;
   // Dynamically import heavy libs to keep initial bundle small
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
@@ -152,7 +149,7 @@ export const downloadPDFReport = async (
 
   const totalTicketAmount = sorted.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
   const totalRefund = sorted.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
-  const partialTotal = Number(opts?.partialTotal || 0);
+  const partialTotal = Number(options?.partialTotal || 0);
   const totalDue = totalTicketAmount - totalRefund - partialTotal;
   const hasRefundFlags = sorted.map(t => (Number(t.refund) || 0) > 0);
 
@@ -162,8 +159,8 @@ export const downloadPDFReport = async (
   const logoDataUrl = await loadImageAsDataUrl('/logo.png');
   const title = 'Lakshmi Travels';
   const subtitle = 'Tickets Report';
-  const account = opts?.accountLabel || 'All Accounts';
-  const period = `${opts?.startLabel || 'ALL'} to ${opts?.endLabel || 'ALL'}`;
+  const account = options?.accountLabel || 'All Accounts';
+  const period = `${options?.startLabel || 'ALL'} to ${options?.endLabel || 'ALL'}`;
 
   const drawHeader = () => {
     const startX = 40;
@@ -232,35 +229,65 @@ export const downloadPDFReport = async (
     theme: 'grid',
   });
 
-  // Totals table
+  // Sections: Partial Payments (left) and Totals (right), side by side
+  const afterTicketsY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
+    ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
+    : 120;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const leftMargin = 20;
+  const tableWidth = 220; // approximate fixed width for small tables
+  const gap = 40;
+  const rightMarginLeft = leftMargin + tableWidth + gap;
+
+  // Partial Payments table (Date, Partial)
+  if (options.partialPayments && options.partialPayments.length > 0) {
+    const entries = options.partialPayments;
+    const ppRows = entries.map(e => [
+      new Date(e.date).toLocaleDateString(),
+      Math.round(Number(e.amount || 0)).toString(),
+    ]);
+    autoTable(doc, {
+      head: [['Date', 'Partial']],
+      body: ppRows,
+      startY: afterTicketsY,
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [16, 185, 129], textColor: 255 }, // emerald header
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      theme: 'grid',
+      margin: { left: leftMargin, right: Math.max(20, pageWidth - (leftMargin + tableWidth)) },
+      tableWidth,
+    });
+  }
+
+  // Totals table (no header): Label | amount
+  const totalsRows = [
+    ['Total', Math.round(totalTicketAmount).toString()],
+    ['Refund', (-Math.round(totalRefund)).toString()],
+    ['Partial', (-Math.round(partialTotal)).toString()],
+    ['Remaining Due', Math.round(totalDue).toString()],
+  ];
   autoTable(doc, {
-    body: [
-      [' ', ' ', ' ', ' ', 'Total', Math.round(totalTicketAmount).toString(), Math.round(totalRefund).toString()],
-      [' ', ' ', ' ', ' ', 'Partial Paid', partialTotal ? Math.round(partialTotal).toString() : '0', ' '],
-      [' ', ' ', ' ', ' ', 'Remaining Due', Math.round(totalDue).toString(), ' ']
-    ],
-    startY: (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
-      ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
-      : 120,
+    body: totalsRows,
+    startY: afterTicketsY,
     styles: { fontSize: 10, cellPadding: 4 },
-    bodyStyles: { fillColor: [255, 255, 255] },
     theme: 'grid',
-    margin: { left: 20, right: 20 },
+    margin: { left: rightMarginLeft, right: 20 },
+    tableWidth,
     columnStyles: {
-      4: { fontStyle: 'bold' }, // label column (Place)
-      5: { fontStyle: 'bold' }, // Fare / Due value
-      6: { fontStyle: 'bold' }, // Refund value on the first row
+      0: { fontStyle: 'bold' },
+      1: { halign: 'right' },
+    },
+    didParseCell: (data: unknown) => {
+      const d = data as { section: 'head' | 'body' | 'foot'; row: { index: number }; cell: { styles: { fillColor?: unknown; textColor?: unknown; fontStyle?: unknown } } };
+      if (d.section === 'body' && d.row.index === 3) {
+        // Highlight Remaining Due row
+        d.cell.styles.fillColor = [254, 243, 199] as unknown; // amber-200
+        d.cell.styles.textColor = [22, 101, 52] as unknown; // green-700
+        d.cell.styles.fontStyle = 'bold' as unknown;
+      }
     },
   });
 
-  // Optional formula note
-  if (partialTotal > 0) {
-    const y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 140;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text('Remaining Due = Total Ticket - Refund - Partial Paid', 25, y + 18);
-    doc.setTextColor(0);
-  }
-  const filename = opts?.filename || `${account}-${(opts?.startLabel || 'ALL')}-${(opts?.endLabel || 'ALL')}.pdf`;
+  const filename = options.filename || 'tickets-report.pdf';
   doc.save(filename);
-};
+}

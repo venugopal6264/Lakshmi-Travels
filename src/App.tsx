@@ -194,10 +194,9 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
         }
       }
 
-      const fullAmount = Math.max(0, info.net);
       await addPayment({
         date: today,
-        amount: fullAmount,
+        amount: info.net,
         period: `Bulk payment for ${info.ids.length} tickets (full)`,
         account,
         tickets: info.ids

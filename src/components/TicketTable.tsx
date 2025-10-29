@@ -185,6 +185,11 @@ export default function TicketTable({
       setBulkLoading(true);
       await onBulkMarkAsPaid(selectedTickets);
       setSelectedTickets([]);
+      // After marking as paid, reset account filter to show all accounts
+      if (accountFilter !== 'all') {
+        setAccountFilter('all');
+        onAccountFilterChange?.('all');
+      }
     } catch (error) {
       console.error('Failed to mark tickets as paid:', error);
     } finally {
@@ -356,6 +361,17 @@ export default function TicketTable({
               <option key={account} value={account}>{account}</option>
             ))}
           </select>
+
+          {accountFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => { setAccountFilter('all'); onAccountFilterChange?.('all'); }}
+              className="px-3 py-2 text-sm border rounded-md bg-white hover:bg-gray-100 text-gray-700 border-gray-300"
+              title="Reset account filter"
+            >
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
@@ -701,9 +717,9 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                       const acc = p.account!;
                       grouped[acc].partial += Number(p.amount || 0);
                     });
-                    // Compute remaining due = max(0, net - partial)
+                    // Compute remaining due allowing negative values
                     Object.values(grouped).forEach(row => {
-                      row.remaining = Math.max(0, row.net - row.partial);
+                      row.remaining = row.net - row.partial;
                     });
                     const rows = Object.entries(grouped);
                     if (rows.length === 0) {
@@ -720,7 +736,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                             <td className="px-3 py-2">{acc}</td>
                             <td className="px-3 py-2">{v.count}</td>
                             <td className="px-3 py-2 text-amber-700">₹{Math.round(v.partial).toLocaleString()}</td>
-                            <td className="px-3 py-2 font-medium">₹{Math.round(v.remaining).toLocaleString()}</td>
+                            <td className={`px-3 py-2 font-medium ${v.remaining < 0 ? 'text-red-700' : ''}`}>₹{Math.round(v.remaining).toLocaleString()}</td>
                           </tr>
                         ))}
                         <tr className="border-t bg-gray-50 font-medium">

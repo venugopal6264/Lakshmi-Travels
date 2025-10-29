@@ -35,6 +35,8 @@ export default function Dashboard({
     const [accountFilter, setAccountFilter] = useState<string>('all');
     const [exportingTickets, setExportingTickets] = useState(false);
     const [showExportToast, setShowExportToast] = useState(false);
+    // Anchor to scroll to the Open Tickets table
+    const ticketsSectionRef = useRef<HTMLDivElement | null>(null);
 
     // Cleanup toast timer on unmount
     useEffect(() => {
@@ -49,7 +51,10 @@ export default function Dashboard({
     const handleSelectAccountFromBreakdown = (account: string) => {
         if (!account) return;
         setAccountFilter(account);
-        // Optionally could scroll into view of tickets table (future enhancement)
+        // Smoothly scroll Open Tickets section into view
+        setTimeout(() => {
+            ticketsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 0);
     };
 
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
@@ -147,18 +152,24 @@ export default function Dashboard({
             const fromDate = parseLocalDate(dateRange.from);
             const toDate = parseLocalDate(dateRange.to);
             const includedAccounts = new Set(filteredForExport.map(t => t.account));
-            const partialTotal = payments.filter(p => p.isPartial && p.account && includedAccounts.has(p.account)).filter(p => {
-                const d = parseLocalDate(p.date) || new Date(p.date);
-                if (fromDate && d < fromDate) return false;
-                if (toDate && d > toDate) return false;
-                return true;
-            }).reduce((s, p) => s + Number(p.amount || 0), 0);
+            const partialEntries = payments
+                .filter(p => p.isPartial && p.account && includedAccounts.has(p.account))
+                .filter(p => {
+                    const d = parseLocalDate(p.date) || new Date(p.date);
+                    if (fromDate && d < fromDate) return false;
+                    if (toDate && d > toDate) return false;
+                    return true;
+                })
+                .map(p => ({ date: p.date, amount: Number(p.amount || 0), account: p.account! }))
+                .sort((a, b) => (a.date < b.date ? -1 : 1));
+            const partialTotal = partialEntries.reduce((s, v) => s + v.amount, 0);
             await downloadPDFReport(filteredForExport, {
                 accountLabel,
                 startLabel,
                 endLabel,
                 filename,
                 partialTotal,
+                partialPayments: partialEntries,
             });
         } finally {
             setExportingTickets(false);
@@ -337,6 +348,8 @@ export default function Dashboard({
                             onSelectAccount={handleSelectAccountFromBreakdown}
                         />
 
+                        {/* Scroll anchor for Open Tickets */}
+                        <div ref={ticketsSectionRef} />
                         {/* OPEN tickets table */}
                         <TicketTable
                             tickets={tickets}
