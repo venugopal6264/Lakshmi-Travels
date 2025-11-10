@@ -1,4 +1,4 @@
-import { Calendar, DollarSign, Download, Plane, Train, Bus, Layers } from 'lucide-react';
+import { Calendar, DollarSign, Download, Layers } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import TicketTable from './TicketTable';
@@ -299,17 +299,12 @@ export default function PaymentTracker({
 
   // Totals for payments are now shown on Dashboard
 
-  // Profit by type for selected account scope
-  const typeProfit = {
-    train: dateFilteredTickets.filter(t => t.type === 'train').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
-    bus: dateFilteredTickets.filter(t => t.type === 'bus').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
-    flight: dateFilteredTickets.filter(t => t.type === 'flight').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
-  };
-
-  // Overall totals for current date range
-  const totalsAll = React.useMemo(() => {
+  // Paid tickets (referenced by any payment's tickets array)
+  const paidTickets = React.useMemo(() => dateFilteredTickets.filter(t => t._id && paidTicketIds.includes(t._id)), [dateFilteredTickets, paidTicketIds]);
+  // Overall totals (paid tickets only)
+  const totalsPaid = React.useMemo(() => {
     let ticket = 0, booking = 0, refund = 0, profit = 0, count = 0, refundedCount = 0;
-    for (const t of dateFilteredTickets) {
+    for (const t of paidTickets) {
       const ta = Number(t.ticketAmount || 0);
       const ba = Number(t.bookingAmount || 0);
       const rf = Number(t.refund || 0);
@@ -321,96 +316,19 @@ export default function PaymentTracker({
       if (rf > 0) refundedCount += 1;
     }
     return { ticket, booking, refund, profit, count, refundedCount };
-  }, [dateFilteredTickets]);
+  }, [paidTickets]);
+  // Profit by type (paid tickets only)
+  const paidTypeProfit = React.useMemo(() => ({
+    train: paidTickets.filter(t => t.type === 'train').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
+    bus: paidTickets.filter(t => t.type === 'bus').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
+    flight: paidTickets.filter(t => t.type === 'flight').reduce((s, t) => s + (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0)), 0),
+  }), [paidTickets]);
+  // Remaining due (paid perspective) is zero for paid tickets (informational only) – keep computed if needed later
 
-  // Monthly performance (tickets and profit per type)
-  const monthlyStats = React.useMemo(() => {
-    type Row = {
-      key: string;
-      label: string;
-      trainCount: number; trainProfit: number;
-      flightCount: number; flightProfit: number;
-      busCount: number; busProfit: number;
-      totalProfit: number; totalTickets: number;
-    };
-    const map: Record<string, Row> = {};
-    dateFilteredTickets.forEach((t) => {
-      const d = new Date(t.bookingDate);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
-      if (!map[key]) {
-        map[key] = {
-          key, label,
-          trainCount: 0, trainProfit: 0,
-          flightCount: 0, flightProfit: 0,
-          busCount: 0, busProfit: 0,
-          totalProfit: 0, totalTickets: 0,
-        };
-      }
-      const profitNet = (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
-      map[key].totalProfit += profitNet;
-      map[key].totalTickets += 1;
-      if (t.type === 'train') { map[key].trainCount += 1; map[key].trainProfit += profitNet; }
-      else if (t.type === 'flight') { map[key].flightCount += 1; map[key].flightProfit += profitNet; }
-      else if (t.type === 'bus') { map[key].busCount += 1; map[key].busProfit += profitNet; }
-    });
-    const rows = Object.entries(map)
-      .sort(([a], [b]) => (a < b ? 1 : -1)) // desc by month
-      .map(([, v]) => v);
-    const totals = rows.reduce((acc, r) => {
-      acc.trainCount += r.trainCount; acc.trainProfit += r.trainProfit;
-      acc.flightCount += r.flightCount; acc.flightProfit += r.flightProfit;
-      acc.busCount += r.busCount; acc.busProfit += r.busProfit;
-      acc.totalProfit += r.totalProfit; acc.totalTickets += r.totalTickets;
-      return acc;
-    }, { trainCount: 0, trainProfit: 0, flightCount: 0, flightProfit: 0, busCount: 0, busProfit: 0, totalProfit: 0, totalTickets: 0 });
-    return { rows, totals };
-  }, [dateFilteredTickets]);
+  // Partial payments total (informational) among date range (unused in paid-only widgets)
+  // const partialPaidTotal = dateFilteredPayments.filter(p => p.isPartial).reduce((s, p) => s + Number(p.amount || 0), 0);
 
-  const maxMonthlyProfit = React.useMemo(() => {
-    const vals = monthlyStats.rows.map(r => Math.max(0, Number(r.totalProfit || 0)));
-    return Math.max(1, ...vals);
-  }, [monthlyStats.rows]);
-  const perfBarWrapCls = (monthlyStats.rows.length <= 8)
-    ? 'flex items-end gap-3 h-48 w-full justify-between'
-    : 'flex items-end gap-3 h-48 min-w-max';
-
-  // Map ticket id -> ticket for deriving account when missing on old payments
-  const ticketById = React.useMemo(() => {
-    const m: Record<string, ApiTicket> = {};
-    for (const t of tickets) {
-      if (t._id) m[t._id] = t;
-    }
-    return m;
-  }, [tickets]);
-
-  // Sort payment history by date descending (most recent first)
-  const sortedPayments = React.useMemo(() => {
-    return [...accountFilteredPayments].sort((a, b) => {
-      const ad = new Date(a.date).getTime();
-      const bd = new Date(b.date).getTime();
-      return bd - ad;
-    });
-  }, [accountFilteredPayments]);
-
-  // Helper to compute per-payment aggregates from its tickets
-  const aggregatesForPayment = React.useCallback((p: ApiPayment) => {
-    let ticketSum = 0;
-    let refundSum = 0;
-    let profitNetSum = 0;
-    let count = 0;
-    for (const id of p.tickets || []) {
-      const t = ticketById[id];
-      if (!t) continue;
-      ticketSum += Number(t.ticketAmount || 0);
-      refundSum += Number(t.refund || 0);
-      profitNetSum += (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
-      count += 1;
-    }
-    return { ticketSum, refundSum, profitNetSum, count };
-  }, [ticketById]);
-
-
+  // Export UI state (CSV export)
   const exportPaymentReport = () => {
     setExportingPayments(true);
     try {
@@ -463,6 +381,62 @@ export default function PaymentTracker({
       alert('Refund ticket created under Open Tickets.');
     }, 50);
   };
+
+  // Helpers for Payment History section
+  const ticketById = React.useMemo(() => {
+    const m: Record<string, ApiTicket> = {};
+    for (const t of tickets) {
+      if (t._id) m[t._id] = t;
+    }
+    return m;
+  }, [tickets]);
+
+  const sortedPayments = React.useMemo((): ApiPayment[] => {
+    return [...accountFilteredPayments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [accountFilteredPayments]);
+
+  const aggregatesForPayment = React.useCallback((p: ApiPayment) => {
+    let ticketSum = 0;
+    let refundSum = 0;
+    let profitNetSum = 0;
+    let count = 0;
+    for (const id of p.tickets || []) {
+      const t = ticketById[id];
+      if (!t) continue;
+      ticketSum += Number(t.ticketAmount || 0);
+      refundSum += Number(t.refund || 0);
+      profitNetSum += (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
+      count += 1;
+    }
+    return { ticketSum, refundSum, profitNetSum, count };
+  }, [ticketById]);
+
+  const monthlyStats = React.useMemo(() => {
+    type Row = { key: string; label: string; trainCount: number; trainProfit: number; flightCount: number; flightProfit: number; busCount: number; busProfit: number; totalProfit: number; totalTickets: number };
+    const map: Record<string, Row> = {};
+    paidTickets.forEach(t => {
+      const d = new Date(t.bookingDate);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+      if (!map[key]) map[key] = { key, label, trainCount: 0, trainProfit: 0, flightCount: 0, flightProfit: 0, busCount: 0, busProfit: 0, totalProfit: 0, totalTickets: 0 };
+      const profitNet = (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
+      map[key].totalProfit += profitNet; map[key].totalTickets += 1;
+      if (t.type === 'train') { map[key].trainCount += 1; map[key].trainProfit += profitNet; }
+      else if (t.type === 'flight') { map[key].flightCount += 1; map[key].flightProfit += profitNet; }
+      else if (t.type === 'bus') { map[key].busCount += 1; map[key].busProfit += profitNet; }
+    });
+    const rows = Object.values(map).sort((a, b) => a.key < b.key ? 1 : -1); // desc
+    const totals = rows.reduce((acc, r) => {
+      acc.trainCount += r.trainCount; acc.trainProfit += r.trainProfit;
+      acc.flightCount += r.flightCount; acc.flightProfit += r.flightProfit;
+      acc.busCount += r.busCount; acc.busProfit += r.busProfit;
+      acc.totalProfit += r.totalProfit; acc.totalTickets += r.totalTickets;
+      return acc;
+    }, { trainCount: 0, trainProfit: 0, flightCount: 0, flightProfit: 0, busCount: 0, busProfit: 0, totalProfit: 0, totalTickets: 0 });
+    return { rows, totals };
+  }, [paidTickets]);
+  const maxMonthlyProfit = React.useMemo(() => Math.max(1, ...monthlyStats.rows.map(r => Math.max(0, r.totalProfit))), [monthlyStats.rows]);
+  const perfBarWrapCls = (monthlyStats.rows.length <= 8) ? 'flex items-end gap-3 h-48 w-full justify-between' : 'flex items-end gap-3 h-48 min-w-max';
 
   return (
     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden mb-6">
@@ -529,49 +503,30 @@ export default function PaymentTracker({
           </div>
         </div>
 
-        {/* Summary widgets (date-filtered tickets) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8 mb-6">
+        {/* Paid Tickets Widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 lg:gap-8 mb-6">
           <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500">
-            <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
-            <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalsAll.booking).toLocaleString()}</p>
-            <p className="text-xs text-indigo-600">{totalsAll.count} tickets</p>
+            <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount (Paid)</h3>
+            <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalsPaid.booking).toLocaleString()}</p>
+            <p className="text-[10px] text-indigo-600">{totalsPaid.count} paid tickets</p>
           </div>
           <div className="bg-purple-50 p-4 rounded-lg border-t-4 border-purple-500">
-            <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
-            <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalsAll.ticket).toLocaleString()}</p>
+            <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount (Paid)</h3>
+            <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalsPaid.ticket).toLocaleString()}</p>
           </div>
           <div className="bg-green-50 p-4 rounded-lg border-t-4 border-green-500">
-            <h3 className="text-sm font-medium text-green-600">Total Profit</h3>
-            <p className="text-2xl font-bold text-green-900">₹{Math.round(totalsAll.profit).toLocaleString()}</p>
+            <h3 className="text-sm font-medium text-green-600">Total Profit (Paid)</h3>
+            <p className="text-2xl font-bold text-green-900">₹{Math.round(totalsPaid.profit).toLocaleString()}</p>
           </div>
           <div className="bg-red-50 p-4 rounded-lg border-t-4 border-red-500">
-            <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
-            <p className="text-2xl font-bold text-red-900">₹{Math.round(totalsAll.refund).toLocaleString()}</p>
-            <p className="text-xs text-red-600">{totalsAll.refundedCount} tickets refunded</p>
+            <h3 className="text-sm font-medium text-red-600">Total Refund (Paid)</h3>
+            <p className="text-2xl font-bold text-red-900">₹{Math.round(totalsPaid.refund).toLocaleString()}</p>
+            <p className="text-xs text-red-600">{totalsPaid.refundedCount} refunded</p>
           </div>
-        </div>
-        {/* Summary Profit widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-6">
-          <div className="bg-gradient-to-r from-blue-50 to-sky-100 p-4 rounded-lg flex items-center justify-between border border-blue-100 border-t-4 border-t-blue-500">
-            <div>
-              <h3 className="text-sm font-medium text-blue-600">Train Profit</h3>
-              <p className="text-2xl font-bold text-blue-900">₹{Math.round(typeProfit.train).toLocaleString()}</p>
-            </div>
-            <Train className="w-6 h-6 text-blue-600" />
-          </div>
-          <div className="bg-gradient-to-r from-green-50 to-emerald-100 p-4 rounded-lg flex items-center justify-between border border-green-100 border-t-4 border-t-green-500">
-            <div>
-              <h3 className="text-sm font-medium text-green-600">Bus Profit</h3>
-              <p className="text-2xl font-bold text-green-900">₹{Math.round(typeProfit.bus).toLocaleString()}</p>
-            </div>
-            <Bus className="w-6 h-6 text-green-600" />
-          </div>
-          <div className="bg-gradient-to-r from-purple-50 to-fuchsia-100 p-4 rounded-lg flex items-center justify-between border border-purple-100 border-t-4 border-t-purple-500">
-            <div>
-              <h3 className="text-sm font-medium text-purple-600">Flight Profit</h3>
-              <p className="text-2xl font-bold text-purple-900">₹{Math.round(typeProfit.flight).toLocaleString()}</p>
-            </div>
-            <Plane className="w-6 h-6 text-purple-600" />
+          <div className="bg-gradient-to-br from-blue-50 via-emerald-50 to-purple-50 p-4 rounded-lg border-t-4 border-blue-500">
+            <div className="flex justify-between"><span className="text-blue-700">Train Profit:</span><span className="font-semibold text-blue-900">₹{Math.round(paidTypeProfit.train).toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-green-700">Bus Profit:</span><span className="font-semibold text-green-900">₹{Math.round(paidTypeProfit.bus).toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-purple-700">Flight Profit:</span><span className="font-semibold text-purple-900">₹{Math.round(paidTypeProfit.flight).toLocaleString()}</span></div>
           </div>
         </div>
 
@@ -1037,7 +992,7 @@ export default function PaymentTracker({
               }}
               className="ml-2 px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
             >
-              Cancel
+              Close
             </button>
           </div>
         </div>

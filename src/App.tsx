@@ -86,7 +86,7 @@ function InnerApp() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} onOpenPnrSearch={() => setShowPnr(true)} />
-      <div className="container mx-auto py-4">
+      <div className="container mx-auto py-2">
         {renderCurrentPage()}
       </div>
       {/* PNR Search is rendered only when authenticated, so we mount it below */}
@@ -295,10 +295,8 @@ export default function App() {
   return (
     <AuthProvider>
       <DateRangeProvider>
-        <div className="min-h-screen bg-gray-50">
-          <div className="mx-auto py-4">
-            <InnerApp />
-          </div>
+        <div className="mx-auto min-h-screen bg-gray-50">
+          <InnerApp />
         </div>
       </DateRangeProvider>
     </AuthProvider>
