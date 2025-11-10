@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { ApiFuel } from '../services/api';
-import { Edit3, Trash2 } from 'lucide-react';
+import { Edit3, Trash2, Fuel as FuelIcon } from 'lucide-react';
 import { fmtINR, fmtMonthYY, fmtShort } from './common/utils';
 
 // Helper: hex to rgb with fallback to blue if invalid
@@ -268,53 +268,51 @@ export function VehicleDash(props: { vehicle: import('../utils/common/utils').Ve
       .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
   }, [items, vehicleId]);
 
-  // Type guard for optional missedPreviousRefuel flag
-  function hasMissedPrevRefuel(entry: ApiFuel): entry is ApiFuel & { missedPreviousRefuel?: boolean } {
+  function hasMissedPrevRefuel(entry: import('../services/api').ApiFuel): entry is import('../services/api').ApiFuel & { missedPreviousRefuel?: boolean } {
     return entry != null && typeof entry === 'object' && 'missedPreviousRefuel' in entry;
   }
 
-  // Helper to compute distance between this refuel and the next older refuel
   const computeDistance = useCallback((i: number): number | null => {
     const e = rows[i];
     if (!e || e.entryType !== 'refueling' || typeof e.odometer !== 'number') return null;
     if (hasMissedPrevRefuel(e) && e.missedPreviousRefuel) return null;
-    // find next older refuel because rows are in desc order
+    // rows are sorted desc, find next older refuel
     let prevOdo: number | null = null;
     for (let j = i + 1; j < rows.length; j++) {
       const prev = rows[j] as import('../services/api').ApiFuel;
       if (prev.entryType !== 'refueling') continue;
-      if (vehicleId && prev.vehicleId !== vehicleId) continue;
+      // ensure same vehicle when aggregating multiple vehicles
+      if (prev.vehicleId !== e.vehicleId) continue;
       if (typeof prev.odometer !== 'number') continue;
       prevOdo = prev.odometer;
       break;
     }
     if (prevOdo == null) return null;
     return Math.max(0, (e.odometer as number) - prevOdo);
-  }, [rows, vehicleId]);
-
-  const typeStyles: Record<string, { border: string; bg: string }> = {
-    refueling: { border: withAlpha(theme, 0.8), bg: withAlpha(theme, 0.04) },
-    service: { border: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
-    repair: { border: '#ef4444', bg: 'rgba(239,68,68,0.08)' }
-  };
+  }, [rows]);
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm" style={{ borderColor: withAlpha(theme, 0.25) }}>
-      <div className="mt-2 overflow-x-auto">
+    <div className="rounded-lg border bg-white shadow-sm" style={{ borderColor: withAlpha(theme, 0.25), borderTop: '8px solid #dc2626' }}>
+      <div className="flex items-center gap-2 px-4 py-3" style={{ backgroundColor: '#dc2626', color: '#fff' }}>
+        <FuelIcon className="h-4 w-4" />
+        <span className="text-sm font-semibold">Refueling History</span>
+      </div>
+      <div className="overflow-x-auto">
         <table className="min-w-full divide-y" style={{ borderColor: withAlpha(theme, 0.2) }}>
-          <thead className="bg-gray-50" style={{ background: withAlpha(theme, 0.06) }}>
+          <thead className="bg-red-100" style={{ background: '#fee2e2' }}>
             <tr>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Type</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Date</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Distance (km)</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Mileage (km/L)</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Odometer (km)</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Liters (L)</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Price/L (₹)</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Amount (₹)</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Missed</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Notes</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold" style={{ color: theme }}>Actions</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Type</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Vehicle</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Date</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Distance (km)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Mileage (km/L)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Odometer (km)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Liters (L)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Price/L (₹)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Amount (₹)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Missed</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: '#b91c1c' }}>Notes</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold" style={{ color: '#b91c1c' }}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -324,13 +322,13 @@ export function VehicleDash(props: { vehicle: import('../utils/common/utils').Ve
               const dateStr = fmtDayMon(e.date);
               const distance = isRefuel ? computeDistance(i) : null;
               const mileage = isRefuel && distance != null && e.liters != null && e.liters > 0 ? distance / e.liters : null;
-              const styleInfo = typeStyles[e.entryType] || typeStyles.refueling;
               return (
-                <tr key={e._id || i} className="hover:bg-gray-50 border-l-4" style={{ borderLeftColor: styleInfo.border, backgroundColor: styleInfo.bg }}>
+                <tr key={e._id || i} className={`${i % 2 ? 'bg-blue-50' : ''} hover:bg-blue-100`}>
                   <td className="px-3 py-2 text-xs capitalize text-gray-900">{e.entryType}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900">{e.vehicleName || '-'}</td>
                   <td className="px-3 py-2 text-xs text-gray-900">{dateStr}</td>
                   <td className="px-3 py-2 text-xs text-gray-900 font-medium">{isRefuel && distance != null ? Math.round(distance).toLocaleString() : '-'}</td>
-                  <td className="px-3 py-2 text-xs text-gray-900 font-medium">{isRefuel && mileage != null ? mileage.toFixed(1) : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900 font-medium">{isRefuel && mileage != null ? mileage.toFixed(2) : '-'}</td>
                   <td className="px-3 py-2 text-xs text-gray-900">{typeof e.odometer === 'number' ? Math.round(e.odometer).toLocaleString() : '-'}</td>
                   <td className="px-3 py-2 text-xs text-gray-900">{isRefuel && e.liters != null ? Number(e.liters).toFixed(2) : '-'}</td>
                   <td className="px-3 py-2 text-xs text-gray-900">{isRefuel && e.pricePerLiter != null ? Number(e.pricePerLiter).toFixed(2) : '-'}</td>
@@ -346,6 +344,112 @@ export function VehicleDash(props: { vehicle: import('../utils/common/utils').Ve
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Monthly summary table: per month liters, weighted avg price per liter, and kms
+export function MonthlyVehicleTable({ items, vehicleId, color, vehicles }: { items: ApiFuel[]; vehicleId?: string | null; color?: string; vehicles?: Array<{ _id: string; name: string }> }) {
+  const theme = color || '#3b82f6';
+  const vName = useMemo(() => new Map((vehicles ?? []).map(v => [v._id, v.name])), [vehicles]);
+  const rows = useMemo(() => {
+    const filtered = items
+      .filter(r => r.entryType === 'refueling' && !!r.date && (!vehicleId || r.vehicleId === vehicleId))
+      .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
+
+    type Agg = { liters: number; priceWeighted: number; priceDen: number; kms: number; vehicleId: string | null; vehicleName: string };
+    const agg = new Map<string, Agg>();
+
+    const getMonthKey = (d: string) => {
+      const dt = new Date(d);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+    };
+
+    for (let i = 0; i < filtered.length; i++) {
+      const e = filtered[i];
+      const mKey = getMonthKey(e.date!);
+      const key = `${mKey}|${e.vehicleId ?? 'unknown'}`;
+      if (!agg.has(key)) agg.set(key, { liters: 0, priceWeighted: 0, priceDen: 0, kms: 0, vehicleId: e.vehicleId ?? null, vehicleName: e.vehicleName || vName.get(e.vehicleId ?? '') || '-' });
+      const a = agg.get(key)!;
+      if (typeof e.liters === 'number') {
+        a.liters += e.liters;
+        if (typeof e.pricePerLiter === 'number') {
+          a.priceWeighted += e.liters * e.pricePerLiter;
+          a.priceDen += e.liters;
+        }
+      }
+      // kms: distance to next older refuel
+      if (!e.missedPreviousRefuel && typeof e.odometer === 'number') {
+        let prevOdo: number | null = null;
+        for (let j = i + 1; j < filtered.length; j++) {
+          const prev = filtered[j];
+          if (prev.entryType !== 'refueling') continue;
+          // ensure prev is same vehicle when aggregating multiple vehicles
+          if (prev.vehicleId !== e.vehicleId) continue;
+          if (typeof prev.odometer !== 'number') continue;
+          prevOdo = prev.odometer;
+          break;
+        }
+        if (prevOdo != null) {
+          const dKm = Math.max(0, e.odometer - prevOdo);
+          a.kms += dKm;
+        }
+      }
+    }
+
+    const toLabel = (key: string) => {
+      const [y, m] = key.split('-');
+      const dt = new Date(Number(y), Number(m) - 1, 1);
+      return dt.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    };
+
+    const out = Array.from(agg.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([key, a]) => {
+        const monthKey = key.split('|')[0];
+        return {
+          month: toLabel(monthKey),
+          liters: a.liters,
+          price: a.priceDen > 0 ? a.priceWeighted / a.priceDen : 0,
+          kms: a.kms,
+          vehicleId: a.vehicleId,
+          vehicleName: a.vehicleName,
+        };
+      });
+    return out;
+  }, [items, vehicleId, vName]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-lg border bg-white shadow-sm" style={{ borderColor: withAlpha(theme, 0.2) }}>
+      <div className="flex items-center gap-2 px-4 py-2" style={{ backgroundColor: withAlpha(theme, 0.9), color: '#fff' }}>
+        <span className="text-sm font-semibold">Monthly Summary</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Vehicle</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Month</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Liters</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Price/L (₹)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Kms</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {rows.map((r, i) => (
+              <tr key={i} className={`${i % 2 ? 'bg-gray-50' : ''}`}>
+                <td className="px-3 py-2 text-xs text-gray-900">{r.vehicleName || '-'}</td>
+                <td className="px-3 py-2 text-xs text-gray-900">{r.month}</td>
+                <td className="px-3 py-2 text-xs text-gray-900">{r.liters.toFixed(2)}</td>
+                <td className="px-3 py-2 text-xs text-gray-900">{r.price.toFixed(2)}</td>
+                <td className="px-3 py-2 text-xs text-gray-900">{Math.round(r.kms).toLocaleString()}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

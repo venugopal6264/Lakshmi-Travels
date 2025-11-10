@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Car, Fuel as FuelIcon, Bike, Info } from 'lucide-react';
 import { ApiFuel, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
-import { VehicleDash } from '../utils/FuelUtils';
+import { VehicleDash, MonthlyVehicleTable } from '../utils/FuelUtils';
 import { VehicleType, withAlpha } from '../utils/common/utils';
 import { FuelSummarySection } from '../utils/charts/FuelSummarySection';
 import { AddVehicleModal, VehicleDoc, VehicleManagerModal } from '../utils/VehicleUtils';
@@ -185,15 +185,12 @@ const VehicleDashboard = () => {
                 const list = await apiService.getVehicles();
                 const arr = list as VehicleDoc[];
                 setVehicles(arr);
-                // Prefer Car by default; fallback to first available
-                const preferred = arr.find(v => v.type === 'car') || arr[0] || null;
-                if (preferred) {
-                    setSelectedVehicleId(preferred._id);
-                    setSelectedVehicleName(preferred.name);
-                    setSelectedVehicleColor(preferred.color || '#3b82f6');
-                    setActiveVehicle(preferred.type);
-                    setActiveVehicleId(preferred._id);
-                }
+                // Default to ALL vehicles view
+                setSelectedVehicleId(null);
+                setSelectedVehicleName('All Vehicles');
+                setSelectedVehicleColor('#3b82f6');
+                setActiveVehicle('car');
+                setActiveVehicleId(null);
             } catch {
                 // ignore
             }
@@ -240,11 +237,11 @@ const VehicleDashboard = () => {
     // Visible list for current vehicle selection (for top date range display)
     const visibleList = React.useMemo(() => {
         return periodFilteredFuel.filter(i => {
-            if (i.vehicle !== activeVehicle) return false;
-            if (activeVehicleId) return i.vehicleId === activeVehicleId;
-            return true;
+            // When no specific vehicle selected show all vehicles
+            if (!activeVehicleId) return true;
+            return i.vehicleId === activeVehicleId;
         }).sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-    }, [periodFilteredFuel, activeVehicle, activeVehicleId]);
+    }, [periodFilteredFuel, activeVehicleId]);
 
     const rangeInfo = React.useMemo(() => {
         const entriesCount = visibleList.length;
@@ -338,6 +335,12 @@ const VehicleDashboard = () => {
                             onChange={(e) => {
                                 const id = e.target.value || null;
                                 setActiveVehicleId(id);
+                                if (!id) {
+                                    setSelectedVehicleId(null);
+                                    setSelectedVehicleName('All Vehicles');
+                                    setSelectedVehicleColor('#3b82f6');
+                                    return;
+                                }
                                 const found = vehicles.find(x => x._id === id);
                                 if (found) {
                                     setActiveVehicle(found.type);
@@ -347,7 +350,7 @@ const VehicleDashboard = () => {
                                 }
                             }}
                         >
-                            <option value="">Select…</option>
+                            <option value="">All Vehicles</option>
                             <optgroup label="Cars">
                                 {vehicles.filter(v => v.type === 'car').map(v => (
                                     <option key={v._id} value={v._id}>{v.name}</option>
@@ -414,6 +417,7 @@ const VehicleDashboard = () => {
                                 if (e._id) deleteFuel(e._id);
                             }}
                         />
+                        <MonthlyVehicleTable items={periodFilteredFuel} vehicleId={activeVehicleId} vehicles={vehicles.map(v => ({ _id: v._id, name: v.name }))} color={selectedVehicleColor} />
                     </div>
                 )}
 

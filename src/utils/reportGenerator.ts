@@ -1,6 +1,6 @@
 import { ApiTicket } from '../services/api';
 
-// Format a booking date string (ISO) as DD-MMM-YYYY using local date without TZ shift
+// Format a booking date string (ISO) as DD MMM (e.g., 05 Nov) using local date without TZ shift
 const formatExportDate = (iso?: string): string => {
   if (!iso) return '';
   const ymd = iso.split('T')[0] || '';
@@ -10,8 +10,8 @@ const formatExportDate = (iso?: string): string => {
   if (!y || !m || !d) return '';
   const dt = new Date(y, m - 1, d);
   const day = String(d).padStart(2, '0');
-  const mon = dt.toLocaleString('en-US', { month: 'short' }); // e.g., Aug
-  return `${day}-${mon}-${y}`;
+  const mon = dt.toLocaleString('en-US', { month: 'short' }); // e.g., Nov
+  return `${day}-${mon}`;
 };
 
 // Helper to get sortable YYYY-MM-DD key without TZ shifts
@@ -20,12 +20,12 @@ const ymdKey = (iso?: string): string => (iso ? (iso.split('T')[0] || '') : '');
 export const generateCSVReport = (tickets: ApiTicket[]) => {
   const headers = [
     'Account',
-    'Booking Date',
+    'Date',
     'Type',
     'Names',
     'PNR',
     'Place',
-    'Booking Amount',
+    'Amount',
     'Refund',
     'Remarks'
   ];
@@ -125,19 +125,22 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   ]);
 
   const headers = [
-    'Booking Date',
+    'Date',
     'Type',
     'Names',
     'PNR',
     'Place',
-    'Ticket Amount',
+    'Amount',
     'Refund',
   ];
 
-  // Sort tickets by booking date ascending for export
+  // Sort tickets by booking date ascending for export, but move cancelled (refund) tickets to the end
   const sorted = [...tickets].sort((a, b) => ymdKey(a.bookingDate).localeCompare(ymdKey(b.bookingDate)));
+  const nonCancelled = sorted.filter(t => (Number(t.refund) || 0) === 0);
+  const cancelled = sorted.filter(t => (Number(t.refund) || 0) > 0);
+  const ordered = [...nonCancelled, ...cancelled];
 
-  const rows = sorted.map(t => [
+  const rows = ordered.map(t => [
     formatExportDate(t.bookingDate),
     t.type.charAt(0).toUpperCase() + t.type.slice(1),
     t.passengerName,
@@ -147,11 +150,11 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
     Math.round(Number(t.refund) || 0).toString(),
   ]);
 
-  const totalTicketAmount = sorted.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
-  const totalRefund = sorted.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
+  const totalTicketAmount = ordered.reduce((sum, t) => sum + (Number(t.ticketAmount) || 0), 0);
+  const totalRefund = ordered.reduce((sum, t) => sum + (Number(t.refund) || 0), 0);
   const partialTotal = Number(options?.partialTotal || 0);
   const totalDue = totalTicketAmount - totalRefund - partialTotal;
-  const hasRefundFlags = sorted.map(t => (Number(t.refund) || 0) > 0);
+  const hasRefundFlags = ordered.map(t => (Number(t.refund) || 0) > 0);
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
@@ -184,7 +187,7 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
     doc.text(`Period: ${period}`, startX + 300, y + 36, { align: 'left' });
     if (partialTotal > 0) {
       doc.setFontSize(9);
-      doc.text(`Partial Paid: ${Math.round(partialTotal)}`, startX + 300, y + 52, { align: 'left' });
+      doc.text(`Partial Amount: ${Math.round(partialTotal)}`, startX + 300, y + 52, { align: 'left' });
       doc.setFontSize(10);
     }
   };
@@ -200,8 +203,6 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   autoTable(doc, {
     head: [headers],
     body: rows,
-    // Leave space for header on first page; subsequent pages won't draw the header
-    // but keeping a fixed startY ensures first page content starts below it.
     startY: 100,
     styles: { fontSize: 9, cellPadding: 4 },
     headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // blue header
@@ -219,7 +220,6 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
     didDrawPage: (data: { pageNumber: number }) => {
       const currentPage = data.pageNumber || 1;
       if (currentPage === 1) {
-        // Draw full header only on the first page
         drawHeader();
       }
       // Always draw footer page number
@@ -243,11 +243,11 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   if (options.partialPayments && options.partialPayments.length > 0) {
     const entries = options.partialPayments;
     const ppRows = entries.map(e => [
-      new Date(e.date).toLocaleDateString(),
+      formatExportDate(e.date),
       Math.round(Number(e.amount || 0)).toString(),
     ]);
     autoTable(doc, {
-      head: [['Date', 'Partial']],
+      head: [['Date', 'Partial Amount']],
       body: ppRows,
       startY: afterTicketsY,
       styles: { fontSize: 9, cellPadding: 4 },
@@ -261,9 +261,9 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
 
   // Totals table (no header): Label | amount
   const totalsRows = [
-    ['Total', Math.round(totalTicketAmount).toString()],
-    ['Refund', (-Math.round(totalRefund)).toString()],
-    ['Partial', (-Math.round(partialTotal)).toString()],
+    ['Total Amount', Math.round(totalTicketAmount).toString()],
+    ['Refund Amount', (-Math.round(totalRefund)).toString()],
+    ['Partial Amount', (-Math.round(partialTotal)).toString()],
     ['Remaining Due', Math.round(totalDue).toString()],
   ];
   autoTable(doc, {
