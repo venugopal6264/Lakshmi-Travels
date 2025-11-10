@@ -294,11 +294,13 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
               <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
                 <tr>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Distance (km)</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Mileage (km/L)</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Liters</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Price</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Missed Prev Fuel</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
                   {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
                 </tr>

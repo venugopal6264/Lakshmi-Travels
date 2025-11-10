@@ -72,15 +72,22 @@ export function FuelTableBody({
         <>
             <tbody className={tbodyClass}>
                 {list.map((e, idx) => {
+                    const distanceCell = (
+                        <td className="px-4 py-2 whitespace-nowrap">
+                            {(() => {
+                                const row = mileageArr[idx];
+                                if (!row || row.prev == null || row.curr == null) return '';
+                                const dist = row.curr - row.prev;
+                                return dist > 0 ? Math.round(dist).toLocaleString() + ' km' : '';
+                            })()}
+                        </td>
+                    );
                     const mileageCell = (
                         <td className="px-4 py-2 whitespace-nowrap">
                             {(() => {
                                 const row = mileageArr[idx];
-                                if (!row || row.mileage == null || row.prev == null || row.curr == null) return '';
-                                const distance = row.curr - row.prev;
-                                if (distance <= 0) return '';
-                                const mileageStr = Number(row.mileage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                return `${Math.round(distance).toLocaleString()} km - ${mileageStr}`;
+                                if (!row || row.mileage == null) return '';
+                                return Number(row.mileage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km/l';
                             })()}
                         </td>
                     );
@@ -98,6 +105,7 @@ export function FuelTableBody({
                                         </>
                                     ) : (
                                         <>
+                                            {distanceCell}
                                             {mileageCell}
                                             <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
                                         </>
@@ -116,7 +124,15 @@ export function FuelTableBody({
                                 </>
                             )}
                             <td className="px-4 py-2 whitespace-nowrap">{e.total != null ? Math.round(Number(e.total)).toLocaleString() : ''}</td>
-                            {!onlyType && mileageCell}
+                            {onlyType === 'refueling' && (
+                                <td className="px-4 py-2 whitespace-nowrap">{e.missedPreviousRefuel ? 'Yes' : 'No'}</td>
+                            )}
+                            {!onlyType && (
+                                 <>
+                                     {distanceCell}
+                                     {mileageCell}
+                                 </>
+                             )}
                             <td className="px-4 py-2">{e.notes ?? ''}</td>
                             {(onEdit || onDelete) && (
                                 <td className="px-4 py-2 whitespace-nowrap">
@@ -272,7 +288,7 @@ export function FuelTableFooter({
     const badge = vehicle === 'car' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 
     if (onlyType === 'refueling') {
-        // Per-column totals: Date | Mileage | Odometer | Liters | Price | Total | Notes | Actions
+        // Per-column totals now: Date | Distance | Mileage | Odometer | Liters | Price | Total | Missed Prev Fuel | Notes | Actions
         const sumLiters = fmt2(totals.totalLiters);
         const avgPrice = totals.totalLiters > 0 ? fmt2((totals.fuelTotal as number) / totals.totalLiters) : fmt2(0);
         const sumTotal = fmt(totals.fuelTotal);
@@ -284,11 +300,12 @@ export function FuelTableFooter({
                     <td className="px-4 py-2 text-sm">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge}`}>Totals</span>
                     </td>
-                    <td className="px-4 py-2 text-sm">{avgMileage} km/L</td>
                     <td className="px-4 py-2 text-sm">{odoKm} km</td>
+                    <td className="px-4 py-2 text-sm">{avgMileage} km/L</td>
                     <td className="px-4 py-2 text-sm">{sumLiters}</td>
                     <td className="px-4 py-2 text-sm">{avgPrice}</td>
                     <td className="px-4 py-2 text-sm">₹{sumTotal}</td>
+                    <td className="px-4 py-2 text-sm"></td>
                     <td className="px-4 py-2 text-sm"></td>
                     {hasActions && <td className="px-4 py-2 text-sm"></td>}
                 </tr>
