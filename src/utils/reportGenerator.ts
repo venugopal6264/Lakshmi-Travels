@@ -17,6 +17,9 @@ const formatExportDate = (iso?: string): string => {
 // Helper to get sortable YYYY-MM-DD key without TZ shifts
 const ymdKey = (iso?: string): string => (iso ? (iso.split('T')[0] || '') : '');
 
+// Remove all whitespace from place strings for export
+const sanitizePlace = (s?: string): string => (s ? s.replace(/\s+/g, '') : '');
+
 export const generateCSVReport = (tickets: ApiTicket[]) => {
   const headers = [
     'Account',
@@ -39,7 +42,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1),
     ticket.passengerName,
     ticket.pnr,
-    ticket.place,
+    sanitizePlace(ticket.place),
     ticket.bookingAmount.toString(),
     (Number(ticket.refund) || 0).toString(),
     ticket.remarks || ''
@@ -81,22 +84,6 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     .join('\n');
 
   return csvContent;
-};
-
-export const downloadCSV = (content: string, filename: string) => {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
 };
 
 // Load an image URL (from public/) as a data URL for embedding in PDF
@@ -145,7 +132,7 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
     t.type.charAt(0).toUpperCase() + t.type.slice(1),
     t.passengerName,
     t.pnr,
-    t.place,
+    sanitizePlace(t.place),
     Math.round(Number(t.ticketAmount) || 0).toString(),
     Math.round(Number(t.refund) || 0).toString(),
   ]);
@@ -166,11 +153,11 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   const period = `${options?.startLabel || 'ALL'} to ${options?.endLabel || 'ALL'}`;
 
   const drawHeader = () => {
-    const startX = 40;
-    const y = 40;
+    const startX = 24;
+    const y = 24;
     if (logoDataUrl) {
       try {
-        doc.addImage(logoDataUrl, 'PNG', startX, y, 40, 40, undefined, 'FAST');
+        doc.addImage(logoDataUrl, 'PNG', startX, y, 36, 36, undefined, 'FAST');
       } catch (e) {
         // Ignore image errors and continue
         console.warn('Failed to draw logo:', e);
@@ -178,18 +165,13 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
     }
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text(title, startX + 50, y + 18);
+    doc.text(title, startX + 44, y + 16);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text(subtitle, startX + 50, y + 36);
+    doc.text(subtitle, startX + 44, y + 30);
     doc.setFontSize(10);
-    doc.text(`Account: ${account}`, startX + 300, y + 18, { align: 'left' });
-    doc.text(`Period: ${period}`, startX + 300, y + 36, { align: 'left' });
-    if (partialTotal > 0) {
-      doc.setFontSize(9);
-      doc.text(`Partial Amount: ${Math.round(partialTotal)}`, startX + 300, y + 52, { align: 'left' });
-      doc.setFontSize(10);
-    }
+    doc.text(`Account: ${account}`, startX + 260, y + 14, { align: 'left' });
+    doc.text(`Period: ${period}`, startX + 260, y + 28, { align: 'left' });
   };
 
   const drawFooter = (page: number) => {
@@ -203,9 +185,9 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   autoTable(doc, {
     head: [headers],
     body: rows,
-    startY: 100,
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // blue header
+    startY: 70,
+    styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
+    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontSize: 9, cellPadding: 2 }, // blue header
     alternateRowStyles: { fillColor: [245, 247, 250] },
     didParseCell: (data: unknown) => {
       const d = data as { section: 'head' | 'body' | 'foot'; row: { index: number }; cell: { styles: { textColor?: unknown } } };
@@ -225,18 +207,18 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
       // Always draw footer page number
       drawFooter(currentPage);
     },
-    margin: { top: 20, left: 20, right: 20, bottom: 20 },
+    margin: { top: 10, left: 16, right: 16, bottom: 10 },
     theme: 'grid',
   });
 
   // Sections: Partial Payments (left) and Totals (right), side by side
   const afterTicketsY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
-    ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
-    : 120;
+    ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6
+    : 90;
   const pageWidth = doc.internal.pageSize.getWidth();
-  const leftMargin = 20;
+  const leftMargin = 16;
   const tableWidth = 220; // approximate fixed width for small tables
-  const gap = 40;
+  const gap = 24;
   const rightMarginLeft = leftMargin + tableWidth + gap;
 
   // Partial Payments table (Date, Partial)
@@ -250,11 +232,11 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
       head: [['Date', 'Partial Amount']],
       body: ppRows,
       startY: afterTicketsY,
-      styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: [16, 185, 129], textColor: 255 }, // emerald header
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [16, 185, 129], textColor: 255, fontSize: 8, cellPadding: 2 }, // emerald header
       alternateRowStyles: { fillColor: [245, 247, 250] },
       theme: 'grid',
-      margin: { left: leftMargin, right: Math.max(20, pageWidth - (leftMargin + tableWidth)) },
+      margin: { left: leftMargin, right: Math.max(10, pageWidth - (leftMargin + tableWidth)) },
       tableWidth,
     });
   }
@@ -269,7 +251,7 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   autoTable(doc, {
     body: totalsRows,
     startY: afterTicketsY,
-    styles: { fontSize: 10, cellPadding: 4 },
+    styles: { fontSize: 9, cellPadding: 3 },
     theme: 'grid',
     margin: { left: rightMarginLeft, right: 20 },
     tableWidth,
