@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Car, Fuel as FuelIcon } from 'lucide-react';
+import { Car, Bike, Fuel as FuelIcon } from 'lucide-react';
 import { ApiFuel, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
 import { VehicleDash } from '../utils/Vehicles/FuelUtils';
@@ -313,6 +313,48 @@ const VehicleDashboard = () => {
                     color={selectedVehicleColor}
                 />
             )}
+            {/* Floating vehicle selector buttons */}
+            <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+                {/* All Vehicles */}
+                <button
+                    type="button"
+                    title="All Vehicles"
+                    aria-label="All Vehicles"
+                    onClick={() => {
+                        setActiveVehicleId(null);
+                        setSelectedVehicleId(null);
+                        setSelectedVehicleName('All Vehicles');
+                        setSelectedVehicleColor('#3b82f6');
+                    }}
+                    className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105 ${!activeVehicleId ? 'ring-2 ring-indigo-500' : ''}`}
+                    style={{ background: withAlpha('#3b82f6', 0.85), color: '#fff' }}
+                >
+                    <FuelIcon className="w-6 h-6" />
+                </button>
+                {vehicles.map(v => {
+                    const Icon = v.type === 'car' ? Car : Bike;
+                    const isActive = activeVehicleId === v._id;
+                    return (
+                        <button
+                            key={v._id}
+                            type="button"
+                            title={v.name}
+                            aria-label={v.name}
+                            onClick={() => {
+                                setActiveVehicle(v.type);
+                                setActiveVehicleId(v._id);
+                                setSelectedVehicleId(v._id);
+                                setSelectedVehicleName(v.name);
+                                setSelectedVehicleColor(v.color || '#3b82f6');
+                            }}
+                            className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105 ${isActive ? 'ring-2 ring-indigo-500' : ''}`}
+                            style={{ background: v.color || '#64748b', color: '#fff' }}
+                        >
+                            <Icon className="w-6 h-6" />
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 };

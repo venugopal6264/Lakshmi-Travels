@@ -380,6 +380,7 @@ export default function Dashboard({
             </div>
 
             {!showCreateModal && (
+                /* Create Ticket floating button */
                 <button
                     type="button"
                     onClick={() => setShowCreateModal(true)}
