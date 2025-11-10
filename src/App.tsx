@@ -13,9 +13,10 @@ import PaymentTracker from './components/PaymentTracker';
 import CustomersDetails from './components/CustomersDetails';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket } from './services/api';
+import NotesPage from './pages/NotesPage';
 
 // Router helpers (module scope, stable references)
-type Page = 'dashboard' | 'login' | 'payments' | 'accounts' | 'vehicles' | 'apartments' | 'customers';
+type Page = 'dashboard' | 'login' | 'payments' | 'accounts' | 'vehicles' | 'apartments' | 'customers' | 'notes';
 const pageToPath: Record<Page, string> = {
   dashboard: '/dashboard',
   login: '/login',
@@ -24,6 +25,7 @@ const pageToPath: Record<Page, string> = {
   vehicles: '/vehicles',
   apartments: '/apartments',
   customers: '/customers',
+  notes: '/notes',
 };
 const resolvePageFromPath = (pathname: string): Page => {
   const p = pathname.toLowerCase();
@@ -240,6 +242,8 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
         const existingAccounts = Array.from(new Set((tickets || []).map(t => t.account).filter(Boolean))) as string[];
         return <CustomersDetails open existingAccounts={existingAccounts} />;
       }
+      case 'notes':
+        return <NotesPage />;
       default:
         return null;
     }

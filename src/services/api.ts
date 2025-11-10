@@ -61,10 +61,40 @@ export interface FuelSummaryResponse {
   yearToDate: FuelSummaryBucket;
 }
 
-// Tenancy types
-export interface ApiFlat { _id?: string; number: string; notes?: string; currentTenant?: ApiTenant | null; createdAt?: string; updatedAt?: string }
-export interface ApiTenant { _id?: string; name: string; phone?: string; aadharNumber?: string; startDate: string; endDate?: string | null; rentAmount: number; deposit?: number; flat: string | ApiFlat; active?: boolean; createdAt?: string; updatedAt?: string }
-export interface ApiRentRecord { _id?: string; flat: string | ApiFlat; tenant: string | ApiTenant; month: string; amount: number; paid: boolean; paidDate?: string | null; notes?: string; createdAt?: string; updatedAt?: string }
+export interface ApiFlat {
+  _id?: string;
+  number: string;
+  notes?: string;
+  currentTenant?: ApiTenant | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+export interface ApiTenant {
+  _id?: string;
+  name: string;
+  phone?: string;
+  aadharNumber?: string;
+  startDate: string;
+  endDate?: string | null;
+  rentAmount: number;
+  deposit?: number;
+  flat: string | ApiFlat;
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+export interface ApiRentRecord {
+  _id?: string;
+  flat: string | ApiFlat;
+  tenant: string | ApiTenant;
+  month: string;
+  amount: number;
+  paid: boolean;
+  paidDate?: string | null;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface CustomersDetails {
   _id?: string;
@@ -105,24 +135,16 @@ export type CreateNamePayload = {
   gender?: 'male' | 'female';
   aadharNumber?: string; // NEW
 };
-
-export const CustomersDetails = {
-  async list(): Promise<CustomersDetails[]> {
-    const res = await fetch(`${API_URL}/customers`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to fetch names');
-    return res.json();
-  },
-  async create(body: { name: string; age?: number | null; dob?: string | null; account?: string | null }): Promise<CustomersDetails> {
-    const res = await fetch(`${API_URL}/customers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error('Failed to create customer');
-    return res.json();
-  },
-};
+export interface ApiNote {
+  _id?: string;
+  title?: string;
+  content: string;
+  color?: string;
+  labels?: string[];
+  pinned?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -311,6 +333,28 @@ class ApiService {
 
   async deleteCustomer(id: string): Promise<void> {
     await this.request(`/customers/${id}`, { method: 'DELETE' });
+  }
+
+  // Notes API methods
+  async getNotes(): Promise<ApiNote[]> {
+    return this.request<ApiNote[]>('/notes');
+  }
+  async createNote(input: { title?: string; content: string; color?: string; labels?: string[]; pinned?: boolean }): Promise<ApiNote> {
+    return this.request<ApiNote>('/notes', { method: 'POST', body: JSON.stringify(input) });
+  }
+  async updateNote(id: string, patch: Partial<ApiNote>): Promise<ApiNote> {
+    return this.request<ApiNote>(`/notes/${id}`, { method: 'PUT', body: JSON.stringify(patch) });
+  }
+  async deleteNote(id: string): Promise<void> {
+    await this.request(`/notes/${id}`, { method: 'DELETE' });
+  }
+
+  // CustomersDetails legacy helpers (moved from standalone export)
+  async listCustomersDetails(): Promise<CustomersDetails[]> {
+    return this.request<CustomersDetails[]>('/customers');
+  }
+  async createCustomersDetails(body: { name: string; age?: number | null; dob?: string | null; account?: string | null }): Promise<CustomersDetails> {
+    return this.request<CustomersDetails>('/customers', { method: 'POST', body: JSON.stringify(body) });
   }
 }
 

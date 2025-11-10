@@ -10,6 +10,7 @@ import fuelRouter from './routes/fuel.js';
 import vehiclesRouter from './routes/vehicles.js';
 import tenancyRouter from './routes/tenancy.js';
 import customersRouter from './routes/customers.js';
+import notesRouter from './routes/notes.js';
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 
@@ -216,6 +217,7 @@ app.use('/api/fuel', verifySession, fuelRouter);
 app.use('/api/vehicles', verifySession, vehiclesRouter);
 app.use('/api/tenancy', verifySession, tenancyRouter);
 app.use('/api/customers', verifySession, customersRouter);
+app.use('/api/notes', verifySession, notesRouter);
 
 // Admin utilities
 function requireAdmin(req, res, next) {
