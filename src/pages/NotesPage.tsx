@@ -155,39 +155,43 @@ export default function NotesPage() {
     };
 
     return (
-        <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-lg font-semibold flex items-center gap-2"><StickyNote className="h-5 w-5" /> Notes</h1>
-                <button className="inline-flex items-center gap-2 rounded bg-indigo-600 text-white px-3 py-1.5" onClick={openNew}><Plus className="h-4 w-4" /> New</button>
+        <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-lg font-semibold text-white flex items-center gap-2"><StickyNote className="h-5 w-5" /> Notes</h1>
+                    <button className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-1.5 hover:from-emerald-600 hover:to-teal-600 ring-1 ring-white/20 shadow-sm" onClick={openNew}><Plus className="h-4 w-4" /> New</button>
+                </div>
             </div>
-            {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
-            {loading ? (
-                <div className="text-sm text-gray-600">Loading...</div>
-            ) : (
-                <>
-                    {pinned.length > 0 && (
-                        <div className="mb-6">
-                            <div className="text-xs uppercase text-gray-500 mb-2">Pinned</div>
+            <div className="p-4">
+                {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
+                {loading ? (
+                    <div className="text-sm text-gray-600">Loading...</div>
+                ) : (
+                    <>
+                        {pinned.length > 0 && (
+                            <div className="mb-6">
+                                <div className="text-xs uppercase text-gray-500 mb-2">Pinned</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                    {pinned.map(n => (
+                                        <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div>
+                            <div className="text-xs uppercase text-gray-500 mb-2">Others</div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                {pinned.map(n => (
+                                {others.map(n => (
                                     <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} />
                                 ))}
                             </div>
                         </div>
-                    )}
-                    <div>
-                        <div className="text-xs uppercase text-gray-500 mb-2">Others</div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                            {others.map(n => (
-                                <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} />
-                            ))}
-                        </div>
-                    </div>
-                </>
-            )}
-            {editorOpen && (
-                <NoteEditor initial={editing} onClose={() => { setEditorOpen(false); setEditing(null); }} onSave={onSave} />
-            )}
+                    </>
+                )}
+                {editorOpen && (
+                    <NoteEditor initial={editing} onClose={() => { setEditorOpen(false); setEditing(null); }} onSave={onSave} />
+                )}
+            </div>
         </div>
     );
 }
