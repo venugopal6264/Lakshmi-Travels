@@ -15,6 +15,7 @@ const fuelSchema = new mongoose.Schema(
     total: { type: Number, required: false, default: null },
     station: { type: String, default: '' },
     notes: { type: String, default: '' },
+    missedPreviousRefuel: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

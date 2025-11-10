@@ -42,3 +42,14 @@ export const fmtMonthYY = (ts: number) => {
     return `${month} ’${yy}`;
 };
 
+export const hexToRgb = (hex: string) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return { r: 59, g: 130, b: 246 }; // fallback blue-500
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+};
+export const clamp = (n: number, a = 0, b = 255) => Math.max(a, Math.min(b, n));
+
+export const withAlpha = (hex: string, alpha: number) => {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`;
+};

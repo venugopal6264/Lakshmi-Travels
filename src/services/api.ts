@@ -47,6 +47,7 @@ export interface ApiFuel {
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  missedPreviousRefuel?: boolean; // indicates a gap before this refueling
 }
 
 export interface FuelSummaryBucket {

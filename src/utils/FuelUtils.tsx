@@ -1,11 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ApiFuel } from "../services/api";
-import { Fuel, Gauge, Wrench } from "lucide-react";
-import { fmtINR, fmtMonthYY, fmtShort, VehicleType } from "./common/utils";
-import { FuelTableBody, FuelTableFooter } from "./Fueltable";
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { ApiFuel } from '../services/api';
+import { Edit3, Trash2 } from 'lucide-react';
+import { fmtINR, fmtMonthYY, fmtShort } from './common/utils';
+
+// Helper: hex to rgb with fallback to blue if invalid
+function hexToRgb(hex: string) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return { r: 59, g: 130, b: 246 };
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+function withAlpha(hex: string, alpha: number) {
+  const { r, g, b } = hexToRgb(hex);
+  const a = Math.max(0, Math.min(1, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+// Date format helper: returns 'DD Mon' (e.g., 05 Nov)
+function fmtDayMon(d?: string | null): string {
+  if (!d) return '-';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '-';
+  const day = String(dt.getDate()).padStart(2, '0');
+  const mon = dt.toLocaleString('en-US', { month: 'short' });
+  return `${day} ${mon}`;
+}
 
 /** Donut chart: compares Refueling vs Service totals */
-function CostComparisonDonut({ items, color }: { items: ApiFuel[]; color?: string }) {
+export function CostComparisonDonut({ items, color }: { items: ApiFuel[]; color?: string }) {
   // Measure container for responsive sizing
   const wrapRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(0);
@@ -64,7 +84,7 @@ function CostComparisonDonut({ items, color }: { items: ApiFuel[]; color?: strin
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* base track */}
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeW} />
-        {data.parts.map((p) => {
+        {data.parts.map((p: { key: string; value: number; color: string }) => {
           const seg = (p.value / safeTotal) * C;
           const dash = `${seg} ${C - seg}`;
           const rotation = (offset / C) * 360 - 90; // start at top
@@ -110,7 +130,7 @@ function CostComparisonDonut({ items, color }: { items: ApiFuel[]; color?: strin
 }
 
 /** Odometer line chart: plots odometer vs date with simple grid */
-function OdometerLine({ items, color }: { items: ApiFuel[]; color?: string }) {
+export function OdometerLine({ items, color }: { items: ApiFuel[]; color?: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(0);
   useEffect(() => {
@@ -238,219 +258,98 @@ function OdometerLine({ items, color }: { items: ApiFuel[]; color?: string }) {
 }
 
 /** Per-vehicle dashboard: tabs General | Refueling | Service */
-export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, onDelete, color }: {
-  vehicle: VehicleType;
-  vehicleId?: string | null;
-  vehicleName?: string | null;
-  items: ApiFuel[];
-  onEdit?: (e: ApiFuel) => void;
-  onDelete?: (e: ApiFuel) => void;
-  color?: string;
-}) {
-  const list = useMemo(() => items.filter(i => {
-    if (i.vehicle !== vehicle) return false;
-    if (vehicleId) return i.vehicleId === vehicleId;
-    if (vehicleName) return (i.vehicleName || '').toLowerCase() === vehicleName.toLowerCase();
-    return true;
-  }), [items, vehicle, vehicleId, vehicleName]);
-  const sorted = useMemo(
-    () => [...list].sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()),
-    [list]
-  );
+export function VehicleDash(props: { vehicle: import('../utils/common/utils').VehicleType; items: import('../services/api').ApiFuel[]; vehicleId?: string | null; vehicleName?: string; color?: string; onEdit?: (e: import('../services/api').ApiFuel) => void; onDelete?: (e: import('../services/api').ApiFuel) => void; }) {
+  const { items, vehicleId, color, onEdit, onDelete } = props;
+  const theme = color || '#3b82f6';
 
-  // Totals and metrics
-  const totals = useMemo(() => {
-    let total = 0, refuel = 0, service = 0;
-    let distance = 0;
+  const rows = useMemo(() => {
+    return [...items]
+      .filter(r => !vehicleId || r.vehicleId === vehicleId)
+      .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
+  }, [items, vehicleId]);
+
+  // Type guard for optional missedPreviousRefuel flag
+  function hasMissedPrevRefuel(entry: ApiFuel): entry is ApiFuel & { missedPreviousRefuel?: boolean } {
+    return entry != null && typeof entry === 'object' && 'missedPreviousRefuel' in entry;
+  }
+
+  // Helper to compute distance between this refuel and the next older refuel
+  const computeDistance = useCallback((i: number): number | null => {
+    const e = rows[i];
+    if (!e || e.entryType !== 'refueling' || typeof e.odometer !== 'number') return null;
+    if (hasMissedPrevRefuel(e) && e.missedPreviousRefuel) return null;
+    // find next older refuel because rows are in desc order
     let prevOdo: number | null = null;
-
-    for (const e of sorted) {
-      const amt = typeof e.total === 'number' ? e.total : 0;
-      total += amt;
-      if (e.entryType === 'refueling') refuel += amt;
-      if (e.entryType === 'service' || e.entryType === 'repair') service += amt;
-
-      if (typeof e.odometer === 'number') {
-        if (prevOdo != null && e.odometer > prevOdo) distance += e.odometer - prevOdo;
-        prevOdo = e.odometer;
-      }
+    for (let j = i + 1; j < rows.length; j++) {
+      const prev = rows[j] as import('../services/api').ApiFuel;
+      if (prev.entryType !== 'refueling') continue;
+      if (vehicleId && prev.vehicleId !== vehicleId) continue;
+      if (typeof prev.odometer !== 'number') continue;
+      prevOdo = prev.odometer;
+      break;
     }
-    const income = 0;
-    const balance = total - income;
-    const firstDate = sorted[0]?.date ? new Date(sorted[0].date!) : null;
-    const lastDate = sorted[sorted.length - 1]?.date ? new Date(sorted[sorted.length - 1].date!) : null;
-    const rangeDays =
-      firstDate && lastDate ? Math.max(1, Math.ceil((+lastDate - +firstDate) / (1000 * 60 * 60 * 24)) + 1) : 0;
-    const byDay = rangeDays ? total / rangeDays : 0;
-    const byKm = distance ? total / distance : 0;
-    const pct = (p: number, t: number) => (t ? (p / t) * 100 : 0);
+    if (prevOdo == null) return null;
+    return Math.max(0, (e.odometer as number) - prevOdo);
+  }, [rows, vehicleId]);
 
-    return {
-      total, refuel, service, income, balance, distance, byDay, byKm,
-      entriesCount: sorted.length,
-      firstDate, lastDate, rangeDays,
-      refuelPct: pct(refuel, total),
-      servicePct: pct(service, total)
-    };
-  }, [sorted]);
+  const typeStyles: Record<string, { border: string; bg: string }> = {
+    refueling: { border: withAlpha(theme, 0.8), bg: withAlpha(theme, 0.04) },
+    service: { border: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
+    repair: { border: '#ef4444', bg: 'rgba(239,68,68,0.08)' }
+  };
 
-  // Latest service or repair entry for this vehicle
-  const lastService = useMemo(() => {
-    const svc = sorted.filter(e => e.entryType === 'service' || e.entryType === 'repair');
-    if (!svc.length) return null;
-    // sorted is ascending by date, so last element with service/repair may not be at end if last entries are refueling; find max date
-    let latest = svc[0];
-    let latestTime = new Date(latest.date || 0).getTime();
-    for (const e of svc) {
-      const t = new Date(e.date || 0).getTime();
-      if (t > latestTime) { latest = e; latestTime = t; }
-    }
-    return latest;
-  }, [sorted]);
-  const lastServiceDaysAgo = useMemo(() => {
-    if (!lastService || !lastService.date) return null;
-    const ms = Date.now() - new Date(lastService.date).getTime();
-    return Math.floor(ms / (1000 * 60 * 60 * 24));
-  }, [lastService]);
-
-  const inr3 = (n = 0) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
-
-
-  const themeColor = color || (vehicle === 'car' ? '#ef4444' : '#16a34a');
   return (
-    <section className="mt-4">
-      <div>
-        {/* Single colorful row: Cost, Refueling, Services, Distance */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 lg:gap-8">
-
-          {/* Cost */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 border-t-4 border-t-indigo-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-indigo-700">Cost</span>
-            </div>
-            <div className="mt-1 text-3xl font-semibold text-indigo-700">{inr3(totals.total)}</div>
-            <div className="text-xs text-indigo-600 mt-1">All time</div>
-          </div>
-
-          {/* Refueling */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 border-t-4 border-t-amber-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-amber-700 inline-flex items-center gap-2">
-                <Fuel className="h-4 w-4 text-amber-600" /> Refueling
-              </span>
-            </div>
-            <div className="mt-1 text-3xl font-semibold text-amber-700">{inr3(totals.refuel)}</div>
-            <div className="text-xs text-amber-600 mt-1">{Math.round(totals.refuelPct)}% of total</div>
-          </div>
-
-          {/* Services */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 border-fuchsia-200 border-t-4 border-t-fuchsia-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-fuchsia-700 inline-flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-fuchsia-600" /> Services
-              </span>
-            </div>
-            <div className="mt-1 text-3xl font-semibold text-fuchsia-700">{inr3(totals.service)}</div>
-            <div className="text-xs text-fuchsia-600 mt-1">{Math.round(totals.servicePct)}% of total</div>
-          </div>
-
-          {/* Distance */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-blue-200 border-t-4 border-t-sky-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-sky-700 inline-flex items-center gap-2">
-                <Gauge className="h-4 w-4 text-sky-600" /> Distance
-              </span>
-            </div>
-            <div className="mt-1 text-3xl font-semibold text-sky-700">{Math.round(totals.distance).toLocaleString()} km</div>
-            <div className="text-xs text-sky-600 mt-1">{Math.round(totals.distance / Math.max(1, totals.rangeDays))} km by day</div>
-          </div>
-
-          {/* Last Service / Repair */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 col-span-1 border-t-4 border-t-rose-500">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-rose-700 inline-flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-rose-600" /> Last Service
-              </span>
-            </div>
-            {lastService ? (
-              <div className="mt-1 space-y-1">
-                <div className="text-lg font-semibold text-rose-700">{new Date(lastService.date!).toISOString().slice(0, 10)}</div>
-                <div className="text-sm text-rose-700">₹{Math.round(Number(lastService.total) || 0).toLocaleString('en-IN')} • <span className="capitalize">{lastService.entryType}</span></div>
-                {lastServiceDaysAgo != null && <div className="text-[11px] text-rose-600">{lastServiceDaysAgo === 0 ? 'Today' : `${lastServiceDaysAgo} day${lastServiceDaysAgo === 1 ? '' : 's'} ago`}</div>}
-                {lastService.notes && <div className="text-[11px] text-rose-500 line-clamp-2">{lastService.notes}</div>}
-              </div>
-            ) : (
-              <div className="mt-1 text-sm text-rose-600">No service/repair yet</div>
-            )}
-          </div>
-        </div>
-
-        <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
-          <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Fuel className="w-5 h-5" />
-              Refueling History
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y`} style={{ borderColor: themeColor }}>
-              <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
-                <tr>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Mileage (km/L)</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Liters</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Price</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
-                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
+    <div className="rounded-lg border bg-white shadow-sm" style={{ borderColor: withAlpha(theme, 0.25) }}>
+      <div className="mt-2 overflow-x-auto">
+        <table className="min-w-full divide-y" style={{ borderColor: withAlpha(theme, 0.2) }}>
+          <thead className="bg-gray-50" style={{ background: withAlpha(theme, 0.06) }}>
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Type</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Date</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Distance (km)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Mileage (km/L)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Odometer (km)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Liters (L)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Price/L (₹)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Amount (₹)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Missed</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme }}>Notes</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold" style={{ color: theme }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {rows.map((e: import('../services/api').ApiFuel, i: number) => {
+              const isRefuel = e.entryType === 'refueling';
+              const missed = hasMissedPrevRefuel(e) && !!e.missedPreviousRefuel;
+              const dateStr = fmtDayMon(e.date);
+              const distance = isRefuel ? computeDistance(i) : null;
+              const mileage = isRefuel && distance != null && e.liters != null && e.liters > 0 ? distance / e.liters : null;
+              const styleInfo = typeStyles[e.entryType] || typeStyles.refueling;
+              return (
+                <tr key={e._id || i} className="hover:bg-gray-50 border-l-4" style={{ borderLeftColor: styleInfo.border, backgroundColor: styleInfo.bg }}>
+                  <td className="px-3 py-2 text-xs capitalize text-gray-900">{e.entryType}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900">{dateStr}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900 font-medium">{isRefuel && distance != null ? Math.round(distance).toLocaleString() : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900 font-medium">{isRefuel && mileage != null ? mileage.toFixed(1) : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900">{typeof e.odometer === 'number' ? Math.round(e.odometer).toLocaleString() : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900">{isRefuel && e.liters != null ? Number(e.liters).toFixed(2) : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900">{isRefuel && e.pricePerLiter != null ? Number(e.pricePerLiter).toFixed(2) : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-900">{typeof e.total === 'number' ? fmtINR(e.total) : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-700">{isRefuel ? (missed ? 'Yes' : 'No') : '-'}</td>
+                  <td className="px-3 py-2 text-[11px] text-gray-600">{e.notes ? e.notes : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-right">
+                    <div className="inline-flex items-center gap-2">
+                      <button title="Edit" aria-label="Edit entry" className="text-indigo-600 hover:text-indigo-700" onClick={() => onEdit?.(e)}><Edit3 className="h-4 w-4" /></button>
+                      <button title="Delete" aria-label="Delete entry" className="text-red-600 hover:text-red-700" onClick={() => onDelete?.(e)}><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
-              <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" hasActions={Boolean(onEdit || onDelete)} />
-            </table>
-          </div>
-        </div>
-
-        {/* Charts: Cost comparison (donut) and Odometer line */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          <div className="bg-white rounded-lg shadow-md p-4 border-t-4" style={{ borderTopColor: themeColor }}>
-            <h3 className="text-base font-semibold text-gray-800 mb-2">Cost comparison chart</h3>
-            <CostComparisonDonut items={sorted} color={themeColor} />
-          </div>
-          <div className="bg-white rounded-lg shadow-md px-4 pt-4 pb-0 border-t-4" style={{ borderTopColor: themeColor }}>
-            <h3 className="text-base font-semibold text-gray-800 mb-4">Odometer chart</h3>
-            <OdometerLine items={sorted} color={themeColor} />
-          </div>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-      <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
-        <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Wrench className="w-5 h-5" />
-            Service History
-          </h3>
-        </div>
-        <>
-          <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y`} style={{ borderColor: themeColor }}>
-              <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
-                <tr>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Type</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
-                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
-                </tr>
-              </thead>
-              <FuelTableBody items={items} vehicle={vehicle} onlyType="service" onEdit={onEdit} onDelete={onDelete} />
-              <FuelTableFooter items={items} vehicle={vehicle} onlyType="service" hasActions={Boolean(onEdit || onDelete)} />
-            </table>
-          </div>
-        </>
-      </div>
-    </section>
+    </div>
   );
 }
 

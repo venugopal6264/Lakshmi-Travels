@@ -3,44 +3,17 @@ import { Car, Fuel as FuelIcon, Bike, Info } from 'lucide-react';
 import { ApiFuel, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
 import { VehicleDash } from '../utils/FuelUtils';
-import { VehicleType } from '../utils/common/utils';
+import { VehicleType, withAlpha } from '../utils/common/utils';
 import { FuelSummarySection } from '../utils/charts/FuelSummarySection';
+import { AddVehicleModal, VehicleDoc, VehicleManagerModal } from '../utils/VehicleUtils';
+import { FuelEntryModal, hasMissedPrevRefuel } from '../utils/FuelEntry';
 
-// Shared type for vehicles returned by API
-type VehicleDoc = {
-    _id: string;
-    name: string;
-    type: VehicleType;
-    active: boolean;
-    color?: string;
-    model?: string;
-    manufacturerDate?: string | null;
-    buyDate?: string | null;
-    fuelType?: string;
-    fuelCapacity?: number | null;
-    licensePlate?: string;
-    chassisNumber?: string;
-    notes?: string;
-};
-
-// Small helpers for color manipulation (works with #RRGGBB)
-function hexToRgb(hex: string) {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!m) return { r: 59, g: 130, b: 246 }; // fallback blue-500
-    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
-}
-function clamp(n: number, a = 0, b = 255) { return Math.max(a, Math.min(b, n)); }
-function withAlpha(hex: string, alpha: number) {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`;
-}
-
-function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicles: VehicleDoc[]; fuel: ApiFuel[]; onSelect?: (v: VehicleDoc) => void; selectedId?: string | null }) {
-    // Single-open accordion behavior
+const LastServiceOverview = ({ vehicles, fuel, onSelect }: { vehicles: VehicleDoc[]; fuel: ApiFuel[]; onSelect?: (v: VehicleDoc) => void }) => {
+    // Removed accordion; only last service summary is shown
     const [openId, setOpenId] = useState<string | null>(null);
-    const toggle = (id: string) => setOpenId(curr => (curr === id ? null : id));
     const cards = useMemo(() => {
-        return vehicles.map(v => {
+        const sorted = [...vehicles].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+        return sorted.map(v => {
             // Only consider 'service' entries (exclude 'repair' per requirement)
             const serviceEntries = fuel.filter(f => f.vehicle === v.type && f.vehicleId === v._id && f.entryType === 'service');
             if (!serviceEntries.length) return { vehicle: v, last: null as ApiFuel | null, sinceKm: null as number | null };
@@ -58,6 +31,9 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
                 const serviceTime = new Date(latest.date).getTime();
                 let latestFuelOdo: number | null = null;
                 let latestFuelTime = -1;
+                // If a refueling entry is flagged as missedPreviousRefuel, treat it as new baseline
+                let baselineTime: number | null = null;
+                let baselineOdo: number | null = null;
                 for (const e of fuel) {
                     if (e.vehicle !== v.type || e.vehicleId !== v._id) continue;
                     if (e.entryType !== 'refueling') continue;
@@ -65,10 +41,22 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
                     const t = new Date(e.date).getTime();
                     if (t < serviceTime) continue; // only after (or same day) as service
                     if (typeof e.odometer !== 'number') continue;
+                    const missedFlag = hasMissedPrevRefuel(e) && e.missedPreviousRefuel === true;
+                    if (missedFlag) {
+                        baselineTime = t;
+                        baselineOdo = e.odometer;
+                        latestFuelTime = t;
+                        latestFuelOdo = e.odometer;
+                        continue;
+                    }
+                    // If baseline set, ignore refuels before baselineTime
+                    if (baselineTime != null && t < baselineTime) continue;
                     if (t > latestFuelTime) { latestFuelTime = t; latestFuelOdo = e.odometer; }
                 }
                 if (latestFuelOdo != null) {
-                    sinceKm = latestFuelOdo - serviceOdo;
+                    // Distance since last service or since flagged baseline if present
+                    const startOdo = baselineOdo != null ? baselineOdo : serviceOdo;
+                    sinceKm = latestFuelOdo - (startOdo || 0);
                     if (sinceKm < 0) sinceKm = 0; // guard for resets
                 } else {
                     sinceKm = 0; // no refueling after service yet
@@ -80,21 +68,17 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
     const today = Date.now();
     return (
         <div className="mb-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">Last Service Overview</h3>
             <div className="grid gap-4 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cards.map(c => {
-                    const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : null;
+                    const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : '';
                     const daysAgo = c.last?.date ? Math.floor((today - new Date(c.last.date).getTime()) / (1000 * 60 * 60 * 24)) : null;
                     const accentColor = c.vehicle.color || (c.vehicle.type === 'car' ? '#3b82f6' : '#16a34a');
+                    const isOpen = openId === c.vehicle._id;
                     return (
                         <div
                             key={c.vehicle._id}
-                            className={`relative rounded-lg border bg-white p-4 shadow-sm transition border-l-4 cursor-pointer ${selectedId === c.vehicle._id ? 'ring-2 ring-offset-2' : 'hover:shadow-md'}`}
-                            style={{
-                                borderLeftColor: accentColor,
-                                borderColor: selectedId === c.vehicle._id ? withAlpha(accentColor, 0.35) : '#e5e7eb',
-                                boxShadow: selectedId === c.vehicle._id ? `0 0 0 2px ${withAlpha(accentColor, 0.15)} inset` : undefined,
-                            }}
+                            className={`relative rounded-lg border bg-white p-4 shadow-sm transition border-l-4 cursor-pointer hover:shadow-md`}
+                            style={{ borderLeftColor: accentColor, borderColor: withAlpha(accentColor, 0.25), backgroundColor: withAlpha(accentColor, 0.06) }}
                             onClick={() => onSelect?.(c.vehicle)}
                         >
                             <div className="flex items-start justify-between gap-2">
@@ -118,11 +102,14 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={(e) => { e.stopPropagation(); toggle(c.vehicle._id); }}
-                                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 border border-transparent hover:border-gray-200"
-                                    title={openId === c.vehicle._id ? 'Hide info' : 'Show info'}
+                                    onClick={(e) => { e.stopPropagation(); setOpenId(isOpen ? null : c.vehicle._id); }}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium hover:bg-gray-50 border"
+                                    style={{ color: accentColor, borderColor: withAlpha(accentColor, 0.3), backgroundColor: isOpen ? withAlpha(accentColor, 0.08) : 'transparent' }}
+                                    title="Toggle vehicle info"
+                                    aria-pressed={isOpen}
                                 >
-                                    <Info className="h-3.5 w-3.5" /> {openId === c.vehicle._id ? 'Hide' : 'Info'}
+                                    <Info className="h-3.5 w-3.5" />
+                                    <span>Info</span>
                                 </button>
                             </div>
                             {c.last ? (
@@ -143,15 +130,10 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
                                             <div>Since service: <span className="font-medium text-gray-800">{Math.round(c.sinceKm).toLocaleString()} km</span></div>
                                         )}
                                     </div>
-                                    <div
-                                        className={`overflow-hidden transition-all duration-300 ease-in-out ${openId === c.vehicle._id ? 'max-h-64 opacity-100 mt-3' : 'max-h-0 opacity-0'} `}
-                                        aria-hidden={openId === c.vehicle._id ? 'false' : 'true'}
-                                    >
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 border-t border-dashed border-gray-200 pt-2 text-[12px] leading-tight">
+                                    {isOpen && (
+                                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 border-t border-dashed border-gray-200 pt-2 text-[11px] leading-tight">
                                             {c.vehicle.model && <div><span className="text-gray-500">Model: </span><span className="text-gray-800">{c.vehicle.model}</span></div>}
-                                            {c.vehicle.manufacturerDate && (
-                                                <div><span className="text-gray-500">Mfg: </span><span className="text-gray-800">{new Date(c.vehicle.manufacturerDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span></div>
-                                            )}
+                                            {c.vehicle.manufacturerDate && <div><span className="text-gray-500">Mfg: </span><span className="text-gray-800">{new Date(c.vehicle.manufacturerDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span></div>}
                                             {c.vehicle.buyDate && <div><span className="text-gray-500">Buy: </span><span className="text-gray-800">{String(c.vehicle.buyDate).slice(0, 10)}</span></div>}
                                             {c.vehicle.fuelType && <div><span className="text-gray-500">Fuel: </span><span className="text-gray-800">{c.vehicle.fuelType}</span></div>}
                                             {c.vehicle.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span><span className="text-gray-800">{c.vehicle.fuelCapacity} L</span></div>}
@@ -159,10 +141,24 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
                                             {c.vehicle.chassisNumber && <div><span className="text-gray-500">Chassis: </span><span className="text-gray-800">{c.vehicle.chassisNumber}</span></div>}
                                             {c.vehicle.notes && <div className="sm:col-span-2"><span className="text-gray-500">Notes: </span><span className="text-gray-800 line-clamp-2">{c.vehicle.notes}</span></div>}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             ) : (
-                                <div className="mt-1 text-sm text-gray-500 italic">No record</div>
+                                <div className="mt-2">
+                                    <div className="mt-1 text-sm text-gray-500 italic">No service record</div>
+                                    {isOpen && (
+                                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 border-t border-dashed border-gray-200 pt-2 text-[11px] leading-tight">
+                                            {c.vehicle.model && <div><span className="text-gray-500">Model: </span><span className="text-gray-800">{c.vehicle.model}</span></div>}
+                                            {c.vehicle.manufacturerDate && <div><span className="text-gray-500">Mfg: </span><span className="text-gray-800">{new Date(c.vehicle.manufacturerDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span></div>}
+                                            {c.vehicle.buyDate && <div><span className="text-gray-500">Buy: </span><span className="text-gray-800">{String(c.vehicle.buyDate).slice(0, 10)}</span></div>}
+                                            {c.vehicle.fuelType && <div><span className="text-gray-500">Fuel: </span><span className="text-gray-800">{c.vehicle.fuelType}</span></div>}
+                                            {c.vehicle.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span><span className="text-gray-800">{c.vehicle.fuelCapacity} L</span></div>}
+                                            {c.vehicle.licensePlate && <div><span className="text-gray-500">Plate: </span><span className="text-gray-800">{c.vehicle.licensePlate}</span></div>}
+                                            {c.vehicle.chassisNumber && <div><span className="text-gray-500">Chassis: </span><span className="text-gray-800">{c.vehicle.chassisNumber}</span></div>}
+                                            {c.vehicle.notes && <div className="sm:col-span-2"><span className="text-gray-500">Notes: </span><span className="text-gray-800 line-clamp-2">{c.vehicle.notes}</span></div>}
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     );
@@ -170,10 +166,9 @@ function LastServiceOverview({ vehicles, fuel, onSelect, selectedId }: { vehicle
             </div>
         </div>
     );
-}
+};
 
-
-export default function VehicleDashboard() {
+const VehicleDashboard = () => {
     const vehicleDisplay: Record<VehicleType, string> = {
         car: 'Breeza',
         bike: 'FZs',
@@ -318,7 +313,6 @@ export default function VehicleDashboard() {
                     <LastServiceOverview
                         vehicles={vehicles}
                         fuel={fuel}
-                        selectedId={activeVehicleId}
                         onSelect={(v) => {
                             setActiveVehicle(v.type);
                             setActiveVehicleId(v._id);
@@ -333,7 +327,13 @@ export default function VehicleDashboard() {
                     <div className="md:col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
                         <select
-                            className="w-full px-3 py-2 rounded-md border-0 ring-1 ring-inset ring-blue-300 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-900"
+                            className="w-full px-3 py-2 rounded-md border-0 focus:outline-none focus:ring-2"
+                            style={{
+                                background: `linear-gradient(90deg, ${withAlpha(theme, 0.08)}, ${withAlpha(theme, 0.14)})`,
+                                color: theme,
+                                boxShadow: `inset 0 0 0 1px ${withAlpha(theme, 0.35)}`,
+                                borderColor: withAlpha(theme, 0.4)
+                            }}
                             value={activeVehicleId ?? ''}
                             onChange={(e) => {
                                 const id = e.target.value || null;
@@ -363,7 +363,13 @@ export default function VehicleDashboard() {
                     <div className="md:col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
                         <select
-                            className="w-full px-3 py-2 rounded-md border-0 ring-1 ring-inset ring-green-300 bg-gradient-to-r from-green-50 to-green-100 text-green-900"
+                            className="w-full px-3 py-2 rounded-md border-0 focus:outline-none focus:ring-2"
+                            style={{
+                                background: `linear-gradient(90deg, ${withAlpha(theme, 0.08)}, ${withAlpha(theme, 0.14)})`,
+                                color: theme,
+                                boxShadow: `inset 0 0 0 1px ${withAlpha(theme, 0.35)}`,
+                                borderColor: withAlpha(theme, 0.4)
+                            }}
                             value={period}
                             onChange={(e) => setPeriod(e.target.value as PeriodKey)}
                         >
@@ -464,451 +470,6 @@ export default function VehicleDashboard() {
             )}
         </div>
     );
-}
+};
 
-function AddVehicleModal({ onClose, onAdded, color }: { onClose: () => void; onAdded: (v: { _id: string; name: string; type: VehicleType; active: boolean }) => void; color?: string }) {
-    const [form, setForm] = useState({
-        name: '',
-        type: 'car' as VehicleType,
-        color: '#3b82f6',
-        model: '',
-        manufacturerDate: '',
-        buyDate: '',
-        fuelType: 'Petrol',
-        fuelCapacity: '' as number | string,
-        licensePlate: '',
-        chassisNumber: '',
-        notes: '',
-    });
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const update = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
-    };
-
-    const submit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        if (!form.name.trim()) { setError('Vehicle name is required'); return; }
-        setSaving(true);
-        try {
-            const payload = {
-                name: form.name.trim(),
-                type: form.type,
-                color: form.color,
-                model: form.model.trim(),
-                manufacturerDate: form.manufacturerDate || null,
-                buyDate: form.buyDate || null,
-                fuelType: form.fuelType,
-                fuelCapacity: form.fuelCapacity ? Number(form.fuelCapacity) : null,
-                licensePlate: form.licensePlate.trim(),
-                chassisNumber: form.chassisNumber.trim(),
-                notes: form.notes.trim(),
-            };
-            const v = await apiService.createVehicle(payload);
-            onAdded(v as VehicleDoc);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to add vehicle');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    // live accent uses chosen form.color if set, else fall back to provided color
-    const accent = form.color || color || '#3b82f6';
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="w-full max-w-xl m-0">
-                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
-                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
-                            <h3 className="text-base sm:text-lg font-semibold">Add vehicle</h3>
-                            <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
-                        </div>
-                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
-                                <div className="flex items-center gap-2">
-                                    <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
-                                    <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
-                                </div>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
-                                    <option value="car">Car</option>
-                                    <option value="bike">Bike</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
-                                <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} placeholder="e.g., Breeza, FZs" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                                <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} placeholder="e.g., ZDi, FZ-S V3" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
-                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
-                                <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
-                                <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
-                                    {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
-                                <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                                <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                                <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
-                            </div>
-                            {error && <p className="text-red-600 text-sm md:col-span-2">{error}</p>}
-                            <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                                <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving...' : 'Save'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function VehicleManagerModal({ vehicles, onClose, onUpdated, onDeleted, color }: { vehicles: VehicleDoc[]; onClose: () => void; onUpdated: (v: VehicleDoc) => void; onDeleted: (id: string) => void; color?: string }) {
-    const [editing, setEditing] = useState<VehicleDoc | null>(null);
-    const [busyId, setBusyId] = useState<string | null>(null);
-    const remove = async (id: string) => {
-        setBusyId(id);
-        try {
-            await apiService.deleteVehicle(id);
-            onDeleted(id);
-        } finally {
-            setBusyId(null);
-        }
-    };
-    const accent = color || '#3b82f6';
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="w-full max-w-3xl m-0">
-                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
-                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
-                            <h3 className="text-base sm:text-lg font-semibold">Manage vehicles</h3>
-                            <button onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
-                        </div>
-                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <div className="divide-y overflow-y-auto p-4 flex-1">
-                            {vehicles.map(v => (
-                                <div key={v._id} className="py-3">
-                                    <div className="flex items-start justify-between gap-4 border-l-4 pl-3" style={{ borderLeftColor: v.color || withAlpha(accent, 0.7) }}>
-                                        <div>
-                                            <div className="font-medium flex items-center gap-2">
-                                                <span>{v.name}</span>
-                                                <span className="text-xs capitalize inline-flex items-center px-2 py-0.5 rounded-full ring-1" style={{ background: withAlpha(v.color || accent, 0.12), color: v.color || accent, borderColor: withAlpha(v.color || accent, 0.3) }}>{v.type}</span>
-                                            </div>
-                                            <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
-                                                {v.model && <div><span className="text-gray-500">Model: </span>{v.model}</div>}
-                                                {v.color && (
-                                                    <div className="inline-flex items-center gap-2"><span className="text-gray-500">Color: </span><span className="h-3 w-3 rounded-sm inline-block ring-1 ring-gray-300" style={{ backgroundColor: v.color }} /> <span>{v.color}</span></div>
-                                                )}
-                                                {v.manufacturerDate && (
-                                                    <div>
-                                                        <span className="text-gray-500">Mfg: </span>
-                                                        {new Date(v.manufacturerDate).toLocaleDateString('en-GB', { month: '2-digit', year: 'numeric' }).replace('/', '-')}
-                                                    </div>
-                                                )}
-                                                {v.licensePlate && <div><span className="text-gray-500">Plate: </span>{v.licensePlate}</div>}
-
-                                                {v.fuelType && <div><span className="text-gray-500">Fuel: </span>{v.fuelType}</div>}
-                                                {v.fuelCapacity != null && <div><span className="text-gray-500">Capacity: </span>{v.fuelCapacity} L</div>}
-                                                {v.buyDate && <div><span className="text-gray-500">Buy: </span>{String(v.buyDate).slice(0, 10)}</div>}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <button className="text-indigo-600" onClick={() => setEditing(v)}>Edit</button>
-                                            <button className="text-red-600" disabled={busyId === v._id} onClick={() => remove(v._id)}>{busyId === v._id ? 'Deleting…' : 'Delete'}</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {editing && (
-                            <EditVehicleModal
-                                vehicle={editing}
-                                color={editing.color || accent}
-                                onClose={() => setEditing(null)}
-                                onSaved={(v) => { onUpdated(v); setEditing(null); }}
-                            />
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function EditVehicleModal({ vehicle, onClose, onSaved, color }: { vehicle: VehicleDoc; onClose: () => void; onSaved: (v: VehicleDoc) => void; color?: string }) {
-    const [form, setForm] = useState({
-        name: vehicle.name || '',
-        type: vehicle.type as VehicleType,
-        color: vehicle.color || '#3b82f6',
-        model: vehicle.model || '',
-        manufacturerDate: vehicle.manufacturerDate ? String(vehicle.manufacturerDate).slice(0, 7) : '',
-        buyDate: vehicle.buyDate ? String(vehicle.buyDate).slice(0, 10) : '',
-        fuelType: vehicle.fuelType || 'Petrol',
-        fuelCapacity: vehicle.fuelCapacity ?? '',
-        licensePlate: vehicle.licensePlate || '',
-        chassisNumber: vehicle.chassisNumber || '',
-        notes: vehicle.notes || '',
-    });
-    const [saving, setSaving] = useState(false);
-    const update = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
-    };
-    const submit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSaving(true);
-        const payload: Partial<{ name: string; type: VehicleType; color: string; model: string; manufacturerDate: string | null; buyDate: string | null; fuelType: string; fuelCapacity: number | null; licensePlate: string; chassisNumber: string; notes: string }> = {
-            name: form.name,
-            type: form.type,
-            color: form.color,
-            model: form.model,
-            manufacturerDate: form.manufacturerDate || null,
-            buyDate: form.buyDate || null,
-            fuelType: form.fuelType,
-            fuelCapacity: form.fuelCapacity ? Number(form.fuelCapacity) : null,
-            licensePlate: form.licensePlate,
-            chassisNumber: form.chassisNumber,
-            notes: form.notes,
-        };
-        try {
-            const v = await apiService.updateVehicle(vehicle._id, payload);
-            onSaved(v as VehicleDoc);
-        } finally { setSaving(false); }
-    };
-    const accent = form.color || color || '#3b82f6';
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="w-full max-w-xl m-0">
-                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
-                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
-                            <h3 className="text-base sm:text-lg font-semibold">Edit vehicle</h3>
-                            <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
-                        </div>
-                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
-                                <div className="flex items-center gap-2">
-                                    <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
-                                    <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
-                                </div>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
-                                    <option value="car">Car</option>
-                                    <option value="bike">Bike</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
-                                <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                                <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
-                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
-                                <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
-                                <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
-                                    {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
-                                <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                                <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                                <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
-                            </div>
-                            <div className="md:col-span-2 flex items-center justify-between gap-2 pt-1">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                                <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function FuelEntryModal({ initial, defaultVehicle, vehicles, onClose, onSave, color }: { initial: ApiFuel | null; defaultVehicle: { id: string | null; name: string; type: VehicleType }; vehicles: VehicleDoc[]; onClose: () => void; onSave: (payload: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'>, id?: string) => void; color?: string }) {
-    const getToday = () => {
-        const d = new Date();
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-    };
-    const [vehicleType, setVehicleType] = useState<VehicleType>(initial?.vehicle || defaultVehicle.type);
-    const [vehicleId, setVehicleId] = useState<string | null>(initial?.vehicleId ?? defaultVehicle.id);
-    const [entryType, setEntryType] = useState<ApiFuel['entryType']>(initial?.entryType || 'refueling');
-    const [date, setDate] = useState<string>(initial?.date?.slice(0, 10) || getToday());
-    const [odometer, setOdometer] = useState<string>(initial?.odometer != null ? String(initial.odometer) : '');
-    const [liters, setLiters] = useState<string>(initial?.liters != null ? String(initial.liters) : '');
-    const [pricePerLiter, setPricePerLiter] = useState<string>(initial?.pricePerLiter != null ? String(initial.pricePerLiter) : '');
-    const [total, setTotal] = useState<string>(initial?.total != null ? String(initial.total) : '');
-    const [notes, setNotes] = useState<string>(initial?.notes || '');
-    const computedTotal = useMemo(() => {
-        const l = parseFloat(liters);
-        const p = parseFloat(pricePerLiter);
-        if (!Number.isFinite(l) || !Number.isFinite(p)) return '';
-        // keep calculation precision in modal, UI tables will show integers
-        return (Math.round(l * p * 100) / 100).toString();
-    }, [liters, pricePerLiter]);
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const chosen = vehicles.find(v => v._id === vehicleId) || null;
-        const payload: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'> = {
-            date,
-            vehicle: chosen?.type || vehicleType,
-            vehicleId: chosen?._id || null,
-            vehicleName: chosen?.name || defaultVehicle.name,
-            entryType,
-            odometer: odometer ? Number(odometer) : null,
-            liters: entryType === 'refueling' && liters ? Number(liters) : null,
-            pricePerLiter: entryType === 'refueling' && pricePerLiter ? Number(pricePerLiter) : null,
-            total: (computedTotal || total) ? Number(computedTotal || total) : null,
-            notes,
-        };
-        onSave(payload, initial?._id);
-    };
-    const accent = color || '#3b82f6';
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="w-full max-w-xl m-0">
-                <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
-                    <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between px-5 py-3 sticky top-0 z-10 text-white" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.95)}, ${withAlpha(accent, 0.75)})` }}>
-                            <h3 className="text-base sm:text-lg font-semibold">{initial ? 'Edit entry' : 'Add entry'}</h3>
-                            <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
-                        </div>
-                        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                <input type="date" className="w-full px-3 py-2 border rounded-md" value={date} onChange={e => setDate(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
-                                <select className="w-full px-3 py-2 border rounded-md" value={vehicleId ?? ''} onChange={e => {
-                                    const id = e.target.value || null;
-                                    setVehicleId(id);
-                                    const v = vehicles.find(x => x._id === id);
-                                    if (v) setVehicleType(v.type);
-                                }}>
-                                    <option value="">Select…</option>
-                                    <optgroup label="Cars">
-                                        {vehicles.filter(v => v.type === 'car').map(v => (
-                                            <option key={v._id} value={v._id}>{v.name}</option>
-                                        ))}
-                                    </optgroup>
-                                    <optgroup label="Bikes">
-                                        {vehicles.filter(v => v.type === 'bike').map(v => (
-                                            <option key={v._id} value={v._id}>{v.name}</option>
-                                        ))}
-                                    </optgroup>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                <select className="w-full px-3 py-2 border rounded-md" value={entryType} onChange={e => setEntryType(e.target.value as ApiFuel['entryType'])}>
-                                    <option value="refueling">Refueling</option>
-                                    <option value="service">Service</option>
-                                    <option value="repair">Repair</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Odometer (km)</label>
-                                <input type="number" className="w-full px-3 py-2 border rounded-md" value={odometer} onChange={e => setOdometer(e.target.value)} />
-                            </div>
-                            {entryType === 'refueling' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Liters</label>
-                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={liters} onChange={e => setLiters(e.target.value)} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Price / Liter (₹)</label>
-                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={pricePerLiter} onChange={e => setPricePerLiter(e.target.value)} />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Total (₹)</label>
-                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={computedTotal || total} onChange={e => setTotal(e.target.value)} />
-                                    </div>
-                                </>
-                            )}
-                            {(entryType === 'service' || entryType === 'repair') && (
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{entryType === 'service' ? 'Service' : 'Repair'} Amount (₹)</label>
-                                    <input type="number" className="w-full px-3 py-2 border rounded-md" value={total} onChange={e => setTotal(e.target.value)} />
-                                </div>
-                            )}
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea className="w-full px-3 py-2 border rounded-md" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
-                            </div>
-                            <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                                <button type="submit" className="px-3 py-2 rounded-md text-white" style={{ backgroundColor: accent }}>Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
+export default VehicleDashboard;
