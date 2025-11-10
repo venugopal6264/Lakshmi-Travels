@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { ApiFuel } from "../services/api";
+import { ApiFuel } from "../../services/api";
 import { Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { apiService } from "../services/api";
-import { VehicleType, withAlpha } from "./common/utils";
+import { apiService } from "../../services/api";
+import { VehicleType, withAlpha } from "../common/utils";
 
 export type VehicleDoc = {
     _id: string;

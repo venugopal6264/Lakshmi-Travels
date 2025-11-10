@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { ApiFuel } from "../services/api";
-import { VehicleType, withAlpha } from "./common/utils";
-import { VehicleDoc } from "./VehicleUtils";
+import { ApiFuel } from "../../services/api";
+import { VehicleType, withAlpha } from "../common/utils";
+import { VehicleDoc } from "../Vehicles/VehicleUtils";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const hasMissedPrevRefuel = (entry: ApiFuel | null | undefined): entry is ApiFuel & { missedPreviousRefuel?: boolean } => {
