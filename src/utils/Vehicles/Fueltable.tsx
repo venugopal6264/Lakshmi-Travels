@@ -47,7 +47,7 @@ export function FuelTableBody({
             const curr = typeof e.odometer === 'number' ? e.odometer as number : null;
             out[i].prev = prev;
             out[i].curr = curr;
-            if (e.entryType === 'refueling' && typeof e.liters === 'number' && e.liters > 0 && typeof curr === 'number' && typeof prev === 'number') {
+            if (e.entryType === 'refueling' && e.missedPreviousRefuel !== true && typeof e.liters === 'number' && e.liters > 0 && typeof curr === 'number' && typeof prev === 'number') {
                 const dist = curr - prev;
                 if (dist > 0) out[i].mileage = dist / (e.liters as number);
             }
@@ -67,6 +67,18 @@ export function FuelTableBody({
             : (t === 'service'
                 ? 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800'
                 : 'inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800');
+
+    const formatDDMon = (iso?: string | null) => {
+        if (!iso) return '';
+        const ymd = String(iso).slice(0, 10);
+        const parts = ymd.split('-').map(Number);
+        if (parts.length < 3) return ymd;
+        const [y, m, d] = parts as [number, number, number];
+        if (!y || !m || !d) return ymd;
+        const dt = new Date(y, m - 1, d);
+        const mon = dt.toLocaleString('en-US', { month: 'short' });
+        return `${String(d).padStart(2, '0')}-${mon}`;
+    };
 
     return (
         <>
@@ -93,7 +105,7 @@ export function FuelTableBody({
                     );
                     return (
                         <tr key={e._id} className={rowClass}>
-                            <td className="px-4 py-2 whitespace-nowrap">{e.date?.slice(0, 10)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap">{onlyType === 'refueling' ? formatDDMon(e.date) : e.date?.slice(0, 10)}</td>
                             {onlyType ? (
                                 <>
                                     {onlyType === 'service' ? (
@@ -128,11 +140,11 @@ export function FuelTableBody({
                                 <td className="px-4 py-2 whitespace-nowrap">{e.missedPreviousRefuel ? 'Yes' : 'No'}</td>
                             )}
                             {!onlyType && (
-                                 <>
-                                     {distanceCell}
-                                     {mileageCell}
-                                 </>
-                             )}
+                                <>
+                                    {distanceCell}
+                                    {mileageCell}
+                                </>
+                            )}
                             <td className="px-4 py-2">{e.notes ?? ''}</td>
                             {(onEdit || onDelete) && (
                                 <td className="px-4 py-2 whitespace-nowrap">
@@ -244,7 +256,7 @@ export function FuelTableFooter({
             const prev = olderOdo[i];
             const curr = typeof e.odometer === 'number' ? (e.odometer as number) : null;
             const liters = typeof e.liters === 'number' ? (e.liters as number) : null;
-            if (prev != null && curr != null && liters != null && liters > 0) {
+            if (e.missedPreviousRefuel !== true && prev != null && curr != null && liters != null && liters > 0) {
                 const dist = curr - prev;
                 if (dist > 0) {
                     sumDistance += dist;

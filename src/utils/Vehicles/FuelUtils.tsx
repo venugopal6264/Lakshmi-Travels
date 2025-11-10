@@ -211,7 +211,49 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
   }, [lastService]);
 
   const inr3 = (n = 0) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
-
+  const monthlyRows = useMemo(() => {
+    // Refueling entries with valid date
+    const refuels = list.filter(e => e.entryType === 'refueling' && e.date).sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime()); // ascending by date
+    type Agg = { liters: number; amount: number; distance: number; litersForMileage: number; monthKey: string };
+    const agg = new Map<string, Agg>();
+    // Helper month key YYYY-MM
+    const monthKey = (d: string) => { const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`; };
+    // Build per-vehicle ordered lists to compute distance between consecutive refuels of same vehicle
+    const byVehicle = new Map<string, ApiFuel[]>();
+    for (const r of refuels) {
+      const key = r.vehicleId || r.vehicleName || r.vehicle || 'unknown';
+      if (!byVehicle.has(key)) byVehicle.set(key, []);
+      byVehicle.get(key)!.push(r);
+    }
+    // For each vehicle compute distances
+    for (const [, arr] of byVehicle) {
+      // Sort ascending by date for distance calc
+      arr.sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
+      let prevOdo: number | null = null;
+      for (const e of arr) {
+        const mk = monthKey(e.date!);
+        if (!agg.has(mk)) agg.set(mk, { liters: 0, amount: 0, distance: 0, litersForMileage: 0, monthKey: mk });
+        const a = agg.get(mk)!;
+        // Accumulate liters & amount
+        if (typeof e.liters === 'number') a.liters += e.liters;
+        if (typeof e.total === 'number') a.amount += e.total;
+        // Mileage distance (skip if missedPreviousRefuel or missing odometer)
+        if (e.missedPreviousRefuel !== true && typeof e.odometer === 'number' && prevOdo != null && e.odometer > prevOdo) {
+          const dist = e.odometer - prevOdo;
+          if (dist > 0) {
+            a.distance += dist;
+            if (typeof e.liters === 'number' && e.liters > 0) a.litersForMileage += e.liters;
+          }
+        }
+        if (typeof e.odometer === 'number') prevOdo = e.odometer;
+      }
+    }
+    // Convert to rows
+    const toLabel = (mk: string) => { const [yStr, mStr] = mk.split('-'); const dt = new Date(Number(yStr), Number(mStr) - 1, 1); return dt.toLocaleString('en-US', { month: 'short', year: 'numeric' }); };
+    return Array.from(agg.values())
+      .sort((a, b) => a.monthKey < b.monthKey ? 1 : a.monthKey > b.monthKey ? -1 : 0) // newest first
+      .map(a => ({ month: toLabel(a.monthKey), liters: a.liters, amount: a.amount, avgMileage: a.litersForMileage > 0 ? a.distance / a.litersForMileage : 0 }));
+  }, [list]);
 
   const themeColor = color || (vehicle === 'car' ? '#ef4444' : '#16a34a');
   return (
@@ -294,19 +336,54 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
               <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
                 <tr>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Distance (km)</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Mileage (km/L)</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Distance</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Mileage</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Liters</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Price</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Missed Prev Fuel</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Missed Prev</th>
                   <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
                   {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
                 </tr>
               </thead>
               <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
               <FuelTableFooter items={items} vehicle={vehicle} onlyType="refueling" hasActions={Boolean(onEdit || onDelete)} />
+            </table>
+          </div>
+        </div>
+        {/* Monthly Summary Table */}
+        <div className="mt-6 bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4" style={{ borderTopColor: themeColor }}>
+          <div className="px-6 py-3 text-white flex items-center justify-between" style={{ background: themeColor }}>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Fuel className="w-5 h-5" /> Monthly Refueling Summary
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y" style={{ borderColor: themeColor }}>
+              <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: themeColor }}>Month</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: themeColor }}>Liters</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: themeColor }}>Avg km/L</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: themeColor }}>Total (₹)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white text-xs">
+                {monthlyRows.map((r, i) => (
+                  <tr key={i} className={i % 2 ? 'bg-gray-50' : ''}>
+                    <td className="px-4 py-2 whitespace-nowrap font-medium text-gray-900">{r.month}</td>
+                    <td className="px-4 py-2 whitespace-nowrap text-gray-700">{r.liters.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-2 whitespace-nowrap text-gray-700">{r.avgMileage.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-2 whitespace-nowrap text-gray-700">₹{Math.round(r.amount).toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+                {monthlyRows.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-3 text-center text-gray-500">No refueling data</td>
+                  </tr>
+                )}
+              </tbody>
             </table>
           </div>
         </div>
@@ -322,6 +399,8 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             <OdometerLine items={sorted} color={themeColor} />
           </div>
         </div>
+
+
       </div>
       <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
         <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
