@@ -14,9 +14,10 @@ import CustomersDetails from './components/CustomersDetails';
 import { usePayments, useTickets } from './hooks/useApi';
 import { ApiTicket } from './services/api';
 import NotesPage from './pages/NotesPage';
+import SalaryPage from './pages/SalaryPage';
 
 // Router helpers (module scope, stable references)
-type Page = 'dashboard' | 'login' | 'payments' | 'accounts' | 'vehicles' | 'apartments' | 'customers' | 'notes';
+type Page = 'dashboard' | 'login' | 'payments' | 'accounts' | 'vehicles' | 'apartments' | 'customers' | 'notes' | 'salary';
 const pageToPath: Record<Page, string> = {
   dashboard: '/dashboard',
   login: '/login',
@@ -26,6 +27,7 @@ const pageToPath: Record<Page, string> = {
   apartments: '/apartments',
   customers: '/customers',
   notes: '/notes',
+  salary: '/salary',
 };
 const resolvePageFromPath = (pathname: string): Page => {
   const p = pathname.toLowerCase();
@@ -244,6 +246,8 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
       }
       case 'notes':
         return <NotesPage />;
+      case 'salary':
+        return <SalaryPage />;
       default:
         return null;
     }

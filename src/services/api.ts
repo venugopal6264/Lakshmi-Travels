@@ -146,6 +146,39 @@ export interface ApiNote {
   updatedAt?: string;
 }
 
+export interface ApiSalary {
+  _id?: string;
+  year: number;
+  hikePercentage: number;
+  previousSalary: number;
+  finalSalary: number;
+  revisionPercentage: number;
+  revisionAmount: number;
+  totalPercentage: number;
+  bonusPercentage: number;
+  bonusAmount: number;
+  components?: {
+    basic?: { month: number; annual: number };
+    hra?: { month: number; annual: number };
+    specialAllowance?: { month: number; annual: number };
+    grossSalary?: { month: number; annual: number };
+    lta?: { month: number; annual: number };
+    phone?: { month: number; annual: number };
+    fuel?: { month: number; annual: number };
+    food?: { month: number; annual: number };
+    total?: { month: number; annual: number };
+    pf?: { month: number; annual: number };
+    gratuity?: { month: number; annual: number };
+    nps?: { month: number; annual: number };
+    totalRetails?: { month: number; annual: number };
+    ctcPM?: { month: number; annual: number };
+  };
+  notes?: string;
+  effectiveDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_URL}${endpoint}`;
@@ -347,6 +380,23 @@ class ApiService {
   }
   async deleteNote(id: string): Promise<void> {
     await this.request(`/notes/${id}`, { method: 'DELETE' });
+  }
+
+  // Salary API methods
+  async getSalaries(): Promise<ApiSalary[]> {
+    return this.request<ApiSalary[]>('/salary');
+  }
+  async getSalaryByYear(year: number): Promise<ApiSalary> {
+    return this.request<ApiSalary>(`/salary/${year}`);
+  }
+  async createSalary(input: Omit<ApiSalary, '_id' | 'createdAt' | 'updatedAt'>): Promise<ApiSalary> {
+    return this.request<ApiSalary>('/salary', { method: 'POST', body: JSON.stringify(input) });
+  }
+  async updateSalary(id: string, patch: Partial<ApiSalary>): Promise<ApiSalary> {
+    return this.request<ApiSalary>(`/salary/${id}`, { method: 'PUT', body: JSON.stringify(patch) });
+  }
+  async deleteSalary(id: string): Promise<void> {
+    await this.request(`/salary/${id}`, { method: 'DELETE' });
   }
 
   // CustomersDetails legacy helpers (moved from standalone export)

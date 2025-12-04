@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X, Search, Home, Users, StickyNote } from 'lucide-react';
+import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X, Search, Home, Users, StickyNote, TrendingUp } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -25,6 +25,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
         { id: 'vehicles', label: 'Vehicles', icon: Car, path: '/vehicles' },
         { id: 'apartments', label: 'Apartments', icon: Home, path: '/apartments' },
         { id: 'notes', label: 'Notes', icon: StickyNote, path: '/notes' },
+        { id: 'salary', label: 'Salary', icon: TrendingUp, path: '/salary' },
     ];
 
     const buildHref = (basePath: string) => basePath;
