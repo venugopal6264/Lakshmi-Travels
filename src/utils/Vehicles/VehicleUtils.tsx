@@ -85,59 +85,59 @@ export const AddVehicleModal = ({ onClose, onAdded, color }: { onClose: () => vo
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
                                 <div className="flex items-center gap-2">
                                     <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
-                                    <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+                                    <input name="color" className="flex-1 px-2 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
                                 </div>
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
+                                <select name="type" className="w-full px-2 py-2 border rounded-md" value={form.type} onChange={update}>
                                     <option value="car">Car</option>
                                     <option value="bike">Bike</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
-                                <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} placeholder="e.g., Breeza, FZs" />
+                                <input name="name" className="w-full px-2 py-2 border rounded-md" value={form.name} onChange={update} placeholder="e.g., Breeza, FZs" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                                <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} placeholder="e.g., ZDi, FZ-S V3" />
+                                <input name="model" className="w-full px-2 py-2 border rounded-md" value={form.model} onChange={update} placeholder="e.g., ZDi, FZ-S V3" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
-                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
+                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-2 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
-                                <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
+                                <input name="buyDate" type="date" className="w-full px-2 py-2 border rounded-md" value={form.buyDate} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
-                                <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
+                                <select name="fuelType" className="w-full px-2 py-2 border rounded-md" value={form.fuelType} onChange={update}>
                                     {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
-                                <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
+                                <input name="fuelCapacity" type="number" className="w-full px-2 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                                <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
+                                <input name="licensePlate" className="w-full px-2 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                                <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
+                                <input name="chassisNumber" className="w-full px-2 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
                             </div>
 
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
+                                <textarea name="notes" rows={2} className="w-full px-2 py-2 border rounded-md" value={form.notes} onChange={update} />
                             </div>
                             {error && <p className="text-red-600 text-sm md:col-span-2">{error}</p>}
                             <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                                <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving...' : 'Save'}</button>
+                                <button type="button" onClick={onClose} className="px-2 py-2 text-gray-700 border rounded-md">Cancel</button>
+                                <button type="submit" disabled={saving} className="px-2 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving...' : 'Save'}</button>
                             </div>
                         </form>
                     </div>
@@ -276,58 +276,58 @@ export const EditVehicleModal = ({ vehicle, onClose, onSaved, color }: { vehicle
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
                                 <div className="flex items-center gap-2">
                                     <input name="color" type="color" className="h-9 w-12 p-0 border rounded" value={form.color} onChange={update} />
-                                    <input name="color" className="flex-1 px-3 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
+                                    <input name="color" className="flex-1 px-2 py-2 border rounded-md" value={form.color} onChange={update} placeholder="#3b82f6" />
                                 </div>
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                <select name="type" className="w-full px-3 py-2 border rounded-md" value={form.type} onChange={update}>
+                                <select name="type" className="w-full px-2 py-2 border rounded-md" value={form.type} onChange={update}>
                                     <option value="car">Car</option>
                                     <option value="bike">Bike</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
-                                <input name="name" className="w-full px-3 py-2 border rounded-md" value={form.name} onChange={update} />
+                                <input name="name" className="w-full px-2 py-2 border rounded-md" value={form.name} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                                <input name="model" className="w-full px-3 py-2 border rounded-md" value={form.model} onChange={update} />
+                                <input name="model" className="w-full px-2 py-2 border rounded-md" value={form.model} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer Date (MM-YYYY)</label>
-                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-3 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
+                                <input name="manufacturerDate" placeholder="MM-YYYY" className="w-full px-2 py-2 border rounded-md" value={form.manufacturerDate} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Buy Date</label>
-                                <input name="buyDate" type="date" className="w-full px-3 py-2 border rounded-md" value={form.buyDate} onChange={update} />
+                                <input name="buyDate" type="date" className="w-full px-2 py-2 border rounded-md" value={form.buyDate} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Fuel type</label>
-                                <select name="fuelType" className="w-full px-3 py-2 border rounded-md" value={form.fuelType} onChange={update}>
+                                <select name="fuelType" className="w-full px-2 py-2 border rounded-md" value={form.fuelType} onChange={update}>
                                     {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Fuel Capacity (L)</label>
-                                <input name="fuelCapacity" type="number" className="w-full px-3 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
+                                <input name="fuelCapacity" type="number" className="w-full px-2 py-2 border rounded-md" value={form.fuelCapacity} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-                                <input name="licensePlate" className="w-full px-3 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
+                                <input name="licensePlate" className="w-full px-2 py-2 border rounded-md" value={form.licensePlate} onChange={update} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number</label>
-                                <input name="chassisNumber" className="w-full px-3 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
+                                <input name="chassisNumber" className="w-full px-2 py-2 border rounded-md" value={form.chassisNumber} onChange={update} />
                             </div>
 
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea name="notes" rows={2} className="w-full px-3 py-2 border rounded-md" value={form.notes} onChange={update} />
+                                <textarea name="notes" rows={2} className="w-full px-2 py-2 border rounded-md" value={form.notes} onChange={update} />
                             </div>
                             <div className="md:col-span-2 flex items-center justify-between gap-2 pt-1">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                                <button type="submit" disabled={saving} className="px-3 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving…' : 'Save'}</button>
+                                <button type="button" onClick={onClose} className="px-2 py-2 text-gray-700 border rounded-md">Cancel</button>
+                                <button type="submit" disabled={saving} className="px-2 py-2 rounded-md text-white disabled:opacity-50" style={{ backgroundColor: accent }}>{saving ? 'Saving…' : 'Save'}</button>
                             </div>
                         </form>
                     </div>

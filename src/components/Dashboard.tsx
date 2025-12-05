@@ -285,7 +285,7 @@ export default function Dashboard({
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                             {/* Date Range Selector */}
-                            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-2 sm:px-4 sm:py-2 text-sm text-white ring-1 ring-white/30">
+                            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-2 py-2 sm:px-4 sm:py-2 text-sm text-white ring-1 ring-white/30">
                                 <Calendar className="w-4 h-4" />
                                 <select
                                     value={quickRange}
@@ -329,7 +329,7 @@ export default function Dashboard({
                     </div>
                 </div>
                 {/* Body */}
-                <div className="p-4 space-y-6">
+                <div className="p-3 space-y-4">
                     <>
                         <OverviewPanels
                             metrics={{

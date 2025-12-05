@@ -65,11 +65,11 @@ export const FuelEntryModal = ({ initial, defaultVehicle, vehicles, onClose, onS
                         <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                <input type="date" className="w-full px-3 py-2 border rounded-md" value={date} onChange={e => setDate(e.target.value)} />
+                                <input type="date" className="w-full px-2 py-2 border rounded-md" value={date} onChange={e => setDate(e.target.value)} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
-                                <select className="w-full px-3 py-2 border rounded-md" value={vehicleId ?? ''} onChange={e => {
+                                <select className="w-full px-2 py-2 border rounded-md" value={vehicleId ?? ''} onChange={e => {
                                     const id = e.target.value || null;
                                     setVehicleId(id);
                                     const v = vehicles.find(x => x._id === id);
@@ -90,7 +90,7 @@ export const FuelEntryModal = ({ initial, defaultVehicle, vehicles, onClose, onS
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                <select className="w-full px-3 py-2 border rounded-md" value={entryType} onChange={e => setEntryType(e.target.value as ApiFuel['entryType'])}>
+                                <select className="w-full px-2 py-2 border rounded-md" value={entryType} onChange={e => setEntryType(e.target.value as ApiFuel['entryType'])}>
                                     <option value="refueling">Refueling</option>
                                     <option value="service">Service</option>
                                     <option value="repair">Repair</option>
@@ -98,21 +98,21 @@ export const FuelEntryModal = ({ initial, defaultVehicle, vehicles, onClose, onS
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Odometer (km)</label>
-                                <input type="number" className="w-full px-3 py-2 border rounded-md" value={odometer} onChange={e => setOdometer(e.target.value)} />
+                                <input type="number" className="w-full px-2 py-2 border rounded-md" value={odometer} onChange={e => setOdometer(e.target.value)} />
                             </div>
                             {entryType === 'refueling' && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Liters</label>
-                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={liters} onChange={e => setLiters(e.target.value)} />
+                                        <input type="number" className="w-full px-2 py-2 border rounded-md" value={liters} onChange={e => setLiters(e.target.value)} />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Price / Liter (₹)</label>
-                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={pricePerLiter} onChange={e => setPricePerLiter(e.target.value)} />
+                                        <input type="number" className="w-full px-2 py-2 border rounded-md" value={pricePerLiter} onChange={e => setPricePerLiter(e.target.value)} />
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Total (₹)</label>
-                                        <input type="number" className="w-full px-3 py-2 border rounded-md" value={computedTotal || total} onChange={e => setTotal(e.target.value)} />
+                                        <input type="number" className="w-full px-2 py-2 border rounded-md" value={computedTotal || total} onChange={e => setTotal(e.target.value)} />
                                     </div>
                                     <div className="md:col-span-2 flex items-center justify-between mt-1">
                                         <span className="text-xs font-medium text-gray-700">Missed previous refueling?</span>
@@ -131,16 +131,16 @@ export const FuelEntryModal = ({ initial, defaultVehicle, vehicles, onClose, onS
                             {(entryType === 'service' || entryType === 'repair') && (
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{entryType === 'service' ? 'Service' : 'Repair'} Amount (₹)</label>
-                                    <input type="number" className="w-full px-3 py-2 border rounded-md" value={total} onChange={e => setTotal(e.target.value)} />
+                                    <input type="number" className="w-full px-2 py-2 border rounded-md" value={total} onChange={e => setTotal(e.target.value)} />
                                 </div>
                             )}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                <textarea className="w-full px-3 py-2 border rounded-md" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+                                <textarea className="w-full px-2 py-2 border rounded-md" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
                             </div>
                             <div className="md:col-span-2 flex justify-end gap-2 pt-1">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-gray-700 border rounded-md">Cancel</button>
-                                <button type="submit" className="px-3 py-2 rounded-md text-white" style={{ backgroundColor: accent }}>Save</button>
+                                <button type="button" onClick={onClose} className="px-2 py-2 text-gray-700 border rounded-md">Cancel</button>
+                                <button type="submit" className="px-2 py-2 rounded-md text-white" style={{ backgroundColor: accent }}>Save</button>
                             </div>
                         </form>
                     </div>

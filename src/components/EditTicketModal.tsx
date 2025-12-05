@@ -153,7 +153,7 @@ export default function EditTicketModal({
                                                 type="number"
                                                 value={refundData.refund}
                                                 onChange={(e) => setRefundData(prev => ({ ...prev, refund: e.target.value }))}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 placeholder="Enter refund amount"
                                             />
                                         </div>
@@ -166,7 +166,7 @@ export default function EditTicketModal({
                                                 type="date"
                                                 value={refundData.refundDate}
                                                 onChange={(e) => setRefundData(prev => ({ ...prev, refundDate: e.target.value }))}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
                                     </div>
@@ -179,7 +179,7 @@ export default function EditTicketModal({
                                             value={refundData.refundReason}
                                             onChange={(e) => setRefundData(prev => ({ ...prev, refundReason: e.target.value }))}
                                             rows={3}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="Enter reason for refund"
                                         />
                                     </div>

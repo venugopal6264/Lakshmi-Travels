@@ -19,6 +19,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
     const [showCustomersForm, setShowCustomersForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const [sortColumn, setSortColumn] = useState<'name' | 'account' | 'aadhar' | 'age' | 'dob' | 'gender'>('name');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
     // duplicate name detector
@@ -28,6 +29,16 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
         return customersList.some(n => (n.name || '').toLowerCase() === t && n._id !== editingId);
     }, [customersName, customersList, editingId]);
 
+    // Handle column sorting
+    const handleSort = (column: 'name' | 'account' | 'aadhar' | 'age' | 'dob' | 'gender') => {
+        if (sortColumn === column) {
+            setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDir('asc');
+        }
+    };
+
     // filtered + sorted list
     const displayed = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -36,11 +47,43 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
             arr = arr.filter(n => (n.name || '').toLowerCase().includes(q) || (n.account || '').toLowerCase().includes(q) || (n.aadharNumber || '').toLowerCase().includes(q));
         }
         return [...arr].sort((a, b) => {
-            const av = (a.account || '').toLowerCase();
-            const bv = (b.account || '').toLowerCase();
-            return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+            let av: string | number = '';
+            let bv: string | number = '';
+
+            switch (sortColumn) {
+                case 'name':
+                    av = (a.name || '').toLowerCase();
+                    bv = (b.name || '').toLowerCase();
+                    break;
+                case 'account':
+                    av = (a.account || '').toLowerCase();
+                    bv = (b.account || '').toLowerCase();
+                    break;
+                case 'aadhar':
+                    av = (a.aadharNumber || '').toLowerCase();
+                    bv = (b.aadharNumber || '').toLowerCase();
+                    break;
+                case 'age':
+                    av = a.age ?? -1;
+                    bv = b.age ?? -1;
+                    break;
+                case 'dob':
+                    av = a.dob ? new Date(String(a.dob)).getTime() : 0;
+                    bv = b.dob ? new Date(String(b.dob)).getTime() : 0;
+                    break;
+                case 'gender':
+                    av = (a.gender || '').toLowerCase();
+                    bv = (b.gender || '').toLowerCase();
+                    break;
+            }
+
+            if (typeof av === 'string' && typeof bv === 'string') {
+                return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+            } else {
+                return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number);
+            }
         });
-    }, [customersList, search, sortDir]);
+    }, [customersList, search, sortColumn, sortDir]);
 
     // Load Customer names when component active
     useEffect(() => {
@@ -194,7 +237,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     placeholder="Search name, account, or aadhar..."
-                                    className="w-full px-3 py-2 text-sm border rounded-md border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-2 py-2 text-sm border rounded-md border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 {search && (
                                     <button
@@ -220,22 +263,80 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                             <table className="w-full text-sm">
                                                 <thead className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-600 text-white">
                                                     <tr>
-                                                        <th className="px-3 py-2 text-left w-16">S.No</th>
-                                                        <th className="px-3 py-2 text-left">Name</th>
+                                                        <th className="px-2 py-2 text-left w-16">S.No</th>
                                                         <th
-                                                            className="px-3 py-2 text-left cursor-pointer select-none"
-                                                            onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                                                            title="Sort by Account"
+                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
+                                                            onClick={() => handleSort('name')}
+                                                            title="Sort by Name"
                                                         >
-                                                            <span className="inline-flex items-center gap-1">Account
-                                                                <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                            <span className="inline-flex items-center gap-1">
+                                                                Name
+                                                                {sortColumn === 'name' && (
+                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                                )}
                                                             </span>
                                                         </th>
-                                                        <th className="px-3 py-2 text-left">Aadhar</th>
-                                                        <th className="px-3 py-2 text-left">Age</th>
-                                                        <th className="px-3 py-2 text-left">DOB</th>
-                                                        <th className="px-3 py-2 text-left">Gender</th>
-                                                        <th className="px-3 py-2 text-left">Actions</th>
+                                                        <th
+                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
+                                                            onClick={() => handleSort('age')}
+                                                            title="Sort by Age"
+                                                        >
+                                                            <span className="inline-flex items-center gap-1">
+                                                                Age
+                                                                {sortColumn === 'age' && (
+                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                                )}
+                                                            </span>
+                                                        </th>
+                                                        <th
+                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
+                                                            onClick={() => handleSort('account')}
+                                                            title="Sort by Account"
+                                                        >
+                                                            <span className="inline-flex items-center gap-1">
+                                                                Account
+                                                                {sortColumn === 'account' && (
+                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                                )}
+                                                            </span>
+                                                        </th>
+                                                        <th
+                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
+                                                            onClick={() => handleSort('aadhar')}
+                                                            title="Sort by Aadhar"
+                                                        >
+                                                            <span className="inline-flex items-center gap-1">
+                                                                Aadhar
+                                                                {sortColumn === 'aadhar' && (
+                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                                )}
+                                                            </span>
+                                                        </th>
+                                                        <th
+                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
+                                                            onClick={() => handleSort('dob')}
+                                                            title="Sort by DOB"
+                                                        >
+                                                            <span className="inline-flex items-center gap-1">
+                                                                DOB
+                                                                {sortColumn === 'dob' && (
+                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                                )}
+                                                            </span>
+                                                        </th>
+                                                        <th
+                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
+                                                            onClick={() => handleSort('gender')}
+                                                            title="Sort by Gender"
+                                                        >
+                                                            <span className="inline-flex items-center gap-1">
+                                                                Gender
+                                                                {sortColumn === 'gender' && (
+                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                                                                )}
+                                                            </span>
+                                                        </th>
+                                                        <th className="px-2 py-2 text-left">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
@@ -256,14 +357,14 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                                         const rowClass = flag ? 'bg-rose-50' : zebra;
                                                         return (
                                                             <tr key={n._id || n.name} className={`${rowClass} hover:bg-amber-50`}>
-                                                                <td className="px-3 py-2">{i + 1}</td>
-                                                                <td className="px-3 py-2 font-medium text-gray-800">{n.name}</td>
-                                                                <td className="px-3 py-2">{n.account || '-'}</td>
-                                                                <td className="px-3 py-2 font-mono">{n.aadharNumber || '-'}</td>
-                                                                <td className="px-3 py-2">{age ?? '-'}</td>
-                                                                <td className="px-3 py-2">{n.dob ? String(n.dob).slice(0, 10) : '-'}</td>
-                                                                <td className="px-3 py-2 capitalize">{n.gender || '-'}</td>
-                                                                <td className="px-3 py-2">
+                                                                <td className="px-2 py-2">{i + 1}</td>
+                                                                <td className="px-2 py-2 font-medium text-gray-800">{n.name}</td>
+                                                                <td className="px-2 py-2">{age ?? '-'}</td>
+                                                                <td className="px-2 py-2">{n.account || '-'}</td>
+                                                                <td className="px-2 py-2 font-mono">{n.aadharNumber || '-'}</td>
+                                                                <td className="px-2 py-2">{n.dob ? String(n.dob).slice(0, 10) : '-'}</td>
+                                                                <td className="px-2 py-2 capitalize">{n.gender || '-'}</td>
+                                                                <td className="px-2 py-2">
                                                                     <div className="flex items-center gap-2">
                                                                         <button type="button" title="Edit" aria-label="Edit" onClick={() => startEdit(n)} className="p-2 rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100">
                                                                             <Pencil className="w-4 h-4" />
@@ -309,13 +410,13 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                         {/* Name */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
-                                            <input type="text" value={customersName} onChange={(e) => setCustomersName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter full name" />
+                                            <input type="text" value={customersName} onChange={(e) => setCustomersName(e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter full name" />
                                             {isDuplicateName && (<p className="text-[10px] text-amber-600 mt-1">Duplicate name found. You can still save.</p>)}
                                         </div>
                                         {/* Account */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Account</label>
-                                            <input type="text" value={customersAccount} onChange={(e) => setCustomersAccount(e.target.value)} list="customers-account-suggestions" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Search or add new account" />
+                                            <input type="text" value={customersAccount} onChange={(e) => setCustomersAccount(e.target.value)} list="customers-account-suggestions" className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Search or add new account" />
                                             <datalist id="customers-account-suggestions">
                                                 {existingAccounts.map((acc) => (<option key={acc} value={acc} />))}
                                             </datalist>
@@ -340,13 +441,13 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                                 } else {
                                                     setCustomersAge('');
                                                 }
-                                            }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            }} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                                             <p className="text-[10px] text-gray-500 mt-1">We auto-calculate age from DOB.</p>
                                         </div>
                                         {/* Age */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Age</label>
-                                            <input type="text" value={customersAge} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 focus:outline-none" placeholder="Auto-calculated" />
+                                            <input type="text" value={customersAge} readOnly className="w-full px-2 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 focus:outline-none" placeholder="Auto-calculated" />
                                         </div>
                                         {/* Gender */}
                                         <div>
@@ -359,7 +460,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                         {/* Aadhar */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Aadhar Number</label>
-                                            <input type="text" value={customersAadhar} onChange={(e) => setCustomersAadhar(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter Aadhar number" />
+                                            <input type="text" value={customersAadhar} onChange={(e) => setCustomersAadhar(e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter Aadhar number" />
                                         </div>
                                     </div>
                                     <div className="mt-2 flex justify-between items-center gap-2">

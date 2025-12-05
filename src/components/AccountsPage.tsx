@@ -58,21 +58,21 @@ export default function AccountsPage() {
                     <table className="w-full text-sm border rounded-md overflow-hidden">
                         <thead>
                             <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-left">
-                                <th className="px-3 py-2 font-medium">Username</th>
-                                <th className="px-3 py-2 font-medium">Role</th>
-                                <th className="px-3 py-2 font-medium">Password Hint</th>
-                                <th className="px-3 py-2 font-medium">Created</th>
-                                <th className="px-3 py-2 font-medium">Actions</th>
+                                <th className="px-2 py-2 font-medium">Username</th>
+                                <th className="px-2 py-2 font-medium">Role</th>
+                                <th className="px-2 py-2 font-medium">Password Hint</th>
+                                <th className="px-2 py-2 font-medium">Created</th>
+                                <th className="px-2 py-2 font-medium">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {users.map((u, idx) => (
                                 <tr key={u._id} className={idx % 2 === 0 ? 'bg-white' : 'bg-indigo-50'}>
-                                    <td className="px-3 py-2 font-medium text-gray-900">{u.username}</td>
-                                    <td className="px-3 py-2">{u.role === 'admin' ? <span className="inline-block px-2 py-0.5 text-xs rounded bg-red-100 text-red-700">Admin</span> : <span className="inline-block px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-700">User</span>}</td>
-                                    <td className="px-3 py-2 text-sm text-indigo-700 truncate max-w-[180px]" title={u.passwordHint || ''}>{u.passwordHint || <span className="text-gray-400">—</span>}</td>
-                                    <td className="px-3 py-2 text-gray-700">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : ''}</td>
-                                    <td className="px-3 py-2">
+                                    <td className="px-2 py-2 font-medium text-gray-900">{u.username}</td>
+                                    <td className="px-2 py-2">{u.role === 'admin' ? <span className="inline-block px-2 py-0.5 text-xs rounded bg-red-100 text-red-700">Admin</span> : <span className="inline-block px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-700">User</span>}</td>
+                                    <td className="px-2 py-2 text-sm text-indigo-700 truncate max-w-[180px]" title={u.passwordHint || ''}>{u.passwordHint || <span className="text-gray-400">—</span>}</td>
+                                    <td className="px-2 py-2 text-gray-700">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : ''}</td>
+                                    <td className="px-2 py-2">
                                         <button onClick={() => openReset(u)} className="text-indigo-600 hover:text-indigo-800 font-medium">Reset</button>
                                     </td>
                                 </tr>
@@ -92,14 +92,14 @@ export default function AccountsPage() {
                         <p className="text-sm text-gray-600 mb-4">User: <span className="font-semibold">{showResetModal.username}</span></p>
                         <input
                             type="password"
-                            className="w-full border rounded-md px-3 py-2 mb-3"
+                            className="w-full border rounded-md px-2 py-2 mb-3"
                             placeholder="New password (min 6 chars)"
                             value={newPassword}
                             onChange={e => setNewPassword(e.target.value)}
                         />
                         <input
                             type="text"
-                            className="w-full border rounded-md px-3 py-2 mb-3"
+                            className="w-full border rounded-md px-2 py-2 mb-3"
                             placeholder="Password hint (required)"
                             value={passwordHint}
                             onChange={e => setPasswordHint(e.target.value)}

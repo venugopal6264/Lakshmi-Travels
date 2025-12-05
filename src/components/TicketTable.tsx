@@ -339,7 +339,7 @@ export default function TicketTable({
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className={`w-48 sm:w-52 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
+            className={`w-48 sm:w-52 px-2 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
           >
             <option value="all">All Types</option>
             <option value="train">Train</option>
@@ -354,7 +354,7 @@ export default function TicketTable({
               setAccountFilter(v);
               onAccountFilterChange?.(v);
             }}
-            className={`w-56 sm:w-72 md:w-80 px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
+            className={`w-56 sm:w-72 md:w-80 px-2 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
           >
             <option value="all">All Accounts</option>
             {uniqueAccounts.map(account => (
@@ -366,7 +366,7 @@ export default function TicketTable({
             <button
               type="button"
               onClick={() => { setAccountFilter('all'); onAccountFilterChange?.('all'); }}
-              className="px-3 py-2 text-sm border rounded-md bg-white hover:bg-gray-100 text-gray-700 border-gray-300"
+              className="px-2 py-2 text-sm border rounded-md bg-white hover:bg-gray-100 text-gray-700 border-gray-300"
               title="Reset account filter"
             >
               Reset
@@ -481,7 +481,7 @@ export default function TicketTable({
                 className={`${hoverRow} ${rowLeftBorder} transition-colors ${isRefunded(ticket) ? 'bg-red-50' : ''}`}
               >
                 {activeTable === 'open' && (
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-2 py-2 whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={selectedTickets.includes(ticket._id!)}
@@ -492,58 +492,58 @@ export default function TicketTable({
                   </td>
                 )}
                 {/* Account */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                   {ticket.account}
                 </td>
                 {/* Booking Date */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                   {formatDate(ticket.bookingDate)}
                 </td>
                 {/* PNR */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900 font-mono">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 font-mono">
                   {ticket.pnr}
                 </td>
                 {/* Passenger Name (wrap long names, fixed width) */}
                 <td
-                  className="px-4 py-4 text-xs text-gray-900 whitespace-normal break-words"
+                  className="px- py-4 text-xs text-gray-900 whitespace-normal break-words"
                   style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
                 >
                   {ticket.passengerName}
                 </td>
                 {/* Ticket Amount */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                   ₹{Math.round(Number(ticket.ticketAmount || 0)).toLocaleString()}
                 </td>
                 {/* Booking Amount */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                   ₹{Math.round(Number(ticket.bookingAmount || 0)).toLocaleString()}
                 </td>
                 {/* Refund */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-red-600">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-red-600">
                   {Number(ticket.refund || 0) > 0 ? `₹${Math.round(Number(ticket.refund)).toLocaleString()}` : '₹0'}
                 </td>
                 {/* Profit (ticketAmount - bookingAmount; refund ignored) */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-green-600">
+                <td className="px-2 py-2 whitespace-nowrap text-xs font-medium text-green-600">
                   ₹{Math.round(Number(ticket.ticketAmount || 0) - Number(ticket.bookingAmount || 0)).toLocaleString()}
                 </td>
                 {/* Place display without spaces */}
                 <td
-                  className="px-4 py-4 text-xs text-gray-900 whitespace-normal break-words"
+                  className="px-2 py-2 text-xs text-gray-900 whitespace-normal break-words"
                   title={(ticket.place || '').replace(/\s+/g, '')}
                 >
                   {(ticket.place || '').replace(/\s+/g, '')}
                 </td>
                 {/* Service */}
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                   {ticket.service || '-'}
                 </td>
                 {/* Type */}
-                <td className="px-4 py-4 whitespace-nowrap">
+                <td className="px-2 py-2 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(ticket.type)}`}>
                     {ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)}
                   </span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
+                <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-500">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditingTicket(ticket)}
@@ -694,10 +694,10 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
               <table className="w-full text-sm border">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">Account</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">Total Tickets</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">Partial Paid</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">Remaining Due (Ticket - Refund - Partial)</th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">Account</th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">Total Tickets</th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">Partial Paid</th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">Remaining Due (Ticket - Refund - Partial)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -733,17 +733,17 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                       <>
                         {rows.map(([acc, v]) => (
                           <tr key={acc} className="border-t">
-                            <td className="px-3 py-2">{acc}</td>
-                            <td className="px-3 py-2">{v.count}</td>
-                            <td className="px-3 py-2 text-amber-700">₹{Math.round(v.partial).toLocaleString()}</td>
-                            <td className={`px-3 py-2 font-medium ${v.remaining < 0 ? 'text-red-700' : ''}`}>₹{Math.round(v.remaining).toLocaleString()}</td>
+                            <td className="px-2 py-2">{acc}</td>
+                            <td className="px-2 py-2">{v.count}</td>
+                            <td className="px-2 py-2 text-amber-700">₹{Math.round(v.partial).toLocaleString()}</td>
+                            <td className={`px-2 py-2 font-medium ${v.remaining < 0 ? 'text-red-700' : ''}`}>₹{Math.round(v.remaining).toLocaleString()}</td>
                           </tr>
                         ))}
                         <tr className="border-t bg-gray-50 font-medium">
-                          <td className="px-3 py-2">Total</td>
-                          <td className="px-3 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
-                          <td className="px-3 py-2 text-amber-700">₹{Math.round(rows.reduce((s, [, v]) => s + v.partial, 0)).toLocaleString()}</td>
-                          <td className="px-3 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.remaining, 0)).toLocaleString()}</td>
+                          <td className="px-2 py-2">Total</td>
+                          <td className="px-2 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
+                          <td className="px-2 py-2 text-amber-700">₹{Math.round(rows.reduce((s, [, v]) => s + v.partial, 0)).toLocaleString()}</td>
+                          <td className="px-2 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.remaining, 0)).toLocaleString()}</td>
                         </tr>
                       </>
                     );

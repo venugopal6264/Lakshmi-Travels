@@ -206,7 +206,7 @@ export function SalaryEditor({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Year *</label>
                             <input
                                 type="number"
-                                className="w-full border rounded px-3 py-2"
+                                className="w-full border rounded px-2 py-2"
                                 value={year}
                                 onChange={(e) => setYear(parseInt(e.target.value))}
                             />
@@ -217,7 +217,7 @@ export function SalaryEditor({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Previous Salary *</label>
                             <input
                                 type="number"
-                                className="w-full border rounded px-3 py-2 bg-gray-50"
+                                className="w-full border rounded px-2 py-2 bg-gray-50"
                                 value={previousSalary}
                                 onChange={(e) => handlePreviousSalaryChange(parseFloat(e.target.value) || 0)}
                                 title="Auto-populated from last year's final salary"
@@ -230,7 +230,7 @@ export function SalaryEditor({
                             <input
                                 type="number"
                                 step="0.01"
-                                className="w-full border rounded px-3 py-2"
+                                className="w-full border rounded px-2 py-2"
                                 value={hikePercentage}
                                 onChange={(e) => handleHikeChange(parseFloat(e.target.value) || 0)}
                             />
@@ -241,7 +241,7 @@ export function SalaryEditor({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Hike Amount</label>
                             <input
                                 type="number"
-                                className="w-full border rounded px-3 py-2 bg-gray-50"
+                                className="w-full border rounded px-2 py-2 bg-gray-50"
                                 value={hikeAmount}
                                 readOnly
                                 title="Auto-calculated based on hike %"
@@ -254,7 +254,7 @@ export function SalaryEditor({
                             <input
                                 type="number"
                                 step="0.01"
-                                className="w-full border rounded px-3 py-2"
+                                className="w-full border rounded px-2 py-2"
                                 value={revisionPercentage}
                                 onChange={(e) => handleRevisionChange(parseFloat(e.target.value) || 0)}
                             />
@@ -265,7 +265,7 @@ export function SalaryEditor({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Revision Amount</label>
                             <input
                                 type="number"
-                                className="w-full border rounded px-3 py-2 bg-gray-50"
+                                className="w-full border rounded px-2 py-2 bg-gray-50"
                                 value={revisionAmount}
                                 readOnly
                                 title="(Previous Salary + Hike Amount) × Revision %"
@@ -278,7 +278,7 @@ export function SalaryEditor({
                             <input
                                 type="number"
                                 step="0.01"
-                                className="w-full border rounded px-3 py-2 bg-gray-50"
+                                className="w-full border rounded px-2 py-2 bg-gray-50"
                                 value={totalPercentage}
                                 readOnly
                                 title="Total percentage increase: ((Total Amount - Previous Salary) / Previous Salary) × 100"
@@ -290,7 +290,7 @@ export function SalaryEditor({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
                             <input
                                 type="number"
-                                className="w-full border rounded px-3 py-2 bg-gray-50"
+                                className="w-full border rounded px-2 py-2 bg-gray-50"
                                 value={totalAmount}
                                 readOnly
                                 title="Previous Salary + Hike Amount + Revision Amount"
@@ -303,7 +303,7 @@ export function SalaryEditor({
                             <input
                                 type="number"
                                 step="0.01"
-                                className="w-full border rounded px-3 py-2"
+                                className="w-full border rounded px-2 py-2"
                                 value={bonusPercentage}
                                 onChange={(e) => handleBonusChange(parseFloat(e.target.value) || 0)}
                             />
@@ -314,7 +314,7 @@ export function SalaryEditor({
                             <label className="block text-sm font-medium text-gray-700 mb-1">Bonus Amount</label>
                             <input
                                 type="number"
-                                className="w-full border rounded px-3 py-2 bg-gray-50"
+                                className="w-full border rounded px-2 py-2 bg-gray-50"
                                 value={bonusAmount}
                                 readOnly
                                 title="Auto-calculated based on bonus % of previous salary"
@@ -324,7 +324,7 @@ export function SalaryEditor({
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                         <textarea
-                            className="w-full border rounded px-3 py-2 min-h-[80px]"
+                            className="w-full border rounded px-2 py-2 min-h-[80px]"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                         />

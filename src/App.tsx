@@ -88,8 +88,11 @@ function InnerApp() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} onOpenPnrSearch={() => setShowPnr(true)} />
-      <div className="container mx-auto py-2">
-        {renderCurrentPage()}
+      {/* Main content with left margin for sidebar and top padding for horizontal bar on desktop, top padding for mobile navbar */}
+      <div className="md:ml-64 md:pt-20 pt-32">
+        <div className="container mx-auto py-2 px-2">
+          {renderCurrentPage()}
+        </div>
       </div>
       {/* PNR Search is rendered only when authenticated, so we mount it below */}
       {user && (

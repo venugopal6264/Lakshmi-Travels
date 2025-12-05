@@ -231,7 +231,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="train">Train</option>
               <option value="bus">Bus</option>
@@ -250,7 +250,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               value={formData.service}
               onChange={handleChange}
               list="service-suggestions"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.service ? 'border-red-500' : 'border-gray-300'}
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.service ? 'border-red-500' : 'border-gray-300'}
                 `}
               placeholder="Start typing to search or add new service"
             />
@@ -275,7 +275,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="bookingDate"
               value={formData.bookingDate}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.bookingDate ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.bookingDate ? 'border-red-500' : 'border-gray-300'
                 }`}
             />
             {errors.bookingDate && <p className="text-red-500 text-xs mt-1">{errors.bookingDate}</p>}
@@ -291,7 +291,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               value={formData.account}
               onChange={handleChange}
               list="account-suggestions"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.account ? 'border-red-500' : 'border-gray-300'}
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.account ? 'border-red-500' : 'border-gray-300'}
                 `}
               placeholder="Start typing to search or add new account"
             />
@@ -316,7 +316,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="passengerName"
               value={formData.passengerName}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.passengerName ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.passengerName ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Passenger names with ,"
             />
@@ -334,7 +334,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               value={formData.place}
               onChange={handleChange}
               onBlur={handlePlaceBlur}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.place ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.place ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Travel route/place"
             />
@@ -351,7 +351,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="pnr"
               value={formData.pnr}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.pnr ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.pnr ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="PNR or ticket number"
             />
@@ -370,7 +370,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="bookingAmount"
               value={formData.bookingAmount}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.bookingAmount ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.bookingAmount ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Base booking amount"
             />
@@ -386,7 +386,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="ticketAmount"
               value={formData.ticketAmount}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ticketAmount ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ticketAmount ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Enter ticket amount"
             />
@@ -402,7 +402,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="profit"
               value={formData.profit}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.profit ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.profit ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Enter profit"
             />
@@ -418,7 +418,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               name="refund"
               value={formData.refund}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Refund amount"
             />
           </div>
@@ -432,7 +432,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               value={formData.remarks}
               onChange={handleChange}
               rows={1}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Additional remarks..."
             />
           </div>

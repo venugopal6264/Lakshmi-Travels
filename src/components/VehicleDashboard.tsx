@@ -165,7 +165,7 @@ const VehicleDashboard = () => {
                     <div className="md:col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
                         <select
-                            className="w-full px-3 py-2 rounded-md border-0 focus:outline-none focus:ring-2"
+                            className="w-full px-2 py-2 rounded-md border-0 focus:outline-none focus:ring-2"
                             style={{
                                 background: `linear-gradient(90deg, ${withAlpha(theme, 0.08)}, ${withAlpha(theme, 0.14)})`,
                                 color: theme,
@@ -207,7 +207,7 @@ const VehicleDashboard = () => {
                     <div className="md:col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
                         <select
-                            className="w-full px-3 py-2 rounded-md border-0 focus:outline-none focus:ring-2"
+                            className="w-full px-2 py-2 rounded-md border-0 focus:outline-none focus:ring-2"
                             style={{
                                 background: `linear-gradient(90deg, ${withAlpha(theme, 0.08)}, ${withAlpha(theme, 0.14)})`,
                                 color: theme,

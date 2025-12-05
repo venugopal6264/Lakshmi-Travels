@@ -484,7 +484,7 @@ export default function PaymentTracker({
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-full px-3 py-2 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+              className="w-full px-2 py-2 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
             />
           </div>
           <div>
@@ -493,11 +493,11 @@ export default function PaymentTracker({
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-full px-3 py-2 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+              className="w-full px-2 py-2 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
             />
           </div>
           <div className="flex items-end">
-            <div className="text-xs text-indigo-700 bg-white/60 px-3 py-2 rounded border border-indigo-200">
+            <div className="text-xs text-indigo-700 bg-white/60 px-2 py-2 rounded border border-indigo-200">
               Showing data between <span className="font-semibold">{from}</span> and <span className="font-semibold">{to}</span>
             </div>
           </div>
@@ -616,14 +616,14 @@ export default function PaymentTracker({
               <table className="w-full table-auto">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received Date</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">No. of Tickets</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Amount Received</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Refund</th>
-                    <th className="px-3 py-2 text-left font-semibold uppercase">Type</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Account</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Amount Received Date</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">No. of Tickets</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Amount Received</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Ticket Amount</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Profit</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Refund</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Type</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white text-xs">
@@ -649,14 +649,14 @@ export default function PaymentTracker({
                     const ticketVal = isPartial ? Number(p.amount || 0) : agg.ticketSum;
                     return (
                       <tr key={p._id || idx} className={`${rowBg} hover:brightness-95 ${p.isPartial ? 'border-l-4 border-l-amber-500' : ''}`}>
-                        <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
-                        <td className="px-3 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">{agg.count}</td>
-                        <td className="px-3 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(receivedVal).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(ticketVal).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-emerald-800">₹{Math.round(agg.profitNetSum).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-red-700">₹{Math.round(agg.refundSum).toLocaleString()}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">
+                        <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-800">{accLabel}</td>
+                        <td className="px-2 py-2 whitespace-nowrap flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{new Date(p.date).toLocaleDateString()}</td>
+                        <td className="px-2 py-2 whitespace-nowrap">{agg.count}</td>
+                        <td className="px-2 py-2 whitespace-nowrap font-semibold text-green-700">₹{Math.round(receivedVal).toLocaleString()}</td>
+                        <td className="px-2 py-2 whitespace-nowrap">₹{Math.round(ticketVal).toLocaleString()}</td>
+                        <td className="px-2 py-2 whitespace-nowrap text-emerald-800">₹{Math.round(agg.profitNetSum).toLocaleString()}</td>
+                        <td className="px-2 py-2 whitespace-nowrap text-red-700">₹{Math.round(agg.refundSum).toLocaleString()}</td>
+                        <td className="px-2 py-2 whitespace-nowrap">
                           <span className={`px-2 py-1 rounded text-[10px] font-semibold ${p.isPartial ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{typeLabel}</span>
                         </td>
                       </tr>
@@ -664,14 +664,14 @@ export default function PaymentTracker({
                   })}
                   {/* Totals row */}
                   <tr className="bg-gradient-to-r from-emerald-50 to-green-50 font-semibold text-xs">
-                    <td className="px-3 py-2">Totals</td>
-                    <td className="px-3 py-2"></td>
-                    <td className="px-3 py-2">{sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).count, 0)}</td>
-                    <td className="px-3 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + (p.isPartial ? Number(p.amount || 0) : (aggregatesForPayment(p).ticketSum - aggregatesForPayment(p).refundSum)), 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2">₹{Math.round(sortedPayments.reduce((s, p) => s + (p.isPartial ? Number(p.amount || 0) : aggregatesForPayment(p).ticketSum), 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2 text-emerald-800">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).profitNetSum, 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2 text-red-700">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).refundSum, 0)).toLocaleString()}</td>
-                    <td className="px-3 py-2"></td>
+                    <td className="px-2 py-2">Totals</td>
+                    <td className="px-2 py-2"></td>
+                    <td className="px-2 py-2">{sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).count, 0)}</td>
+                    <td className="px-2 py-2 text-green-700">₹{Math.round(sortedPayments.reduce((s, p) => s + (p.isPartial ? Number(p.amount || 0) : (aggregatesForPayment(p).ticketSum - aggregatesForPayment(p).refundSum)), 0)).toLocaleString()}</td>
+                    <td className="px-2 py-2">₹{Math.round(sortedPayments.reduce((s, p) => s + (p.isPartial ? Number(p.amount || 0) : aggregatesForPayment(p).ticketSum), 0)).toLocaleString()}</td>
+                    <td className="px-2 py-2 text-emerald-800">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).profitNetSum, 0)).toLocaleString()}</td>
+                    <td className="px-2 py-2 text-red-700">₹{Math.round(sortedPayments.reduce((s, p) => s + aggregatesForPayment(p).refundSum, 0)).toLocaleString()}</td>
+                    <td className="px-2 py-2"></td>
                   </tr>
                 </tbody>
               </table>
@@ -704,36 +704,36 @@ export default function PaymentTracker({
             <table className="w-full table-auto">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Account</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Tickets</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Booking Amount</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Ticket Amount</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Profit</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Amount Paid</th>
-                  <th className="px-3 py-2 text-left font-semibold uppercase">Due Amount</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Account</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Tickets</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Booking Amount</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Ticket Amount</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Profit</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Amount Paid</th>
+                  <th className="px-2 py-2 text-left font-semibold uppercase">Due Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white text-xs">
                 {Object.entries(breakdowns[breakdownScope].byAccount).map(([account, v]) => (
                   <tr key={account} className="odd:bg-blue-50 even:bg-emerald-50 hover:brightness-95">
-                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-800">{account}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{v.count}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(v.booking).toLocaleString()}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">₹{Math.round(v.ticket).toLocaleString()}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-purple-900">₹{Math.round(v.profit).toLocaleString()}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-green-700 font-medium">₹{Math.round(v.paid).toLocaleString()}</td>
-                    <td className={`px-3 py-2 whitespace-nowrap ${v.due > 0 ? 'text-orange-700 font-semibold' : 'text-green-700 font-semibold'}`}>₹{Math.round(Math.max(0, v.due)).toLocaleString()}</td>
+                    <td className="px-2 py-2 whitespace-nowrap font-semibold text-gray-800">{account}</td>
+                    <td className="px-2 py-2 whitespace-nowrap">{v.count}</td>
+                    <td className="px-2 py-2 whitespace-nowrap">₹{Math.round(v.booking).toLocaleString()}</td>
+                    <td className="px-2 py-2 whitespace-nowrap">₹{Math.round(v.ticket).toLocaleString()}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-purple-900">₹{Math.round(v.profit).toLocaleString()}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-green-700 font-medium">₹{Math.round(v.paid).toLocaleString()}</td>
+                    <td className={`px-2 py-2 whitespace-nowrap ${v.due > 0 ? 'text-orange-700 font-semibold' : 'text-green-700 font-semibold'}`}>₹{Math.round(Math.max(0, v.due)).toLocaleString()}</td>
                   </tr>
                 ))}
                 {/* Totals Row */}
                 <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 font-semibold text-xs">
-                  <td className="px-3 py-2">Totals</td>
-                  <td className="px-3 py-2">{breakdowns[breakdownScope].totals.count}</td>
-                  <td className="px-3 py-2">₹{Math.round(breakdowns[breakdownScope].totals.booking).toLocaleString()}</td>
-                  <td className="px-3 py-2">₹{Math.round(breakdowns[breakdownScope].totals.ticket).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-purple-900">₹{Math.round(breakdowns[breakdownScope].totals.profit).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-green-700">₹{Math.round(breakdowns[breakdownScope].totals.paid).toLocaleString()}</td>
-                  <td className="px-3 py-2">₹{Math.round(Math.max(0, breakdowns[breakdownScope].totals.due)).toLocaleString()}</td>
+                  <td className="px-2 py-2">Totals</td>
+                  <td className="px-2 py-2">{breakdowns[breakdownScope].totals.count}</td>
+                  <td className="px-2 py-2">₹{Math.round(breakdowns[breakdownScope].totals.booking).toLocaleString()}</td>
+                  <td className="px-2 py-2">₹{Math.round(breakdowns[breakdownScope].totals.ticket).toLocaleString()}</td>
+                  <td className="px-2 py-2 text-purple-900">₹{Math.round(breakdowns[breakdownScope].totals.profit).toLocaleString()}</td>
+                  <td className="px-2 py-2 text-green-700">₹{Math.round(breakdowns[breakdownScope].totals.paid).toLocaleString()}</td>
+                  <td className="px-2 py-2">₹{Math.round(Math.max(0, breakdowns[breakdownScope].totals.due)).toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
@@ -780,12 +780,12 @@ export default function PaymentTracker({
             <table className="w-full table-auto">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gradient-to-r from-purple-700 to-violet-700 text-white">
-                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold uppercase align-middle">Month</th>
-                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold uppercase align-middle">Total Profit</th>
-                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold uppercase align-middle">Total Tickets</th>
-                  <th colSpan={2} className="px-3 py-2 text-center align-middle font-semibold uppercase">Train</th>
-                  <th colSpan={2} className="px-3 py-2 text-center align-middle font-semibold uppercase">Flight</th>
-                  <th colSpan={2} className="px-3 py-2 text-center align-middle font-semibold uppercase">Bus</th>
+                  <th rowSpan={2} className="px-2 py-2 text-left font-semibold uppercase align-middle">Month</th>
+                  <th rowSpan={2} className="px-2 py-2 text-left font-semibold uppercase align-middle">Total Profit</th>
+                  <th rowSpan={2} className="px-2 py-2 text-left font-semibold uppercase align-middle">Total Tickets</th>
+                  <th colSpan={2} className="px-2 py-2 text-center align-middle font-semibold uppercase">Train</th>
+                  <th colSpan={2} className="px-2 py-2 text-center align-middle font-semibold uppercase">Flight</th>
+                  <th colSpan={2} className="px-2 py-2 text-center align-middle font-semibold uppercase">Bus</th>
                 </tr>
                 <tr className="bg-gradient-to-r from-purple-500 to-violet-600 text-white">
                   <th className="px-3 py-1 text-left font-medium uppercase">Tickets</th>
@@ -799,27 +799,27 @@ export default function PaymentTracker({
               <tbody className="divide-y divide-white text-xs">
                 {monthlyStats.rows.map((r, idx) => (
                   <tr key={r.key} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-violet-50'} hover:brightness-95`}>
-                    <td className="px-3 py-2 font-semibold text-gray-800">{r.label}</td>
-                    <td className="px-3 py-2 text-purple-900 font-medium">₹{Math.round(r.totalProfit).toLocaleString()}</td>
-                    <td className="px-3 py-2 font-medium">{r.totalTickets}</td>
-                    <td className="px-3 py-2">{r.trainCount}</td>
-                    <td className="px-3 py-2 text-blue-900">₹{Math.round(r.trainProfit).toLocaleString()}</td>
-                    <td className="px-3 py-2">{r.flightCount}</td>
-                    <td className="px-3 py-2 text-purple-900">₹{Math.round(r.flightProfit).toLocaleString()}</td>
-                    <td className="px-3 py-2">{r.busCount}</td>
-                    <td className="px-3 py-2 text-emerald-900">₹{Math.round(r.busProfit).toLocaleString()}</td>
+                    <td className="px-2 py-2 font-semibold text-gray-800">{r.label}</td>
+                    <td className="px-2 py-2 text-purple-900 font-medium">₹{Math.round(r.totalProfit).toLocaleString()}</td>
+                    <td className="px-2 py-2 font-medium">{r.totalTickets}</td>
+                    <td className="px-2 py-2">{r.trainCount}</td>
+                    <td className="px-2 py-2 text-blue-900">₹{Math.round(r.trainProfit).toLocaleString()}</td>
+                    <td className="px-2 py-2">{r.flightCount}</td>
+                    <td className="px-2 py-2 text-purple-900">₹{Math.round(r.flightProfit).toLocaleString()}</td>
+                    <td className="px-2 py-2">{r.busCount}</td>
+                    <td className="px-2 py-2 text-emerald-900">₹{Math.round(r.busProfit).toLocaleString()}</td>
                   </tr>
                 ))}
                 <tr className="bg-gradient-to-r from-violet-50 to-purple-50 font-semibold text-xs">
-                  <td className="px-3 py-2">Totals</td>
-                  <td className="px-3 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.totalProfit).toLocaleString()}</td>
-                  <td className="px-3 py-2">{monthlyStats.totals.totalTickets}</td>
-                  <td className="px-3 py-2">{monthlyStats.totals.trainCount}</td>
-                  <td className="px-3 py-2 text-blue-900">₹{Math.round(monthlyStats.totals.trainProfit).toLocaleString()}</td>
-                  <td className="px-3 py-2">{monthlyStats.totals.flightCount}</td>
-                  <td className="px-3 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.flightProfit).toLocaleString()}</td>
-                  <td className="px-3 py-2">{monthlyStats.totals.busCount}</td>
-                  <td className="px-3 py-2 text-emerald-900">₹{Math.round(monthlyStats.totals.busProfit).toLocaleString()}</td>
+                  <td className="px-2 py-2">Totals</td>
+                  <td className="px-2 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.totalProfit).toLocaleString()}</td>
+                  <td className="px-2 py-2">{monthlyStats.totals.totalTickets}</td>
+                  <td className="px-2 py-2">{monthlyStats.totals.trainCount}</td>
+                  <td className="px-2 py-2 text-blue-900">₹{Math.round(monthlyStats.totals.trainProfit).toLocaleString()}</td>
+                  <td className="px-2 py-2">{monthlyStats.totals.flightCount}</td>
+                  <td className="px-2 py-2 text-purple-900">₹{Math.round(monthlyStats.totals.flightProfit).toLocaleString()}</td>
+                  <td className="px-2 py-2">{monthlyStats.totals.busCount}</td>
+                  <td className="px-2 py-2 text-emerald-900">₹{Math.round(monthlyStats.totals.busProfit).toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
@@ -853,7 +853,7 @@ export default function PaymentTracker({
                   <select
                     value={paymentData.account}
                     onChange={(e) => setPaymentData(prev => ({ ...prev, account: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                     disabled={openAccounts.length === 0}
                   >
@@ -873,7 +873,7 @@ export default function PaymentTracker({
                       type="date"
                       value={paymentData.date}
                       onChange={(e) => setPaymentData(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                      className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
                   </div>
@@ -887,7 +887,7 @@ export default function PaymentTracker({
                       value={paymentData.amount}
                       onChange={(e) => setPaymentData(prev => ({ ...prev, amount: e.target.value }))}
                       placeholder="e.g. 1200"
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                      className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
                   </div>
@@ -899,7 +899,7 @@ export default function PaymentTracker({
                       value={paymentData.period}
                       onChange={(e) => setPaymentData(prev => ({ ...prev, period: e.target.value }))}
                       placeholder="e.g., Jan 1 - Jan 15 2025"
-                      className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                      className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
                   </div>

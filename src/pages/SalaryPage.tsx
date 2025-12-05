@@ -198,16 +198,16 @@ export default function SalaryPage() {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="bg-gradient-to-r from-indigo-100 to-purple-100 text-gray-800">
-                                        <th className="px-3 py-2 text-left">Year</th>
-                                        <th className="px-3 py-2 text-right">Previous</th>
-                                        <th className="px-3 py-2 text-right">Hike %</th>
-                                        <th className="px-3 py-2 text-right">Hike Amount</th>
-                                        <th className="px-3 py-2 text-right">Revision %</th>
-                                        <th className="px-3 py-2 text-right">Total %</th>
-                                        <th className="px-3 py-2 text-right">Final</th>
-                                        <th className="px-3 py-2 text-right">Bonus %</th>
-                                        <th className="px-3 py-2 text-right">Bonus Amount</th>
-                                        <th className="px-3 py-2 text-center">Actions</th>
+                                        <th className="px-2 py-2 text-left">Year</th>
+                                        <th className="px-2 py-2 text-right">Previous</th>
+                                        <th className="px-2 py-2 text-right">Hike %</th>
+                                        <th className="px-2 py-2 text-right">Hike Amount</th>
+                                        <th className="px-2 py-2 text-right">Revision %</th>
+                                        <th className="px-2 py-2 text-right">Total %</th>
+                                        <th className="px-2 py-2 text-right">Final</th>
+                                        <th className="px-2 py-2 text-right">Bonus %</th>
+                                        <th className="px-2 py-2 text-right">Bonus Amount</th>
+                                        <th className="px-2 py-2 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -215,7 +215,7 @@ export default function SalaryPage() {
                                         const hikeAmount = Math.round(sal.previousSalary * sal.hikePercentage / 100);
                                         return (
                                             <tr key={sal._id} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                                                <td className="px-3 py-2 font-semibold">
+                                                <td className="px-2 py-2 font-semibold">
                                                     <div className="flex items-center gap-2">
                                                         {sal.year}
                                                         <button
@@ -227,15 +227,15 @@ export default function SalaryPage() {
                                                         </button>
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-2 text-right">{fmt(sal.previousSalary)}</td>
-                                                <td className="px-3 py-2 text-right">{pct(sal.hikePercentage)}</td>
-                                                <td className="px-3 py-2 text-right">{fmt(hikeAmount)}</td>
-                                                <td className="px-3 py-2 text-right">{pct(sal.revisionPercentage)}</td>
-                                                <td className="px-3 py-2 text-right font-semibold text-blue-700">{pct(sal.totalPercentage)}</td>
-                                                <td className="px-3 py-2 text-right font-semibold text-green-700">{fmt(sal.finalSalary)}</td>
-                                                <td className="px-3 py-2 text-right">{pct(sal.bonusPercentage)}</td>
-                                                <td className="px-3 py-2 text-right">{fmt(sal.bonusAmount)}</td>
-                                                <td className="px-3 py-2 text-center">
+                                                <td className="px-2 py-2 text-right">{fmt(sal.previousSalary)}</td>
+                                                <td className="px-2 py-2 text-right">{pct(sal.hikePercentage)}</td>
+                                                <td className="px-2 py-2 text-right">{fmt(hikeAmount)}</td>
+                                                <td className="px-2 py-2 text-right">{pct(sal.revisionPercentage)}</td>
+                                                <td className="px-2 py-2 text-right font-semibold text-blue-700">{pct(sal.totalPercentage)}</td>
+                                                <td className="px-2 py-2 text-right font-semibold text-green-700">{fmt(sal.finalSalary)}</td>
+                                                <td className="px-2 py-2 text-right">{pct(sal.bonusPercentage)}</td>
+                                                <td className="px-2 py-2 text-right">{fmt(sal.bonusAmount)}</td>
+                                                <td className="px-2 py-2 text-center">
                                                     <button
                                                         className="p-1 rounded hover:bg-gray-200 mr-1"
                                                         title="Edit"

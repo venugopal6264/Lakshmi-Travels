@@ -138,10 +138,15 @@ export type CreateNamePayload = {
 export interface ApiNote {
   _id?: string;
   title?: string;
-  content: string;
+  content?: string;
   color?: string;
   labels?: string[];
   pinned?: boolean;
+  format?: 'text' | 'table';
+  tableData?: {
+    headers: string[];
+    rows: string[][];
+  };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -372,7 +377,15 @@ class ApiService {
   async getNotes(): Promise<ApiNote[]> {
     return this.request<ApiNote[]>('/notes');
   }
-  async createNote(input: { title?: string; content: string; color?: string; labels?: string[]; pinned?: boolean }): Promise<ApiNote> {
+  async createNote(input: {
+    title?: string;
+    content?: string;
+    color?: string;
+    labels?: string[];
+    pinned?: boolean;
+    format?: 'text' | 'table';
+    tableData?: { headers: string[]; rows: string[][] };
+  }): Promise<ApiNote> {
     return this.request<ApiNote>('/notes', { method: 'POST', body: JSON.stringify(input) });
   }
   async updateNote(id: string, patch: Partial<ApiNote>): Promise<ApiNote> {

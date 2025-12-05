@@ -1,5 +1,5 @@
-import { BarChart3, DollarSign, Car, LogOut, User2, Menu, X, Search, Home, Users, StickyNote, TrendingUp } from 'lucide-react';
-import React, { useState } from 'react';
+import { BarChart3, DollarSign, Car, LogOut, User2, Search, Home, Users, StickyNote, TrendingUp, Menu, X, Bell } from 'lucide-react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 interface NavigationProps {
@@ -10,14 +10,8 @@ interface NavigationProps {
 
 export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch }: NavigationProps) {
     const { user, loading, logout } = useAuth();
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const hasAdminRole = (u: unknown): u is {
-        picture?: string | null; role: string
-    } => {
-        if (!u || typeof u !== 'object') return false;
-        const obj = u as Record<string, unknown>;
-        return typeof obj.role === 'string' && (obj.picture == null || typeof obj.picture === 'string');
-    };
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
         { id: 'payments', label: 'Payments', icon: DollarSign, path: '/payment-tracker' },
@@ -28,163 +22,227 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
         { id: 'salary', label: 'Salary', icon: TrendingUp, path: '/salary' },
     ];
 
-    const buildHref = (basePath: string) => basePath;
-
-    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        e.preventDefault();
-        onPageChange(id);
-        setMobileOpen(false);
+    const handleNavigation = (navItemId: string) => {
+        const item = navItems.find((i) => i.id === navItemId);
+        if (item) {
+            const targetPage = item.path === '/payment-tracker' ? 'payments'
+                : item.path === '/dashboard' ? 'dashboard'
+                    : item.path === '/vehicles' ? 'vehicles'
+                        : item.path === '/apartments' ? 'apartments'
+                            : item.path === '/customers' ? 'customers'
+                                : item.path === '/notes' ? 'notes'
+                                    : item.path === '/salary' ? 'salary'
+                                        : 'dashboard';
+            onPageChange(targetPage);
+            setMobileMenuOpen(false); // Close mobile menu after navigation
+        }
     };
 
+    const isActive = (id: string) => {
+        return currentPage === id ||
+            (id === 'payments' && currentPage === 'payments') ||
+            (id === 'dashboard' && currentPage === 'dashboard');
+    };
+
+    if (loading) {
+        return (
+            <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 shadow-xl flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            </aside>
+        );
+    }
+
+    if (!user) return null;
+
     return (
-        <nav className="sticky top-0 z-40 bg-gradient-to-r from-blue-700 via-indigo-600 to-emerald-600 shadow-md">
-            <div className="mx-auto px-3 sm:px-4">
-                <div className="flex items-center justify-between h-14 sm:h-16">
-                    <div className="flex items-center gap-3">
-                        {/* Place your logo file at public/logo.png */}
+        <>
+            {/* Mobile Top Navigation Bar */}
+            <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+                {/* Top Row with Icons */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                    {/* Hamburger Menu */}
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="p-2 rounded-lg hover:bg-gray-100"
+                    >
+                        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </button>
+
+                    {/* Logo/Brand - Center */}
+                    <button
+                        onClick={() => onPageChange('dashboard')}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                    >
                         <img
                             src="/logo.png"
-                            alt="Lakshmi Travels logo"
-                            className="h-8 w-8 object-contain bg-white rounded-md p-0.5 ring-1 ring-white/30 shadow-sm"
+                            alt="Logo"
+                            className="h-8 w-8 object-contain"
                         />
-                        <h1 className="text-lg sm:text-xl font-bold text-white">Lakshmi Travels</h1>
-                        {/* PNR Search trigger moved beside brand */}
-                        {!loading && user && (
-                            <button
-                                type="button"
-                                onClick={() => onOpenPnrSearch?.()}
-                                className="hidden md:inline-flex items-center justify-center rounded-full p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 ml-1"
-                                title="PNR Search"
-                            >
-                                <Search className="w-5 h-5" />
-                            </button>
-                        )}
-                    </div>
+                    </button>
 
-                    {/* Desktop nav */}
-                    <div className="hidden md:flex items-center space-x-1">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = currentPage === item.id;
-                            const href = buildHref(item.path);
-                            return (
-                                <a
-                                    key={item.id}
-                                    href={href}
-                                    onClick={(e) => handleClick(e, item.id)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${isActive
-                                        ? 'bg-white text-blue-700 font-medium'
-                                        : 'text-white/90 hover:text-white hover:bg-white/10'
-                                        }`}
-                                >
-                                    <Icon className="w-4 h-4" />
-                                    {item.label}
-                                </a>
-                            );
-                        })}
-                        {!loading && user && (
-                            <div className="ml-3 pl-3 border-l border-white/20 flex items-center">
-                                {/* User avatar/icon – clickable for admins to open Accounts page */}
-                                {user.picture ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => hasAdminRole(user) && user.role === 'admin' && onPageChange('accounts')}
-                                        title={hasAdminRole(user) && user.role === 'admin' ? 'Open Accounts' : 'User'}
-                                        className={`mr-2 ring-2 ring-white/30 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60 ${hasAdminRole(user) && user.role === 'admin' ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}`}
-                                    >
-                                        <img src={user.picture} alt="avatar" className="w-6 h-6" />
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => hasAdminRole(user) && user.role === 'admin' && onPageChange('accounts')}
-                                        title={hasAdminRole(user) && user.role === 'admin' ? 'Open Accounts' : 'User'}
-                                        className={`mr-2 text-white/90 rounded-full p-0.5 focus:outline-none focus:ring-2 focus:ring-white/60 ${hasAdminRole(user) && user.role === 'admin' ? 'cursor-pointer hover:bg-white/10' : 'cursor-default'}`}
-                                    >
-                                        <User2 className="w-5 h-5" />
-                                    </button>
-                                )}
-                                <button onClick={logout} className="flex items-center gap-1 px-3 py-2 rounded-md text-white/90 hover:text-white hover:bg-white/10">
-                                    <LogOut className="w-4 h-4" /> Logout
-                                </button>
-                            </div>
-                        )}
+                    {/* Right Icons */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => onPageChange('accounts')}
+                            className="p-2 rounded-lg hover:bg-gray-100 relative"
+                            title="Account Settings"
+                        >
+                            <User2 className="w-6 h-6" />
+                        </button>
+                        <button className="p-2 rounded-lg hover:bg-gray-100 relative" title="Notifications">
+                            <Bell className="w-6 h-6" />
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
                     </div>
+                </div>
 
-                    {/* Mobile hamburger */}
+                {/* Search Bar - Always Visible Below Top Bar */}
+                <div className="px-4 py-3 bg-white border-b border-gray-200">
                     <button
-                        className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-                        aria-label="Open menu"
-                        onClick={() => setMobileOpen((v) => !v)}
+                        onClick={() => onOpenPnrSearch?.()}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50 rounded-lg text-left border border-gray-200"
                     >
-                        {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                        <Search className="w-5 h-5 text-gray-400" />
+                        <span className="text-gray-500">Search</span>
                     </button>
                 </div>
 
-                {/* Mobile menu panel */}
-                <div className={`md:hidden transition-all duration-200 overflow-hidden ${mobileOpen ? 'max-h-96' : 'max-h-0'}`}>
-                    <div className="py-2 space-y-2">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = currentPage === item.id;
-                            const href = buildHref(item.path);
-                            return (
-                                <a
-                                    key={item.id}
-                                    href={href}
-                                    onClick={(e) => handleClick(e, item.id)}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-md mx-1 ${isActive
-                                        ? 'bg-white text-blue-700 font-medium shadow'
-                                        : 'text-white/90 hover:text-white hover:bg-white/10'
-                                        }`}
-                                >
-                                    <Icon className="w-5 h-5" />
-                                    <span className="text-sm">{item.label}</span>
-                                </a>
-                            );
-                        })}
-                        {!loading && user && (
-                            <div className="border-t border-white/10 mt-2 pt-2 mx-1 flex items-center justify-between px-4">
-                                <div className="flex items-center gap-2">
+                {/* Mobile Dropdown Menu */}
+                {mobileMenuOpen && (
+                    <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[80vh] overflow-y-auto">
+
+                        {/* Navigation Items */}
+                        <div className="py-2">
+                            {navItems.map((item) => {
+                                const Icon = item.icon;
+                                const active = isActive(item.id);
+                                return (
                                     <button
-                                        type="button"
-                                        onClick={() => onOpenPnrSearch?.()}
-                                        className="rounded-full p-2 text-white/90 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-                                        title="PNR Search"
+                                        key={item.id}
+                                        onClick={() => handleNavigation(item.id)}
+                                        className={`w-full flex items-center gap-3 px-6 py-3 text-left ${active
+                                            ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                            }`}
                                     >
-                                        <Search className="w-5 h-5" />
+                                        <Icon className="w-5 h-5" />
+                                        <span className="font-medium">{item.label}</span>
                                     </button>
-                                    {(hasAdminRole(user) && user.role === 'admin') ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => onPageChange('accounts')}
-                                            className="rounded-full ring-2 ring-white/30 overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60 hover:brightness-110"
-                                            title="Open Accounts"
-                                        >
-                                            {user.picture ? (
-                                                <img src={user.picture} alt="avatar" className="w-6 h-6" />
-                                            ) : (
-                                                <User2 className="w-5 h-5 text-white/90 m-0.5" />
-                                            )}
-                                        </button>
-                                    ) : (
-                                        user.picture ? (
-                                            <img src={user.picture} alt="avatar" className="w-6 h-6 rounded-full ring-2 ring-white/30" />
-                                        ) : (
-                                            <User2 className="w-5 h-5 text-white/90" />
-                                        )
-                                    )}
-                                    <span className="text-white/90 text-sm">{user.name || 'User'}</span>
+                                );
+                            })}
+                        </div>
+
+                        {/* User Section */}
+                        <div className="border-t border-gray-100 p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                    <User2 className="w-6 h-6 text-white" />
                                 </div>
-                                <button onClick={logout} className="flex items-center gap-1 px-3 py-2 rounded-md text-white/90 hover:text-white hover:bg-white/10">
-                                    <LogOut className="w-4 h-4" /> Logout
-                                </button>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {user.name || user.email || 'User'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">Online</p>
+                                </div>
                             </div>
-                        )}
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    setMobileMenuOpen(false);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                <span className="font-medium">Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </nav>
+
+            {/* Desktop Top Horizontal Bar - Full Width - Hidden on Mobile */}
+            <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 shadow-lg">
+                <div className="flex items-center justify-between gap-3 px-6 py-3">
+                    {/* Logo and Brand Name on Left */}
+                    <button
+                        onClick={() => onPageChange('dashboard')}
+                        className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+                    >
+                        <img
+                            src="/logo.png"
+                            alt="Lakshmi Travels logo"
+                            className="h-10 w-10 object-contain bg-white rounded-md p-1 ring-2 ring-white/30 shadow-md"
+                        />
+                        <div>
+                            <h1 className="text-lg font-bold text-white">Lakshmi Travels</h1>
+                            <p className="text-xs text-white/70">Travel Management</p>
+                        </div>
+                    </button>
+
+                    {/* Right Side Buttons */}
+                    <div className="flex items-center gap-3">
+                        {/* Search Button */}
+                        <button
+                            onClick={() => onOpenPnrSearch?.()}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all text-white border border-white/30 shadow-md hover:shadow-lg"
+                            title="PNR Search"
+                        >
+                            <Search className="w-5 h-5" />
+                            <span className="text-sm font-medium">Search</span>
+                        </button>
+
+                        {/* Account Button */}
+                        <button
+                            onClick={() => onPageChange('accounts')}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all text-white border border-white/30 shadow-md hover:shadow-lg"
+                            title="Account Settings"
+                        >
+                            <User2 className="w-5 h-5" />
+                            <span className="text-sm font-medium">Account</span>
+                        </button>
+
+                        {/* Logout Button */}
+                        <button
+                            onClick={logout}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white transition-all shadow-md hover:shadow-lg border border-white/20"
+                            title="Logout"
+                        >
+                            <LogOut className="w-5 h-5" />
+                            <span className="text-sm font-medium">Logout</span>
+                        </button>
                     </div>
                 </div>
             </div>
-        </nav>
+
+            {/* Desktop Vertical Sidebar - Below Horizontal Bar - Hidden on Mobile */}
+            <aside className="hidden md:flex fixed top-[64px] bottom-0 left-0 z-40 w-64 bg-slate-900 shadow-xl flex-col">
+                {/* Navigation Items */}
+                <nav className="flex-1 overflow-y-auto py-4 px-3">
+                    <div className="space-y-1">
+                        {navItems.map((item) => {
+                            const Icon = item.icon;
+                            const active = isActive(item.id);
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => handleNavigation(item.id)}
+                                    className={`
+                                        w-full flex items-center gap-3 px-4 py-3 rounded-lg
+                                        transition-all duration-200 group
+                                        ${active
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }
+                                    `}
+                                >
+                                    <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-slate-400 group-hover:text-white'} transition-colors`} />
+                                    <span className="font-medium text-sm">{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </nav>
+            </aside>
+        </>
     );
 }

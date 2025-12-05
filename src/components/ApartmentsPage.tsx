@@ -106,15 +106,15 @@ export default function ApartmentsPage() {
             <div className="bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h2 className="text-xl font-semibold text-white flex items-center gap-2 flex-shrink-0"><Home className="w-5 h-5" /> Apartments</h2>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                    <div className="flex items-center gap-2 bg-white/15 text-white rounded-full px-3 py-2 ring-1 ring-white/30">
+                    <div className="flex items-center gap-2 bg-white/15 text-white rounded-full px-2 py-2 ring-1 ring-white/30">
                         <Calendar className="w-4 h-4" />
                         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="bg-transparent focus:outline-none" />
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 bg-white/15 text-white rounded-full px-3 py-2 ring-1 ring-white/30">
+                    <div className="hidden sm:flex items-center gap-2 bg-white/15 text-white rounded-full px-2 py-2 ring-1 ring-white/30">
                         <Search className="w-4 h-4" />
                         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tenant or flat" className="bg-transparent placeholder:text-white/80 focus:outline-none" />
                     </div>
-                    <select value={filter} onChange={e => setFilter(e.target.value as 'all' | 'occupied' | 'vacant')} className="bg-white/90 text-indigo-700 rounded-full px-3 py-2 text-sm">
+                    <select value={filter} onChange={e => setFilter(e.target.value as 'all' | 'occupied' | 'vacant')} className="bg-white/90 text-indigo-700 rounded-full px-2 py-2 text-sm">
                         <option value="all">All</option>
                         <option value="occupied">Occupied</option>
                         <option value="vacant">Vacant</option>
@@ -298,14 +298,14 @@ function AddFlatModal({ onClose, onCreate }: { onClose: () => void; onCreate: (n
                         <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Flat Number</label>
-                                <input value={number} onChange={e => setNumber(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" placeholder="A-101" />
+                                <input value={number} onChange={e => setNumber(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" placeholder="A-101" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Notes</label>
-                                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" rows={3} />
+                                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" rows={3} />
                             </div>
                             <div className="flex justify-end gap-2 pt-2">
-                                <button onClick={onClose} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
+                                <button onClick={onClose} className="px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
                                 <button onClick={() => onCreate(number, notes)} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create</button>
                             </div>
                         </div>
@@ -338,32 +338,32 @@ function EditTenantModal({ tenant, onClose, onSave }: { tenant: ApiTenant; onClo
                         <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Tenant Name</label>
-                                <input value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                <input value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Phone</label>
-                                <input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                <input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Aadhar Number</label>
-                                <input value={aadharNumber} onChange={e => setAadharNumber(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                <input value={aadharNumber} onChange={e => setAadharNumber(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Rent Amount</label>
-                                    <input type="number" value={rentAmount} onChange={e => setRentAmount(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                    <input type="number" value={rentAmount} onChange={e => setRentAmount(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Deposit</label>
-                                <input type="number" value={deposit} onChange={e => setDeposit(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                <input type="number" value={deposit} onChange={e => setDeposit(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                             </div>
                             <div className="flex justify-end gap-2 pt-2">
-                                <button onClick={onClose} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
+                                <button onClick={onClose} className="px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
                                 <button onClick={save} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
                             </div>
                         </div>
@@ -429,32 +429,32 @@ function AddTenantModal({ flat, onClose, onCreate }: { flat: ApiFlat; onClose: (
                         <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Tenant Name</label>
-                                <input value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" placeholder="John Doe" />
+                                <input value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" placeholder="John Doe" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Phone</label>
-                                <input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" placeholder="9876543210" />
+                                <input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" placeholder="9876543210" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Aadhar Number</label>
-                                <input value={aadhar} onChange={e => setAadhar(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" placeholder="XXXX-XXXX-XXXX" />
+                                <input value={aadhar} onChange={e => setAadhar(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" placeholder="XXXX-XXXX-XXXX" />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Rent Amount</label>
-                                    <input type="number" value={rentAmount} onChange={e => setRentAmount(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                    <input type="number" value={rentAmount} onChange={e => setRentAmount(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Deposit</label>
-                                <input type="number" value={deposit} onChange={e => setDeposit(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                                <input type="number" value={deposit} onChange={e => setDeposit(Number(e.target.value))} className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2" />
                             </div>
                             <div className="flex justify-end gap-2 pt-2">
-                                <button onClick={onClose} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
+                                <button onClick={onClose} className="px-2 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
                                 <button onClick={() => onCreate({ name, phone, aadharNumber: aadhar, startDate, rentAmount, deposit })} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
                             </div>
                         </div>

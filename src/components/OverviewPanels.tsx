@@ -113,14 +113,14 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                     <table className="w-full table-auto">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-purple-500 text-white">
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Partial</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Booking</th>
-                                <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Profit</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Account</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Partial</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Tickets</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Total</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Refund</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Booking</th>
+                                <th className="px-2 py-2 sm:px-4 sm:py-3 text-left font-semibold uppercase tracking-wider">Profit</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 text-xs">
@@ -129,7 +129,7 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                                     key={account}
                                     className={`transition-colors odd:bg-white even:bg-indigo-50 hover:bg-indigo-100 ${accountFilter === account ? 'ring-2 ring-indigo-400' : ''} ${totals.due < 0 ? 'bg-rose-50 hover:bg-rose-100' : ''}`}
                                 >
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap font-medium text-gray-900">
                                         <button
                                             type="button"
                                             onClick={() => onSelectAccount(account)}
@@ -140,26 +140,26 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                                             {account}
                                         </button>
                                     </td>
-                                    <td className={`px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap font-semibold ${totals.due < 0 ? 'text-red-700' : 'text-blue-700'}`}>₹{Math.round(totals.due).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-indigo-900">₹{Math.round(totals.booking).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 whitespace-nowrap text-green-900">₹{Math.round(totals.profit).toLocaleString()}</td>
+                                    <td className={`px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap font-semibold ${totals.due < 0 ? 'text-red-700' : 'text-blue-700'}`}>₹{Math.round(totals.due).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap text-amber-700">₹{Math.round(totals.partial).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap text-gray-900">{totals.count}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap text-purple-900">₹{Math.round(totals.amount).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap text-indigo-900">₹{Math.round(totals.booking).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 whitespace-nowrap text-green-900">₹{Math.round(totals.profit).toLocaleString()}</td>
                                 </tr>
                             ))}
                             {/* Totals Row */}
                             {Object.keys(accountBreakdown).length > 0 && (
                                 <tr className="bg-gradient-to-r from-purple-100 to-purple-200 font-semibold text-xs">
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4">Totals</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.due, 0)).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 text-amber-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.partial, 0)).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 text-indigo-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.booking, 0)).toLocaleString()}</td>
-                                    <td className="px-3 py-3 sm:px-4 sm:py-4 text-green-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.profit, 0)).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4">Totals</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 text-blue-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.due, 0)).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 text-amber-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.partial, 0)).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4">{Object.values(accountBreakdown).reduce((s, v) => s + v.count, 0)}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 text-purple-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.amount, 0)).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 text-red-700">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.refund, 0)).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 text-indigo-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.booking, 0)).toLocaleString()}</td>
+                                    <td className="px-2 py-2 sm:px-4 sm:py-4 text-green-900">₹{Math.round(Object.values(accountBreakdown).reduce((s, v) => s + v.profit, 0)).toLocaleString()}</td>
                                 </tr>
                             )}
                         </tbody>

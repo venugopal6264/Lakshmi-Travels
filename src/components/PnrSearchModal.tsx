@@ -134,7 +134,7 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelected(t)}
-                                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gradient-to-r from-indigo-600 to-emerald-600 text-white text-sm hover:from-indigo-500 hover:to-emerald-500"
+                                                        className="inline-flex items-center gap-2 px-2 py-2 rounded-md bg-gradient-to-r from-indigo-600 to-emerald-600 text-white text-sm hover:from-indigo-500 hover:to-emerald-500"
                                                     >
                                                         <Edit3 className="w-4 h-4" /> Edit Ticket
                                                     </button>
