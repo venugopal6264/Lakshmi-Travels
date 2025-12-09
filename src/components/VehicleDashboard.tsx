@@ -4,10 +4,9 @@ import { ApiFuel, apiService } from '../services/api';
 import { useFuel } from '../hooks/useApi';
 import { VehicleDash } from '../utils/Vehicles/FuelUtils';
 import { VehicleType, withAlpha } from '../utils/common/utils';
-import { FuelSummarySection } from '../utils/charts/FuelSummarySection';
 import { AddVehicleModal, VehicleDoc, VehicleManagerModal } from '../utils/Vehicles/VehicleUtils';
 import { FuelEntryModal } from '../utils/Vehicles/FuelEntry';
-import { LastServiceOverview } from '../utils/Vehicles/LastServiceOverview';
+import { VehicleCostWidgets } from './VehicleCostWidgets';
 
 const VehicleDashboard = () => {
     const vehicleDisplay: Record<VehicleType, string> = {
@@ -146,12 +145,13 @@ const VehicleDashboard = () => {
                 </div>
             </div>
             <div className="p-6">
-                {/* All Vehicles - Last Service / Repair Overview (per-card expandable info) */}
+                {/* Vehicle Cost Widgets - Total cost breakdown for each vehicle */}
                 {vehicles.length > 0 && (
-                    <LastServiceOverview
+                    <VehicleCostWidgets
                         vehicles={vehicles}
                         fuel={fuel}
-                        onSelect={(v) => {
+                        selectedVehicleId={selectedVehicleId}
+                        onVehicleClick={(v) => {
                             setActiveVehicle(v.type);
                             setActiveVehicleId(v._id);
                             setSelectedVehicleId(v._id);
@@ -261,8 +261,6 @@ const VehicleDashboard = () => {
 
                     </div>
                 )}
-
-                <FuelSummarySection items={periodFilteredFuel} color={selectedVehicleColor} />
             </div>
             {vehicleModalOpen && (
                 <AddVehicleModal

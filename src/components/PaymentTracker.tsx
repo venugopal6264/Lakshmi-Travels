@@ -1,4 +1,4 @@
-import { Calendar, DollarSign, Download, Layers } from 'lucide-react';
+import { Calendar, DollarSign, Download, Layers, TrendingUp } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import TicketTable from './TicketTable';
@@ -126,10 +126,6 @@ export default function PaymentTracker({
     const vals = monthlyPayments.rows.map(r => Math.max(0, Number(r.amount || 0)));
     return Math.max(1, ...vals);
   }, [monthlyPayments.rows]);
-  // Spread bars when few months; otherwise scroll
-  const payBarWrapCls = (monthlyPayments.rows.length <= 8)
-    ? 'flex items-end gap-3 h-40 w-full justify-between'
-    : 'flex items-end gap-3 h-40 min-w-max';
 
   // Build paid ticket IDs within date range (for per-range views)
   const paidTicketIds = React.useMemo(() => dateFilteredPayments.flatMap(p => p.tickets || []), [dateFilteredPayments]);
@@ -436,7 +432,6 @@ export default function PaymentTracker({
     return { rows, totals };
   }, [paidTickets]);
   const maxMonthlyProfit = React.useMemo(() => Math.max(1, ...monthlyStats.rows.map(r => Math.max(0, r.totalProfit))), [monthlyStats.rows]);
-  const perfBarWrapCls = (monthlyStats.rows.length <= 8) ? 'flex items-end gap-3 h-48 w-full justify-between' : 'flex items-end gap-3 h-48 min-w-max';
 
   return (
     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden mb-6">
@@ -580,27 +575,37 @@ export default function PaymentTracker({
           </div>
 
           {/* Monthly Amount Received Bar Chart */}
-          <div className="overflow-x-auto rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-3 mb-3">
-            <div className={payBarWrapCls}>
+          <div className="rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-4 mb-3">
+            <h4 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Monthly Amount Received
+            </h4>
+            <div className="space-y-3">
               {monthlyPayments.rows.map((r) => {
                 const amt = Math.max(0, Number(r.amount || 0));
-                const height = Math.max(4, Math.round((amt / maxMonthlyReceived) * 120));
+                const widthPercent = Math.max(2, Math.round((amt / maxMonthlyReceived) * 100));
                 const value = `₹${Math.round(amt).toLocaleString()}`;
-                const monthLabel = r.label.split(' ')[0];
                 return (
-                  <div key={r.key} className="group flex flex-col items-center justify-end">
-                    <div
-                      className="relative w-8 sm:w-10 rounded-t-md bg-gradient-to-t from-emerald-600 to-green-500 shadow-sm"
-                      style={{ height: `${height}px` }}
-                      title={`${r.label}: ${value}`}
-                    >
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white/90 [writing-mode:vertical-rl] [text-orientation:mixed]">{value}</span>
+                  <div key={r.key} className="group flex items-center gap-3">
+                    <div className="w-20 text-xs font-medium text-gray-700 text-right flex-shrink-0" title={r.label}>
+                      {r.label}
                     </div>
-                    <div className="mt-1 text-[10px] text-gray-600 w-10 text-center truncate" title={r.label}>{monthLabel}</div>
+                    <div className="flex-1 relative">
+                      <div
+                        className="h-8 rounded-md bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm transition-all duration-300 hover:from-emerald-700 hover:to-green-600 flex items-center justify-end px-2"
+                        style={{ width: `${widthPercent}%` }}
+                        title={`${r.label}: ${value}`}
+                      >
+                        <span className="text-xs font-semibold text-white whitespace-nowrap">{value}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
+            {monthlyPayments.rows.length === 0 && (
+              <div className="text-center py-4 text-gray-500 text-sm">No payment data available</div>
+            )}
           </div>
 
           {loading && (
@@ -747,33 +752,43 @@ export default function PaymentTracker({
         <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-purple-500">
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Monthly Performance
+              <Calendar className="w-4 h-4" /> Monthly Profit History
             </h3>
             <div className="text-xs text-purple-700 bg-purple-50 px-3 py-1 rounded border border-purple-200">Filtered: {from} → {to}</div>
           </div>
 
           {/* Monthly Profit Bar Chart */}
-          <div className="overflow-x-auto rounded-md border border-purple-100 bg-gradient-to-b from-white to-purple-50/40 p-3 mb-3">
-            <div className={perfBarWrapCls}>
+          <div className="rounded-md border border-purple-100 bg-gradient-to-b from-white to-purple-50/40 p-4 mb-3">
+            <h4 className="text-sm font-semibold text-purple-700 mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Monthly Profit Trend
+            </h4>
+            <div className="space-y-3">
               {monthlyStats.rows.map((r) => {
                 const profit = Math.max(0, Number(r.totalProfit || 0));
-                const height = Math.max(4, Math.round((profit / maxMonthlyProfit) * 160));
+                const widthPercent = Math.max(2, Math.round((profit / maxMonthlyProfit) * 100));
                 const value = `₹${Math.round(profit).toLocaleString()}`;
-                const monthLabel = r.label.split(' ')[0];
                 return (
-                  <div key={r.key} className="group flex flex-col items-center justify-end">
-                    <div
-                      className="relative w-8 sm:w-10 rounded-t-md bg-gradient-to-t from-violet-600 to-purple-500 shadow-sm"
-                      style={{ height: `${height}px` }}
-                      title={`${r.label}: ${value}`}
-                    >
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white/90 [writing-mode:vertical-rl] [text-orientation:mixed]">{value}</span>
+                  <div key={r.key} className="group flex items-center gap-3">
+                    <div className="w-20 text-xs font-medium text-gray-700 text-right flex-shrink-0" title={r.label}>
+                      {r.label}
                     </div>
-                    <div className="mt-1 text-[10px] text-gray-600 w-10 text-center truncate" title={r.label}>{monthLabel}</div>
+                    <div className="flex-1 relative">
+                      <div
+                        className="h-8 rounded-md bg-gradient-to-r from-violet-600 to-purple-500 shadow-sm transition-all duration-300 hover:from-violet-700 hover:to-purple-600 flex items-center justify-end px-2"
+                        style={{ width: `${widthPercent}%` }}
+                        title={`${r.label}: ${value}`}
+                      >
+                        <span className="text-xs font-semibold text-white whitespace-nowrap">{value}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
+            {monthlyStats.rows.length === 0 && (
+              <div className="text-center py-4 text-gray-500 text-sm">No profit data available</div>
+            )}
           </div>
 
           <div className="overflow-x-auto max-h-[60vh] relative rounded-md">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiFuel, apiService, FuelSummaryResponse } from "../../services/api";
 import { MonthRow } from "../common/utils";
-import { MonthlyFuelServiceBarChart } from "./MonthlyFuelServiceBarChart";
+import { MonthlyHorizontalBarChart } from "./MonthlyHorizontalBarChart";
 
 export function FuelSummarySection(
     { items, color }: { items?: ApiFuel[]; color?: string } = {}
@@ -93,7 +93,7 @@ export function FuelSummarySection(
                 <div className="rounded-xl border p-4 border-t-4" style={{ borderTopColor: theme, borderColor: `${theme}40`, background: `linear-gradient(135deg, ${theme}0D, #10b9810D)` }}>
                     <h3 className="text-lg font-semibold" style={{ color: theme }}>Monthly Summary (All Time)</h3>
                     <div className="mt-3">
-                        <MonthlyFuelServiceBarChart rows={monthlyRows} color={theme} />
+                        <MonthlyHorizontalBarChart rows={monthlyRows} color={theme} />
                     </div>
                 </div>
             )}

@@ -3,7 +3,8 @@ import { ApiFuel } from "../../services/api";
 import { Fuel, Gauge, Wrench } from "lucide-react";
 import { fmtMonthYY, fmtShort, VehicleType } from "../common/utils";
 import { FuelTableBody, FuelTableFooter } from "./Fueltable";
-import CostComparisonDonut from "./CostComparisonDonut";
+import CostComparisonHorizontalBar from "./CostComparisonHorizontalBar";
+import { FuelSummarySection } from "../charts/FuelSummarySection";
 
 /** Odometer line chart: plots odometer vs date with simple grid */
 const OdometerLine = ({ items, color }: { items: ApiFuel[]; color?: string }) => {
@@ -324,6 +325,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
         </div>
 
+        {/*  Refueling History Table */}
         <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
           <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -352,6 +354,9 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             </table>
           </div>
         </div>
+
+        <FuelSummarySection items={items} color={color} />
+
         {/* Monthly Summary Table */}
         <div className="mt-6 bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4" style={{ borderTopColor: themeColor }}>
           <div className="px-6 py-3 text-white flex items-center justify-between" style={{ background: themeColor }}>
@@ -388,20 +393,20 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
         </div>
 
-        {/* Charts: Cost comparison (donut) and Odometer line */}
+        {/* Charts: Cost comparison (horizontal bar) and Odometer line */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           <div className="bg-white rounded-lg shadow-md p-4 border-t-4" style={{ borderTopColor: themeColor }}>
             <h3 className="text-base font-semibold text-gray-800 mb-2">Cost comparison chart</h3>
-            <CostComparisonDonut items={sorted} color={themeColor} />
+            <CostComparisonHorizontalBar items={sorted} color={themeColor} />
           </div>
           <div className="bg-white rounded-lg shadow-md px-4 pt-4 pb-0 border-t-4" style={{ borderTopColor: themeColor }}>
             <h3 className="text-base font-semibold text-gray-800 mb-4">Odometer chart</h3>
             <OdometerLine items={sorted} color={themeColor} />
           </div>
         </div>
-
-
       </div>
+
+      {/* Service History Table */}
       <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
         <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
           <h3 className="text-lg font-semibold flex items-center gap-2">
