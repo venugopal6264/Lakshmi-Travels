@@ -313,6 +313,17 @@ const VehicleDashboard = () => {
             )}
             {/* Floating vehicle selector buttons */}
             <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+                {/* Add Fuel */}
+                <button
+                    type="button"
+                    title="Add Fuel"
+                    aria-label="Add Fuel"
+                    onClick={() => { setEditingEntry(null); setEntryModalOpen(true); }}
+                    className="w-14 h-14 rounded-full shadow-xl ring-2 ring-emerald-400/50 flex items-center justify-center transition transform hover:scale-110 hover:shadow-2xl"
+                    style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }}
+                >
+                    <FuelIcon className="w-7 h-7" />
+                </button>
                 {/* All Vehicles */}
                 <button
                     type="button"
@@ -326,9 +337,7 @@ const VehicleDashboard = () => {
                     }}
                     className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105 ${!activeVehicleId ? 'ring-2 ring-indigo-500' : ''}`}
                     style={{ background: withAlpha('#3b82f6', 0.85), color: '#fff' }}
-                >
-                    <FuelIcon className="w-6 h-6" />
-                </button>
+                >Reset</button>
                 {vehicles.map(v => {
                     const Icon = v.type === 'car' ? Car : Bike;
                     const isActive = activeVehicleId === v._id;

@@ -192,25 +192,6 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
     };
   }, [sorted]);
 
-  // Latest service or repair entry for this vehicle
-  const lastService = useMemo(() => {
-    const svc = sorted.filter(e => e.entryType === 'service' || e.entryType === 'repair');
-    if (!svc.length) return null;
-    // sorted is ascending by date, so last element with service/repair may not be at end if last entries are refueling; find max date
-    let latest = svc[0];
-    let latestTime = new Date(latest.date || 0).getTime();
-    for (const e of svc) {
-      const t = new Date(e.date || 0).getTime();
-      if (t > latestTime) { latest = e; latestTime = t; }
-    }
-    return latest;
-  }, [sorted]);
-  const lastServiceDaysAgo = useMemo(() => {
-    if (!lastService || !lastService.date) return null;
-    const ms = Date.now() - new Date(lastService.date).getTime();
-    return Math.floor(ms / (1000 * 60 * 60 * 24));
-  }, [lastService]);
-
   const inr3 = (n = 0) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
   const monthlyRows = useMemo(() => {
     // Refueling entries with valid date
@@ -258,13 +239,12 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
 
   const themeColor = color || (vehicle === 'car' ? '#ef4444' : '#16a34a');
   return (
-    <section className="mt-4">
-      <div>
-        {/* Single colorful row: Cost, Refueling, Services, Distance */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 lg:gap-8">
-
+    <>
+      <>
+        {/* Single colorful row: Cost, Refueling, Services, Distance, Cost per Km */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 lg:gap-8">
           {/* Cost */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 border-t-4 border-t-indigo-500">
+          <div className="rounded-lg border p-2 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 border-t-4 border-t-indigo-500">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-indigo-700">Cost</span>
             </div>
@@ -273,7 +253,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
 
           {/* Refueling */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 border-t-4 border-t-amber-500">
+          <div className="rounded-lg border p-2 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 border-t-4 border-t-amber-500">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-amber-700 inline-flex items-center gap-2">
                 <Fuel className="h-4 w-4 text-amber-600" /> Refueling
@@ -284,7 +264,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
 
           {/* Services */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 border-fuchsia-200 border-t-4 border-t-fuchsia-500">
+          <div className="rounded-lg border p-2 bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 border-fuchsia-200 border-t-4 border-t-fuchsia-500">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-fuchsia-700 inline-flex items-center gap-2">
                 <Wrench className="h-4 w-4 text-fuchsia-600" /> Services
@@ -295,7 +275,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
 
           {/* Distance */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-sky-50 to-blue-50 border-blue-200 border-t-4 border-t-sky-500">
+          <div className="rounded-lg border p-2 bg-gradient-to-br from-sky-50 to-blue-50 border-blue-200 border-t-4 border-t-sky-500">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-sky-700 inline-flex items-center gap-2">
                 <Gauge className="h-4 w-4 text-sky-600" /> Distance
@@ -305,48 +285,55 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             <div className="text-xs text-sky-600 mt-1">{Math.round(totals.distance / Math.max(1, totals.rangeDays))} km by day</div>
           </div>
 
-          {/* Last Service / Repair */}
-          <div className="rounded-lg border p-4 bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200 col-span-1 border-t-4 border-t-rose-500">
+          {/* Cost per Km */}
+          <div className="rounded-lg border p-2 bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200 border-t-4 border-t-emerald-500">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-rose-700 inline-flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-rose-600" /> Last Service
+              <span className="text-sm font-medium text-emerald-700 inline-flex items-center gap-2">
+                <Gauge className="h-4 w-4 text-emerald-600" /> Cost/Km
               </span>
             </div>
-            {lastService ? (
-              <div className="mt-1 space-y-1">
-                <div className="text-lg font-semibold text-rose-700">{new Date(lastService.date!).toISOString().slice(0, 10)}</div>
-                <div className="text-sm text-rose-700">₹{Math.round(Number(lastService.total) || 0).toLocaleString('en-IN')} • <span className="capitalize">{lastService.entryType}</span></div>
-                {lastServiceDaysAgo != null && <div className="text-[11px] text-rose-600">{lastServiceDaysAgo === 0 ? 'Today' : `${lastServiceDaysAgo} day${lastServiceDaysAgo === 1 ? '' : 's'} ago`}</div>}
-                {lastService.notes && <div className="text-[11px] text-rose-500 line-clamp-2">{lastService.notes}</div>}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="text-sm text-emerald-600 font-medium">Total : </div>
+                <div className="text-2xl font-semibold text-emerald-700">
+                  {totals.distance > 0 ? `₹${totals.byKm.toFixed(2)}` : '₹0'}
+                </div>
               </div>
-            ) : (
-              <div className="mt-1 text-sm text-rose-600">No service/repair yet</div>
-            )}
+              <div className="flex-1">
+                <div className="text-sm text-emerald-600 font-medium">Refuel</div>
+                <div className="text-2xl font-semibold text-emerald-700">
+                  {totals.distance > 0 ? `₹${(totals.refuel / totals.distance).toFixed(2)}` : '₹0'}
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-emerald-600">
+              {totals.distance > 0 ? `per kilometer (${Math.round(totals.distance)} km)` : 'No distance data'}
+            </div>
           </div>
         </div>
 
         {/*  Refueling History Table */}
-        <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
+        <div className={`bg-white mt-2 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
           <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Fuel className="w-5 h-5" />
               Refueling History
             </h3>
           </div>
-          <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y`} style={{ borderColor: themeColor }}>
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
+            <table className={`min-w-full divide-y border-collapse`} style={{ borderColor: themeColor }}>
               <thead style={{ background: `${themeColor}1A`, borderBottom: `1px solid ${themeColor}` }}>
                 <tr>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Date</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Distance</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Mileage</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Odometer</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Liters</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Price</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Total</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Missed Prev</th>
-                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Notes</th>
-                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: themeColor }}>Actions</th>}
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Date</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Distance</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Mileage</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Odometer</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Liters</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Price</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Total</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Missed Prev</th>
+                  <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Notes</th>
+                  {(onEdit || onDelete) && <th className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider border-l`} style={{ color: themeColor, borderLeftColor: themeColor }}>Actions</th>}
                 </tr>
               </thead>
               <FuelTableBody items={items} vehicle={vehicle} onlyType="refueling" onEdit={onEdit} onDelete={onDelete} />
@@ -358,7 +345,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
         <FuelSummarySection items={items} color={color} />
 
         {/* Monthly Summary Table */}
-        <div className="mt-6 bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4" style={{ borderTopColor: themeColor }}>
+        <div className="mt-2 bg-white rounded-lg shadow-md p-0 overflow-hidden border-t-4" style={{ borderTopColor: themeColor }}>
           <div className="px-6 py-3 text-white flex items-center justify-between" style={{ background: themeColor }}>
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Fuel className="w-5 h-5" /> Monthly Refueling Summary
@@ -394,7 +381,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
         </div>
 
         {/* Charts: Cost comparison (horizontal bar) and Odometer line */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           <div className="bg-white rounded-lg shadow-md p-4 border-t-4" style={{ borderTopColor: themeColor }}>
             <h3 className="text-base font-semibold text-gray-800 mb-2">Cost comparison chart</h3>
             <CostComparisonHorizontalBar items={sorted} color={themeColor} />
@@ -404,10 +391,10 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
             <OdometerLine items={sorted} color={themeColor} />
           </div>
         </div>
-      </div>
+      </>
 
       {/* Service History Table */}
-      <div className={`bg-white mt-6 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
+      <div className={`bg-white mt-2 rounded-lg shadow-md p-0 overflow-hidden border-t-4`} style={{ borderTopColor: themeColor }}>
         <div className={`px-6 py-3 text-white flex items-center justify-between`} style={{ background: themeColor }}>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Wrench className="w-5 h-5" />
@@ -433,6 +420,6 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
           </div>
         </>
       </div>
-    </section>
+    </>
   );
 }

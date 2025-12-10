@@ -84,70 +84,77 @@ export function FuelTableBody({
         <>
             <tbody className={tbodyClass}>
                 {list.map((e, idx) => {
-                    const distanceCell = (
-                        <td className="px-4 py-2 whitespace-nowrap">
-                            {(() => {
-                                const row = mileageArr[idx];
-                                if (!row || row.prev == null || row.curr == null) return '';
-                                const dist = row.curr - row.prev;
-                                return dist > 0 ? Math.round(dist).toLocaleString() + ' km' : '';
-                            })()}
-                        </td>
-                    );
-                    const mileageCell = (
-                        <td className="px-4 py-2 whitespace-nowrap">
-                            {(() => {
-                                const row = mileageArr[idx];
-                                if (!row || row.mileage == null) return '';
-                                return Number(row.mileage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km/l';
-                            })()}
-                        </td>
-                    );
                     return (
                         <tr key={e._id} className={rowClass}>
-                            <td className="px-4 py-2 whitespace-nowrap">{onlyType === 'refueling' ? formatDDMon(e.date) : e.date?.slice(0, 10)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{onlyType === 'refueling' ? formatDDMon(e.date) : e.date?.slice(0, 10)}</td>
                             {onlyType ? (
                                 <>
                                     {onlyType === 'service' ? (
                                         <>
-                                            <td className="px-4 py-2 whitespace-nowrap capitalize">
+                                            <td className="px-4 py-2 whitespace-nowrap capitalize border-l border-gray-300">
                                                 <span className={typeBadge(e.entryType)}>{e.entryType}</span>
                                             </td>
-                                            <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
                                         </>
                                     ) : (
                                         <>
-                                            {distanceCell}
-                                            {mileageCell}
-                                            <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">
+                                                {(() => {
+                                                    const row = mileageArr[idx];
+                                                    if (!row || row.prev == null || row.curr == null) return '';
+                                                    const dist = row.curr - row.prev;
+                                                    return dist > 0 ? Math.round(dist).toLocaleString() + ' km' : '';
+                                                })()}
+                                            </td>
+                                            <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">
+                                                {(() => {
+                                                    const row = mileageArr[idx];
+                                                    if (!row || row.mileage == null) return '';
+                                                    return Number(row.mileage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km/l';
+                                                })()}
+                                            </td>
+                                            <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
                                         </>
                                     )}
                                 </>
                             ) : (
                                 <>
-                                    <td className="px-4 py-2 whitespace-nowrap capitalize"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap capitalize border-l border-gray-300"><span className={typeBadge(e.entryType)}>{e.entryType}</span></td>
+                                    <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.odometer != null ? Math.round(Number(e.odometer)).toLocaleString() : ''}</td>
                                 </>
                             )}
                             {onlyType !== 'service' && (
                                 <>
-                                    <td className="px-4 py-2 whitespace-nowrap">{e.liters != null ? Number(e.liters).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap">{e.pricePerLiter != null ? Number(e.pricePerLiter).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.liters != null ? Number(e.liters).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.pricePerLiter != null ? Number(e.pricePerLiter).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
                                 </>
                             )}
-                            <td className="px-4 py-2 whitespace-nowrap">{e.total != null ? Math.round(Number(e.total)).toLocaleString() : ''}</td>
+                            <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.total != null ? Math.round(Number(e.total)).toLocaleString() : ''}</td>
                             {onlyType === 'refueling' && (
-                                <td className="px-4 py-2 whitespace-nowrap">{e.missedPreviousRefuel ? 'Yes' : 'No'}</td>
+                                <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">{e.missedPreviousRefuel ? 'Yes' : 'No'}</td>
                             )}
                             {!onlyType && (
                                 <>
-                                    {distanceCell}
-                                    {mileageCell}
+                                    <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">
+                                        {(() => {
+                                            const row = mileageArr[idx];
+                                            if (!row || row.prev == null || row.curr == null) return '';
+                                            const dist = row.curr - row.prev;
+                                            return dist > 0 ? Math.round(dist).toLocaleString() + ' km' : '';
+                                        })()}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">
+                                        {(() => {
+                                            const row = mileageArr[idx];
+                                            if (!row || row.mileage == null) return '';
+                                            return Number(row.mileage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km/l';
+                                        })()}
+                                    </td>
                                 </>
                             )}
-                            <td className="px-4 py-2">{e.notes ?? ''}</td>
+                            <td className="px-4 py-2 border-l border-gray-300">{e.notes ?? ''}</td>
                             {(onEdit || onDelete) && (
-                                <td className="px-4 py-2 whitespace-nowrap">
+                                <td className="px-4 py-2 whitespace-nowrap border-l border-gray-300">
                                     <div className="flex items-center gap-1.5">
                                         {onEdit && (
                                             <button
@@ -309,17 +316,18 @@ export function FuelTableFooter({
         return (
             <tfoot>
                 <tr className={tClass}>
-                    <td className="px-4 py-2 text-sm">
+                    <td className="px-4 py-2 text-sm border-l border-gray-300">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge}`}>Totals</span>
                     </td>
-                    <td className="px-4 py-2 text-sm">{odoKm} km</td>
-                    <td className="px-4 py-2 text-sm">{avgMileage} km/L</td>
-                    <td className="px-4 py-2 text-sm">{sumLiters}</td>
-                    <td className="px-4 py-2 text-sm">{avgPrice}</td>
-                    <td className="px-4 py-2 text-sm">₹{sumTotal}</td>
-                    <td className="px-4 py-2 text-sm"></td>
-                    <td className="px-4 py-2 text-sm"></td>
-                    {hasActions && <td className="px-4 py-2 text-sm"></td>}
+                    <td className="px-4 py-2 text-sm border-l border-gray-300">{odoKm} km</td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300">{avgMileage} km/L</td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300"></td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300">{sumLiters}</td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300">{avgPrice}</td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300">₹{sumTotal}</td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300"></td>
+                    <td className="px-4 py-2 text-sm border-l border-gray-300"></td>
+                    {hasActions && <td className="px-4 py-2 text-sm border-l border-gray-300"></td>}
                 </tr>
             </tfoot>
         );

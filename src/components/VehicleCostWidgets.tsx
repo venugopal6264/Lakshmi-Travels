@@ -150,10 +150,6 @@ export const VehicleCostWidgets: React.FC<VehicleCostWidgetsProps> = ({
 
     return (
         <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                Vehicle Cost Summary
-            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {vehicleCosts.map(cost => {
                     const Icon = cost.vehicleType === 'car' ? Car : Bike;
@@ -257,45 +253,6 @@ export const VehicleCostWidgets: React.FC<VehicleCostWidgetsProps> = ({
                                         </span>
                                     </div>
                                 </div>
-
-                                {/* Cost Distribution Bar */}
-                                <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden flex">
-                                    {cost.totalCost > 0 && (
-                                        <>
-                                            {cost.fuelCost > 0 && (
-                                                <div
-                                                    className="h-full transition-all duration-300"
-                                                    style={{
-                                                        width: `${(cost.fuelCost / cost.totalCost) * 100}%`,
-                                                        background: color
-                                                    }}
-                                                    title={`Fuel: ${((cost.fuelCost / cost.totalCost) * 100).toFixed(1)}%`}
-                                                />
-                                            )}
-                                            {cost.serviceCost > 0 && (
-                                                <div
-                                                    className="h-full transition-all duration-300"
-                                                    style={{
-                                                        width: `${(cost.serviceCost / cost.totalCost) * 100}%`,
-                                                        background: withAlpha(color, 0.6)
-                                                    }}
-                                                    title={`Service: ${((cost.serviceCost / cost.totalCost) * 100).toFixed(1)}%`}
-                                                />
-                                            )}
-                                            {cost.repairCost > 0 && (
-                                                <div
-                                                    className="h-full transition-all duration-300"
-                                                    style={{
-                                                        width: `${(cost.repairCost / cost.totalCost) * 100}%`,
-                                                        background: withAlpha(color, 0.3)
-                                                    }}
-                                                    title={`Repair: ${((cost.repairCost / cost.totalCost) * 100).toFixed(1)}%`}
-                                                />
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-
                                 {/* Last Service Information */}
                                 {cost.lastServiceDate ? (
                                     <div

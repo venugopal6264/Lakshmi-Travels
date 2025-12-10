@@ -357,14 +357,14 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                                         const rowClass = flag ? 'bg-rose-50' : zebra;
                                                         return (
                                                             <tr key={n._id || n.name} className={`${rowClass} hover:bg-amber-50`}>
-                                                                <td className="px-2 py-2">{i + 1}</td>
-                                                                <td className="px-2 py-2 font-medium text-gray-800">{n.name}</td>
-                                                                <td className="px-2 py-2">{age ?? '-'}</td>
-                                                                <td className="px-2 py-2">{n.account || '-'}</td>
-                                                                <td className="px-2 py-2 font-mono">{n.aadharNumber || '-'}</td>
-                                                                <td className="px-2 py-2">{n.dob ? String(n.dob).slice(0, 10) : '-'}</td>
-                                                                <td className="px-2 py-2 capitalize">{n.gender || '-'}</td>
-                                                                <td className="px-2 py-2">
+                                                                <td>{i + 1}</td>
+                                                                <td className="font-medium text-gray-800">{n.name}</td>
+                                                                <td>{age ?? '-'}</td>
+                                                                <td>{n.account || '-'}</td>
+                                                                <td className="font-mono">{n.aadharNumber || '-'}</td>
+                                                                <td>{n.dob ? String(n.dob).slice(0, 10) : '-'}</td>
+                                                                <td className="capitalize">{n.gender || '-'}</td>
+                                                                <td>
                                                                     <div className="flex items-center gap-2">
                                                                         <button type="button" title="Edit" aria-label="Edit" onClick={() => startEdit(n)} className="p-2 rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100">
                                                                             <Pencil className="w-4 h-4" />

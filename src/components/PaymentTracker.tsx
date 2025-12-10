@@ -1,7 +1,8 @@
-import { Calendar, DollarSign, Download, Layers, TrendingUp } from 'lucide-react';
+import { Calendar, DollarSign, Download, Layers, TrendingUp, Plus, Receipt } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../services/api';
 import TicketTable from './TicketTable';
+import TicketForm from './TicketForm';
 
 interface PaymentTrackerProps {
   payments: ApiPayment[];
@@ -23,6 +24,7 @@ export default function PaymentTracker({
   loading = false
 }: PaymentTrackerProps) {
   const [showAddPayment, setShowAddPayment] = useState(false);
+  const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [breakdownScope, setBreakdownScope] = useState<'all' | 'open' | 'paid'>('all');
   const [paymentData, setPaymentData] = useState({
@@ -192,23 +194,27 @@ export default function PaymentTracker({
           agg.refund += Number(t.refund || 0);
           agg.count += 1;
         });
-        // Amount paid based on paid tickets' ticketAmount
-        const paidTicketPortion = ts
+        // Amount paid: sum of paid tickets' ticketAmount from considered scope + partial credits
+        const paidTicketPortion = considered
           .filter((t) => paidTicketIds.has(t._id || ''))
           .reduce((s, t) => s + Number(t.ticketAmount || 0), 0);
-        const partialCredit = partialCredits[a] || 0; // does not increase ticket count
+        const partialCredit = partialCredits[a] || 0;
+
         if (scope === 'all') {
           agg.paid = paidTicketPortion + partialCredit;
-          // Due reduced by partial credits; include refunds
-          agg.due = Math.max(0, (agg.ticket - paidTicketPortion - partialCredit)) + agg.refund;
+          // Due = unpaid tickets + refunds (refunds are always due regardless of payment status)
+          const unpaidTicketAmount = considered
+            .filter((t) => !paidTicketIds.has(t._id || ''))
+            .reduce((s, t) => s + Number(t.ticketAmount || 0), 0);
+          agg.due = Math.max(0, unpaidTicketAmount - partialCredit) + agg.refund;
         } else if (scope === 'open') {
           agg.paid = 0;
           // Open scope: show unpaid ticket amounts minus partial credit (not below 0) + refunds
           agg.due = Math.max(0, agg.ticket - partialCredit) + agg.refund;
         } else {
           // paid scope
-          agg.paid = agg.ticket + partialCredit; // tickets fully paid plus partial credit counted
-          // Surface refunds (still due to pay out) minus any unused partial credit (if partial credit exceeds refunds, clamp)
+          agg.paid = paidTicketPortion + partialCredit;
+          // For paid tickets, only refunds are due (partial credit can offset refunds)
           agg.due = Math.max(0, agg.refund - partialCredit);
         }
         map[a] = agg;
@@ -410,7 +416,8 @@ export default function PaymentTracker({
   const monthlyStats = React.useMemo(() => {
     type Row = { key: string; label: string; trainCount: number; trainProfit: number; flightCount: number; flightProfit: number; busCount: number; busProfit: number; totalProfit: number; totalTickets: number };
     const map: Record<string, Row> = {};
-    paidTickets.forEach(t => {
+    // Use all tickets (both open and paid) instead of just paidTickets
+    dateFilteredTickets.forEach(t => {
       const d = new Date(t.bookingDate);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
@@ -430,7 +437,7 @@ export default function PaymentTracker({
       return acc;
     }, { trainCount: 0, trainProfit: 0, flightCount: 0, flightProfit: 0, busCount: 0, busProfit: 0, totalProfit: 0, totalTickets: 0 });
     return { rows, totals };
-  }, [paidTickets]);
+  }, [dateFilteredTickets]);
   const maxMonthlyProfit = React.useMemo(() => Math.max(1, ...monthlyStats.rows.map(r => Math.max(0, r.totalProfit))), [monthlyStats.rows]);
 
   return (
@@ -542,7 +549,7 @@ export default function PaymentTracker({
         {/* Payment History */}
         <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-green-500">
           <div className="flex justify-between items-center mb-3 gap-2">
-            <h2 className="text-xl font-semibold text-green-700">Payment History</h2>
+            <h2 className="text-xl font-semibold text-green-700">Monthly Payment History</h2>
             <div className="flex items-center gap-2">
               <label className="text-xs text-gray-600">Account</label>
               <select
@@ -751,18 +758,15 @@ export default function PaymentTracker({
         {/* Monthly Performance */}
         <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-purple-500">
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Monthly Profit History
-            </h3>
+            <h4 className="text-sm font-semibold text-purple-700 mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Monthly Profit Trend
+            </h4>
             <div className="text-xs text-purple-700 bg-purple-50 px-3 py-1 rounded border border-purple-200">Filtered: {from} → {to}</div>
           </div>
 
           {/* Monthly Profit Bar Chart */}
           <div className="rounded-md border border-purple-100 bg-gradient-to-b from-white to-purple-50/40 p-4 mb-3">
-            <h4 className="text-sm font-semibold text-purple-700 mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Monthly Profit Trend
-            </h4>
             <div className="space-y-3">
               {monthlyStats.rows.map((r) => {
                 const profit = Math.max(0, Number(r.totalProfit || 0));
@@ -1009,6 +1013,64 @@ export default function PaymentTracker({
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        {/* Create Ticket */}
+        <button
+          type="button"
+          title="Create Ticket"
+          aria-label="Create Ticket"
+          onClick={() => setShowCreateTicket(true)}
+          className="w-14 h-14 rounded-full shadow-xl ring-2 ring-blue-400/50 flex items-center justify-center transition transform hover:scale-110 hover:shadow-2xl"
+          style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff' }}
+        >
+          <Receipt className="w-7 h-7" />
+        </button>
+        {/* Create Payment */}
+        <button
+          type="button"
+          title="Create Payment"
+          aria-label="Create Payment"
+          onClick={() => setShowAddPayment(true)}
+          className="w-14 h-14 rounded-full shadow-xl ring-2 ring-emerald-400/50 flex items-center justify-center transition transform hover:scale-110 hover:shadow-2xl"
+          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }}
+        >
+          <Plus className="w-7 h-7" />
+        </button>
+      </div>
+
+      {/* Create Ticket Modal */}
+      {showCreateTicket && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-5xl m-4 my-8">
+            <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
+              <div className="bg-white rounded-2xl max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm">
+                  <h3 className="text-lg sm:text-xl font-semibold tracking-wide">Create New Ticket</h3>
+                  <button
+                    onClick={() => setShowCreateTicket(false)}
+                    aria-label="Close"
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/60 transition"
+                  >
+                    <Plus className="w-6 h-6 rotate-45" />
+                  </button>
+                </div>
+                <div className="h-1 w-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-emerald-400" />
+                <div className="px-4 sm:px-6 py-4 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] flex-1 overflow-y-auto touch-pan-y [-webkit-overflow-scrolling:touch]">
+                  <TicketForm
+                    onAddTicket={async (ticketData) => {
+                      await onAddTicket(ticketData);
+                      setShowCreateTicket(false);
+                    }}
+                    loading={submitting}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -82,6 +82,17 @@ export default function NotesPage() {
                     <NoteEditor initial={editing} onClose={() => { setEditorOpen(false); setEditing(null); }} onSave={onSave} />
                 )}
             </div>
+            {/* Floating Add Note button */}
+            <button
+                type="button"
+                title="Add New Note"
+                aria-label="Add New Note"
+                onClick={openNew}
+                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-xl ring-2 ring-emerald-400/50 flex items-center justify-center transition transform hover:scale-110 hover:shadow-2xl"
+                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }}
+            >
+                <Plus className="w-7 h-7" />
+            </button>
         </div>
     );
 }
