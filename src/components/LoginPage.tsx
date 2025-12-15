@@ -124,7 +124,7 @@ export default function LoginPage() {
             <p className="text-white/90 text-sm max-w-sm leading-relaxed font-medium">
               Reliable ticketing, fuel tracking and payment insights—all in one modern dashboard.
             </p>
-            <div className="mt-10 grid grid-cols-2 gap-4 w-full max-w-sm text-left text-white/80 text-xs">
+            <div className="mt-10 grid grid-cols-2 gap-2 w-full max-w-sm text-left text-white/80 text-xs">
               <div className="p-3 rounded-lg bg-white/10 backdrop-blur-md ring-1 ring-white/20">
                 <p className="font-semibold text-white text-sm mb-1">Secure Access</p>
                 <p>Protected accounts with role-based controls.</p>

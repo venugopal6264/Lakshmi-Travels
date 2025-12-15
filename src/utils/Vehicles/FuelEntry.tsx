@@ -53,7 +53,7 @@ export const FuelEntryModal = ({ initial, defaultVehicle, vehicles, onClose, onS
     };
     const accent = color || '#3b82f6';
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto p-2 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
             <div className="w-full max-w-xl m-0">
                 <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -62,7 +62,7 @@ export const FuelEntryModal = ({ initial, defaultVehicle, vehicles, onClose, onS
                             <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
                         <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
+                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 overflow-y-auto flex-1">
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                                 <input type="date" className="w-full px-2 py-2 border rounded-md" value={date} onChange={e => setDate(e.target.value)} />

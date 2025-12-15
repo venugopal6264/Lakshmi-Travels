@@ -186,14 +186,14 @@ export function FuelTableBody({
                 })}
             </tbody>
             {toDelete && createPortal(
-                <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-center justify-center">
+                <div className="fixed inset-0 z-50 overflow-y-auto p-2 flex items-center justify-center">
                     <div className="fixed inset-0 bg-black/40" onClick={() => setToDelete(null)} />
                     <div className="relative z-10 w-full max-w-md rounded-lg border bg-white shadow-lg max-h-[90vh] overflow-y-auto">
-                        <div className="p-4 border-b">
+                        <div className="p-2 border-b">
                             <h3 className="text-lg font-semibold text-gray-800">Delete this entry?</h3>
                             <p className="text-sm text-gray-600">This action cannot be undone.</p>
                         </div>
-                        <div className="p-4 text-sm text-gray-700 space-y-1">
+                        <div className="p-2 text-sm text-gray-700 space-y-1">
                             <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Date</div><div className="col-span-2">{toDelete.date?.slice(0, 10) || '-'}</div></div>
                             <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Type</div><div className="col-span-2 capitalize">{toDelete.entryType}</div></div>
                             <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Vehicle</div><div className="col-span-2">{toDelete.vehicleName || toDelete.vehicle}</div></div>
@@ -205,7 +205,7 @@ export function FuelTableBody({
                                 <div className="grid grid-cols-3 gap-2"><div className="text-gray-500">Notes</div><div className="col-span-2">{toDelete.notes}</div></div>
                             )}
                         </div>
-                        <div className="p-4 border-t flex justify-end gap-3">
+                        <div className="p-2 border-t flex justify-end gap-3">
                             <button
                                 type="button"
                                 className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"

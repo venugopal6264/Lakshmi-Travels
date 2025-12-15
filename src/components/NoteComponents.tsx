@@ -157,7 +157,7 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
                     <div className="flex items-center gap-2 text-sm font-semibold"><StickyNote className="h-4 w-4" /> {initial ? 'Edit Note' : 'New Note'}</div>
                     <button className="p-1 rounded hover:bg-gray-100" onClick={onClose}><X className="h-4 w-4" /></button>
                 </div>
-                <div className="p-4 space-y-3 max-h-[80vh] overflow-y-auto">
+                <div className="p-2 space-y-3 max-h-[80vh] overflow-y-auto">
                     <input className="w-full border rounded px-2 py-2 text-sm" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
 
                     {/* Format Toggle */}

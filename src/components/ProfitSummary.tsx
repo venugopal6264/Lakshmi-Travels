@@ -70,7 +70,7 @@ export default function ProfitSummary({ tickets, dateRange, loading = false }: P
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
       {summaryCards.map((card, index) => {
         const Icon = card.icon;
         return (

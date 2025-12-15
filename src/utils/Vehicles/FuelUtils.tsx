@@ -382,7 +382,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
 
         {/* Charts: Cost comparison (horizontal bar) and Odometer line */}
         <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          <div className="bg-white rounded-lg shadow-md p-4 border-t-4" style={{ borderTopColor: themeColor }}>
+          <div className="bg-white rounded-lg shadow-md p-2 border-t-4" style={{ borderTopColor: themeColor }}>
             <h3 className="text-base font-semibold text-gray-800 mb-2">Cost comparison chart</h3>
             <CostComparisonHorizontalBar items={sorted} color={themeColor} />
           </div>

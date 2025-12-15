@@ -155,7 +155,7 @@ export default function SalaryPage() {
                 </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-2">
                 {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
                 {loading ? (
                     <div className="text-sm text-gray-600">Loading...</div>
@@ -163,7 +163,7 @@ export default function SalaryPage() {
                     <>
                         {/* Summary Cards */}
                         {salaries.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                                 <SummaryCard
                                     title="Current CTC"
                                     value={fmt(salaries[0]?.finalSalary || 0)}
@@ -187,7 +187,7 @@ export default function SalaryPage() {
 
                         {/* Bar Charts */}
                         {salaries.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
                                 <YearlyTotalPercentageChart salaries={salaries} />
                                 <YearlyBonusPercentageChart salaries={salaries} />
                             </div>

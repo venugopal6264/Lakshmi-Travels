@@ -256,7 +256,7 @@ export default function Dashboard({
         <>
             <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
                 {/* Gradient header (match Vehicles) */}
-                <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+                <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-2 py-2">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
                         <div>

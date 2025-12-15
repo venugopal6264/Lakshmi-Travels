@@ -46,7 +46,7 @@ export default function NotesPage() {
 
     return (
         <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-2 py-2">
                 <div className="flex items-center justify-between">
                     <h1 className="text-lg font-semibold text-white flex items-center gap-2"><StickyNote className="h-5 w-5" /> Notes</h1>
                     <button className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-1.5 hover:from-emerald-600 hover:to-teal-600 ring-1 ring-white/20 shadow-sm" onClick={openNew}><Plus className="h-4 w-4" /> New</button>

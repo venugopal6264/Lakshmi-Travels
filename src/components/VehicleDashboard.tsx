@@ -104,7 +104,7 @@ const VehicleDashboard = () => {
     return (
         <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
             {/* Colorful header (tinted with selected color) */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-2 py-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                         <Car className="w-5 h-5" />
@@ -144,7 +144,7 @@ const VehicleDashboard = () => {
                     </div>
                 </div>
             </div>
-            <div className="p-6">
+            <div className="p-4">
                 {/* Vehicle Cost Widgets - Total cost breakdown for each vehicle */}
                 {vehicles.length > 0 && (
                     <VehicleCostWidgets

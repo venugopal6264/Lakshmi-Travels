@@ -158,7 +158,7 @@ const CostComparisonHorizontalBar = ({ items, color }: { items: ApiFuel[]; color
             </div>
 
             {/* Legend */}
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-700">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-700">
                 {data.parts.map(p => (
                     <span key={p.key} className="inline-flex items-center gap-2">
                         <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: p.color }} />

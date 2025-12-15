@@ -65,7 +65,7 @@ export const LastServiceOverview = ({ vehicles, fuel, onSelect }: { vehicles: Ve
     const today = Date.now();
     return (
         <div className="mb-4">
-            <div className="grid gap-4 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-2 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cards.map(c => {
                     const dStr = c.last?.date ? new Date(c.last.date).toISOString().slice(0, 10) : '';
                     const daysAgo = c.last?.date ? Math.floor((today - new Date(c.last.date).getTime()) / (1000 * 60 * 60 * 24)) : null;
@@ -74,7 +74,7 @@ export const LastServiceOverview = ({ vehicles, fuel, onSelect }: { vehicles: Ve
                     return (
                         <div
                             key={c.vehicle._id}
-                            className={`relative rounded-lg border bg-white p-4 shadow-sm transition border-l-4 cursor-pointer hover:shadow-md`}
+                            className={`relative rounded-lg border bg-white p-2 shadow-sm transition border-l-4 cursor-pointer hover:shadow-md`}
                             style={{ borderLeftColor: accentColor, borderColor: withAlpha(accentColor, 0.25), backgroundColor: withAlpha(accentColor, 0.06) }}
                             onClick={() => onSelect?.(c.vehicle)}
                         >

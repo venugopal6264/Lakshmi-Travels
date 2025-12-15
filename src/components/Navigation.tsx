@@ -57,13 +57,13 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
     return (
         <>
             {/* Mobile Top Navigation Bar */}
-            <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+            <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 shadow-lg">
                 {/* Top Row with Icons */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/20">
                     {/* Hamburger Menu */}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="p-2 rounded-lg hover:bg-gray-100"
+                        className="p-2 rounded-lg hover:bg-white/20 text-white"
                     >
                         {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
@@ -76,7 +76,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         <img
                             src="/logo.png"
                             alt="Logo"
-                            className="h-8 w-8 object-contain"
+                            className="h-8 w-8 object-contain bg-white rounded-md p-1 ring-2 ring-white/30 shadow-md"
                         />
                     </button>
 
@@ -84,12 +84,12 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => onPageChange('accounts')}
-                            className="p-2 rounded-lg hover:bg-gray-100 relative"
+                            className="p-2 rounded-lg hover:bg-white/20 text-white relative"
                             title="Account Settings"
                         >
                             <User2 className="w-6 h-6" />
                         </button>
-                        <button className="p-2 rounded-lg hover:bg-gray-100 relative" title="Notifications">
+                        <button className="p-2 rounded-lg hover:bg-white/20 text-white relative" title="Notifications">
                             <Bell className="w-6 h-6" />
                             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                         </button>
@@ -97,19 +97,19 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                 </div>
 
                 {/* Search Bar - Always Visible Below Top Bar */}
-                <div className="px-4 py-3 bg-white border-b border-gray-200">
+                <div className="px-4 py-3 bg-white/10 border-b border-white/20">
                     <button
                         onClick={() => onOpenPnrSearch?.()}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50 rounded-lg text-left border border-gray-200"
+                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-white/20 rounded-lg text-left border border-white/30"
                     >
-                        <Search className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-500">Search</span>
+                        <Search className="w-5 h-5 text-white/80" />
+                        <span className="text-white/90">Search</span>
                     </button>
                 </div>
 
                 {/* Mobile Dropdown Menu */}
                 {mobileMenuOpen && (
-                    <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[80vh] overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 bg-slate-900 border-b border-slate-700 shadow-lg max-h-[80vh] overflow-y-auto">
 
                         {/* Navigation Items */}
                         <div className="py-2">
@@ -121,8 +121,8 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                                         key={item.id}
                                         onClick={() => handleNavigation(item.id)}
                                         className={`w-full flex items-center gap-3 px-6 py-3 text-left ${active
-                                            ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
-                                            : 'text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-blue-600 text-white border-l-4 border-blue-400'
+                                            : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                                             }`}
                                     >
                                         <Icon className="w-5 h-5" />
@@ -133,16 +133,16 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         </div>
 
                         {/* User Section */}
-                        <div className="border-t border-gray-100 p-4">
+                        <div className="border-t border-slate-700 p-4">
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                                     <User2 className="w-6 h-6 text-white" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-white">
                                         {user.name || user.email || 'User'}
                                     </p>
-                                    <p className="text-xs text-gray-500">Online</p>
+                                    <p className="text-xs text-gray-400">Online</p>
                                 </div>
                             </div>
                             <button
@@ -150,7 +150,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                                     logout();
                                     setMobileMenuOpen(false);
                                 }}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                             >
                                 <LogOut className="w-5 h-5" />
                                 <span className="font-medium">Logout</span>

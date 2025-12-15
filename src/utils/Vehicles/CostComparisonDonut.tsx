@@ -89,7 +89,7 @@ const CostComparisonDonut = ({ items, color }: { items: ApiFuel[]; color?: strin
                 <text x={cx} y={cy + 14} textAnchor="middle" fontSize="16" fontWeight={600} fill="#111827">{fmtINR(data.total)}</text>
             </svg>
             {/* legend */}
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-700">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-700">
                 {data.parts.map(p => (
                     <span key={p.key} className="inline-flex items-center gap-2">
                         <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: p.color }} />

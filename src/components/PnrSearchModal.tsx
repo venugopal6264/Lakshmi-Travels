@@ -69,7 +69,7 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
                         </div>
                         <div className="h-1 w-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-emerald-400" />
 
-                        <div className="p-4 sm:p-6 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] overflow-y-auto max-h-[70vh]">
+                        <div className="p-2 sm:p-6 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] overflow-y-auto max-h-[70vh]">
                             <div className="relative mb-4">
                                 <input
                                     autoFocus
@@ -82,7 +82,7 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
                             </div>
 
                             {query && results.length === 0 && (
-                                <div className="p-4 rounded-lg border bg-orange-50 text-orange-800 text-sm flex items-center gap-2">
+                                <div className="p-2 rounded-lg border bg-orange-50 text-orange-800 text-sm flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4" /> No matching ticket found for PNR "{query}".
                                 </div>
                             )}
@@ -93,7 +93,7 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
                                         const paid = paidMap.get(t._id || '');
                                         const refunded = Number(t.refund || 0) > 0;
                                         return (
-                                            <div key={t._id} className="rounded-lg border p-3 sm:p-4 bg-white shadow-sm">
+                                            <div key={t._id} className="rounded-lg border p-3 sm:p-2 bg-white shadow-sm">
                                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2 text-gray-900 font-semibold">

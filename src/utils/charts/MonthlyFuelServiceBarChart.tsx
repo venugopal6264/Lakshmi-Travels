@@ -86,7 +86,7 @@ export function MonthlyFuelServiceBarChart({ rows, color }: { rows: MonthRow[]; 
     return (
         <div ref={wrapperRef} className="relative">
             {/* Legend */}
-            <div className="mb-2 flex items-center gap-4 text-xs text-gray-600">
+            <div className="mb-2 flex items-center gap-2 text-xs text-gray-600">
                 <span className="inline-flex items-center gap-2">
                     <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: fuelColor, border: `1px solid ${fuelStroke}` }} />
                     Fuel

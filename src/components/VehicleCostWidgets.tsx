@@ -149,7 +149,7 @@ export const VehicleCostWidgets: React.FC<VehicleCostWidgetsProps> = ({
     }
 
     return (
-        <div className="mb-6">
+        <div className="mb-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {vehicleCosts.map(cost => {
                     const Icon = cost.vehicleType === 'car' ? Car : Bike;
@@ -170,9 +170,9 @@ export const VehicleCostWidgets: React.FC<VehicleCostWidgetsProps> = ({
                                 borderStyle: 'solid'
                             }}
                         >
-                            <div className="p-4">
+                            <div className="p-2">
                                 {/* Header with vehicle name and icon */}
-                                <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center justify-between mb-2">
                                     <div
                                         className="flex items-center gap-2 cursor-pointer flex-1"
                                         onClick={() => onVehicleClick?.(vehicle!)}

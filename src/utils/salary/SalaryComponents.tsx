@@ -3,7 +3,7 @@ import { ApiSalary } from '../../services/api';
 
 export function SummaryCard({ title, value, icon, color }: { title: string; value: string; icon: React.ReactNode; color: string }) {
     return (
-        <div className={`${color} rounded-lg p-4 border border-gray-200`}>
+        <div className={`${color} rounded-lg p-2 border border-gray-200`}>
             <div className="flex items-center justify-between">
                 <div>
                     <div className="text-xs text-gray-600 mb-1">{title}</div>

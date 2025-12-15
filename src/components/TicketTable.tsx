@@ -236,7 +236,7 @@ export default function TicketTable({
   };
   return (
     <div className='bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-indigo-500 p-2'>
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-2">
         <h2 className={`text-xl font-semibold ${titleColor}`}>
           {activeTable === 'open' ? 'Open Tickets' : 'Paid Tickets'}
         </h2>
@@ -312,7 +312,7 @@ export default function TicketTable({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4 mt-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-2 mt-2">
         <div className="relative w-full sm:flex-1">
           <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${controlIcon}`} />
           <input

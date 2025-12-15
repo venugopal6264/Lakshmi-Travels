@@ -78,7 +78,7 @@ export default function EditTicketModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto p-4 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto p-2 flex items-center justify-center z-50">
             <div className="w-full max-w-2xl mx-auto">
                 {/* Colorful gradient border wrapper */}
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">

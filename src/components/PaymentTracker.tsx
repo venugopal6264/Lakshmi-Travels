@@ -443,7 +443,7 @@ export default function PaymentTracker({
   return (
     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden mb-6">
       {/* Colorful header to match Vehicles page */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-6 py-4">
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-2 py-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -477,9 +477,9 @@ export default function PaymentTracker({
           </div>
         </div>
       </div>
-      <div className="p-6">
+      <div className="p-2">
         {/* Local Date Filter (independent of Dashboard) */}
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 p-3 rounded-md border border-indigo-100">
+        <div className="mb-2 grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 p-2 rounded-md border border-indigo-100">
           <div>
             <label className="block text-xs font-medium text-indigo-800 mb-1">From Date</label>
             <input
@@ -506,26 +506,26 @@ export default function PaymentTracker({
         </div>
 
         {/* Paid Tickets Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 lg:gap-8 mb-6">
-          <div className="bg-indigo-50 p-4 rounded-lg border-t-4 border-indigo-500">
-            <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount (Paid)</h3>
-            <p className="text-2xl font-bold text-indigo-900">₹{Math.round(totalsPaid.booking).toLocaleString()}</p>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 lg:gap-8 mb-2">
+          <div className="bg-indigo-50 p-2 rounded-lg border-t-4 border-indigo-500">
+            <h3 className="text-sm font-medium text-indigo-600">Total Booking Amount</h3>
+            <p className="text-xl font-bold text-indigo-900">₹{Math.round(totalsPaid.booking).toLocaleString()}</p>
             <p className="text-[10px] text-indigo-600">{totalsPaid.count} paid tickets</p>
           </div>
-          <div className="bg-purple-50 p-4 rounded-lg border-t-4 border-purple-500">
-            <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount (Paid)</h3>
+          <div className="bg-purple-50 p-2 rounded-lg border-t-4 border-purple-500">
+            <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
             <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalsPaid.ticket).toLocaleString()}</p>
           </div>
-          <div className="bg-green-50 p-4 rounded-lg border-t-4 border-green-500">
-            <h3 className="text-sm font-medium text-green-600">Total Profit (Paid)</h3>
+          <div className="bg-green-50 p-2 rounded-lg border-t-4 border-green-500">
+            <h3 className="text-sm font-medium text-green-600">Total Profit)</h3>
             <p className="text-2xl font-bold text-green-900">₹{Math.round(totalsPaid.profit).toLocaleString()}</p>
           </div>
-          <div className="bg-red-50 p-4 rounded-lg border-t-4 border-red-500">
-            <h3 className="text-sm font-medium text-red-600">Total Refund (Paid)</h3>
+          <div className="bg-red-50 p-2 rounded-lg border-t-4 border-red-500">
+            <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
             <p className="text-2xl font-bold text-red-900">₹{Math.round(totalsPaid.refund).toLocaleString()}</p>
             <p className="text-xs text-red-600">{totalsPaid.refundedCount} refunded</p>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 via-emerald-50 to-purple-50 p-4 rounded-lg border-t-4 border-blue-500">
+          <div className="bg-gradient-to-br from-blue-50 via-emerald-50 to-purple-50 p-2 rounded-lg border-t-4 border-blue-500">
             <div className="flex justify-between"><span className="text-blue-700">Train Profit:</span><span className="font-semibold text-blue-900">₹{Math.round(paidTypeProfit.train).toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-green-700">Bus Profit:</span><span className="font-semibold text-green-900">₹{Math.round(paidTypeProfit.bus).toLocaleString()}</span></div>
             <div className="flex justify-between"><span className="text-purple-700">Flight Profit:</span><span className="font-semibold text-purple-900">₹{Math.round(paidTypeProfit.flight).toLocaleString()}</span></div>
@@ -533,7 +533,7 @@ export default function PaymentTracker({
         </div>
 
         {/* Paid Tickets Table (moved from Dashboard) */}
-        <div className="mt-6">
+        <div className="mt-3">
           <TicketTable
             tickets={dateFilteredTickets}
             paidTickets={paidTicketIds}
@@ -582,7 +582,7 @@ export default function PaymentTracker({
           </div>
 
           {/* Monthly Amount Received Bar Chart */}
-          <div className="rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-4 mb-3">
+          <div className="rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-2 mb-3">
             <h4 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Monthly Amount Received
@@ -766,7 +766,7 @@ export default function PaymentTracker({
           </div>
 
           {/* Monthly Profit Bar Chart */}
-          <div className="rounded-md border border-purple-100 bg-gradient-to-b from-white to-purple-50/40 p-4 mb-3">
+          <div className="rounded-md border border-purple-100 bg-gradient-to-b from-white to-purple-50/40 p-2 mb-3">
             <div className="space-y-3">
               {monthlyStats.rows.map((r) => {
                 const profit = Math.max(0, Number(r.totalProfit || 0));
@@ -849,7 +849,7 @@ export default function PaymentTracker({
         </div>
 
         {showAddPayment && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto p-4 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto p-2 flex items-center justify-center">
             <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn max-h-[90vh]">
               {/* Modal Header */}
               <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 px-6 py-4 flex items-center justify-between">
@@ -950,7 +950,7 @@ export default function PaymentTracker({
                 <div className="grid gap-4">
                   {accountDueInfo && paymentData.account && (
                     <div className="flex flex-col gap-3 rounded-md border border-emerald-200 bg-emerald-50/70 p-3">
-                      <div className="flex flex-wrap gap-4 text-[11px] font-medium">
+                      <div className="flex flex-wrap gap-2 text-[11px] font-medium">
                         <div className="px-2 py-1 rounded bg-white/70 border border-emerald-200 text-emerald-700">Ticket Total: ₹{Math.round(accountDueInfo.ticketTotal).toLocaleString()}</div>
                         <div className="px-2 py-1 rounded bg-white/70 border border-emerald-200 text-emerald-700">Refund Total: ₹{Math.round(accountDueInfo.refundTotal).toLocaleString()}</div>
                         <div className="px-2 py-1 rounded bg-white/70 border border-amber-300 text-amber-700">Partial Paid: ₹{Math.round(accountDueInfo.partialTotal).toLocaleString()}</div>

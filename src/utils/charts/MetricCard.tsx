@@ -6,7 +6,7 @@ export function MetricCard({
     byKm
 }: { title: string; value: string; valueClass?: string; byDay: string; byKm: string }) {
     return (
-        <div className="rounded-lg border p-4 bg-white">
+        <div className="rounded-lg border p-2 bg-white">
             <div className="text-sm text-gray-600">{title}</div>
             <div className={`text-3xl font-semibold ${valueClass ?? 'text-gray-900'}`}>{value}</div>
             <div className="text-xs text-gray-500 mt-1">{byDay} By day</div>

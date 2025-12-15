@@ -90,7 +90,7 @@ export function FuelSummarySection(
     return (
         <div className="mt-4">
             {monthlyRows.length > 0 && (
-                <div className="rounded-xl border p-4 border-t-4" style={{ borderTopColor: theme, borderColor: `${theme}40`, background: `linear-gradient(135deg, ${theme}0D, #10b9810D)` }}>
+                <div className="rounded-xl border p-2 border-t-4" style={{ borderTopColor: theme, borderColor: `${theme}40`, background: `linear-gradient(135deg, ${theme}0D, #10b9810D)` }}>
                     <h3 className="text-lg font-semibold" style={{ color: theme }}>Monthly Summary (All Time)</h3>
                     <div className="mt-3">
                         <MonthlyHorizontalBarChart rows={monthlyRows} color={theme} />

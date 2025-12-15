@@ -71,7 +71,7 @@ export const AddVehicleModal = ({ onClose, onAdded, color }: { onClose: () => vo
     // live accent uses chosen form.color if set, else fall back to provided color
     const accent = form.color || color || '#3b82f6';
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto p-2 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
             <div className="w-full max-w-xl m-0">
                 <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -80,7 +80,7 @@ export const AddVehicleModal = ({ onClose, onAdded, color }: { onClose: () => vo
                             <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
                         <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
+                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 overflow-y-auto flex-1">
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
                                 <div className="flex items-center gap-2">
@@ -161,7 +161,7 @@ export const VehicleManagerModal = ({ vehicles, onClose, onUpdated, onDeleted, c
     };
     const accent = color || '#3b82f6';
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto p-2 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
             <div className="w-full max-w-3xl m-0">
                 <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -170,10 +170,10 @@ export const VehicleManagerModal = ({ vehicles, onClose, onUpdated, onDeleted, c
                             <button onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
                         <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <div className="divide-y overflow-y-auto p-4 flex-1">
+                        <div className="divide-y overflow-y-auto p-2 flex-1">
                             {vehicles.map(v => (
                                 <div key={v._id} className="py-3">
-                                    <div className="flex items-start justify-between gap-4 border-l-4 pl-3" style={{ borderLeftColor: v.color || withAlpha(accent, 0.7) }}>
+                                    <div className="flex items-start justify-between gap-2 border-l-4 pl-3" style={{ borderLeftColor: v.color || withAlpha(accent, 0.7) }}>
                                         <div>
                                             <div className="font-medium flex items-center gap-2">
                                                 <span>{v.name}</span>
@@ -262,7 +262,7 @@ export const EditVehicleModal = ({ vehicle, onClose, onSaved, color }: { vehicle
     };
     const accent = form.color || color || '#3b82f6';
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto p-2 flex items-start sm:items-center justify-center bg-black/30 backdrop-blur-sm">
             <div className="w-full max-w-xl m-0">
                 <div className="relative rounded-2xl p-[2px] shadow-2xl" style={{ background: `linear-gradient(135deg, ${withAlpha(accent, 0.9)}, ${withAlpha(accent, 0.4)} 40%, rgba(255,255,255,0.6))` }}>
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -271,7 +271,7 @@ export const EditVehicleModal = ({ vehicle, onClose, onSaved, color }: { vehicle
                             <button type="button" onClick={onClose} className="px-2 py-1 rounded-md bg-white/15 hover:bg-white/25">Close</button>
                         </div>
                         <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${withAlpha(accent, 0.5)}, ${withAlpha(accent, 0.2)})` }} />
-                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 overflow-y-auto flex-1">
+                        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 overflow-y-auto flex-1">
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Theme Color</label>
                                 <div className="flex items-center gap-2">
