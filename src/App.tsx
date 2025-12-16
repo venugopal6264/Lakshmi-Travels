@@ -86,13 +86,10 @@ function InnerApp() {
   };
   const [showPnr, setShowPnr] = useState(false);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} onOpenPnrSearch={() => setShowPnr(true)} />
-      {/* Main content with left margin for sidebar and top padding for horizontal bar on desktop, top padding for mobile navbar */}
-      <div className="md:ml-64 md:pt-20 pt-32">
-        <div className="container mx-auto">
-          {renderCurrentPage()}
-        </div>
+      <div className="md:ml-64 md:pt-16 pt-16 lg:px-2 max-w-full">
+        {renderCurrentPage()}
       </div>
       {/* PNR Search is rendered only when authenticated, so we mount it below */}
       {user && (

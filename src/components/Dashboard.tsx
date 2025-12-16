@@ -329,7 +329,7 @@ export default function Dashboard({
                     </div>
                 </div>
                 {/* Body */}
-                <div className="p-3 space-y-4">
+                <div className="p-2 space-y-3">
                     <>
                         <OverviewPanels
                             metrics={{

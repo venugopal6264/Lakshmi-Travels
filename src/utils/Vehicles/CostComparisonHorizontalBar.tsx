@@ -51,7 +51,7 @@ const CostComparisonHorizontalBar = ({ items, color }: { items: ApiFuel[]; color
     const gap = 16;
     const padY = 24;
     const padX = 8;
-    const labelW = 100;
+    const labelW = 60;
     const chartW = Math.max(300, containerW - labelW - padX * 2 - 100);
 
     const svgH = padY * 2 + data.parts.length * barH + Math.max(0, data.parts.length - 1) * gap + 40;
@@ -62,7 +62,7 @@ const CostComparisonHorizontalBar = ({ items, color }: { items: ApiFuel[]; color
             {/* Total Summary */}
             <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
                 <div className="text-sm text-gray-600">Total Cost</div>
-                <div className="text-2xl font-bold text-gray-900">{fmtINR(data.total)}</div>
+                <div className="text-xl font-bold text-gray-900">{fmtINR(data.total)}</div>
             </div>
 
             <div className="overflow-x-auto">

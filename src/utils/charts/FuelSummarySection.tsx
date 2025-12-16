@@ -42,8 +42,12 @@ export function FuelSummarySection(
         return () => { cancelled = true; };
     }, []);
 
-    const monthLabel = (y: number, mZero: number) =>
-        new Date(y, mZero, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    const monthLabel = (y: number, mZero: number) => {
+        const date = new Date(y, mZero, 1);
+        const month = date.toLocaleString('en-US', { month: 'short' });
+        const yearShort = String(y).slice(-2);
+        return `${month} ${yearShort}`;
+    };
 
     const monthlyRows: MonthRow[] = useMemo(() => {
         const src = allItems ?? [];

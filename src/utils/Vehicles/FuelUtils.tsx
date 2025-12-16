@@ -242,13 +242,13 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
     <>
       <>
         {/* Single colorful row: Cost, Refueling, Services, Distance, Cost per Km */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 lg:gap-8">
           {/* Cost */}
           <div className="rounded-lg border p-2 bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 border-t-4 border-t-indigo-500">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-indigo-700">Cost</span>
             </div>
-            <div className="mt-1 text-3xl font-semibold text-indigo-700">{inr3(totals.total)}</div>
+            <div className="mt-1 text-xl font-semibold text-indigo-700">{inr3(totals.total)}</div>
             <div className="text-xs text-indigo-600 mt-1">All time</div>
           </div>
 
@@ -259,7 +259,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
                 <Fuel className="h-4 w-4 text-amber-600" /> Refueling
               </span>
             </div>
-            <div className="mt-1 text-3xl font-semibold text-amber-700">{inr3(totals.refuel)}</div>
+            <div className="mt-1 text-xl font-semibold text-amber-700">{inr3(totals.refuel)}</div>
             <div className="text-xs text-amber-600 mt-1">{Math.round(totals.refuelPct)}% of total</div>
           </div>
 
@@ -270,7 +270,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
                 <Wrench className="h-4 w-4 text-fuchsia-600" /> Services
               </span>
             </div>
-            <div className="mt-1 text-3xl font-semibold text-fuchsia-700">{inr3(totals.service)}</div>
+            <div className="mt-1 text-xl font-semibold text-fuchsia-700">{inr3(totals.service)}</div>
             <div className="text-xs text-fuchsia-600 mt-1">{Math.round(totals.servicePct)}% of total</div>
           </div>
 
@@ -281,7 +281,7 @@ export function VehicleDash({ vehicle, vehicleId, vehicleName, items, onEdit, on
                 <Gauge className="h-4 w-4 text-sky-600" /> Distance
               </span>
             </div>
-            <div className="mt-1 text-3xl font-semibold text-sky-700">{Math.round(totals.distance).toLocaleString()} km</div>
+            <div className="mt-1 text-xl font-semibold text-sky-700">{Math.round(totals.distance).toLocaleString()} km</div>
             <div className="text-xs text-sky-600 mt-1">{Math.round(totals.distance / Math.max(1, totals.rangeDays))} km by day</div>
           </div>
 

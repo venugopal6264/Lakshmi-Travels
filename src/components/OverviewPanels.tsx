@@ -113,14 +113,14 @@ export default function OverviewPanels({ metrics, openTickets, payments, dateRan
                     <table className="w-full table-auto">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-purple-500 text-white">
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Account</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Remaining Due</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Partial</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Tickets</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Total</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Refund</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Booking</th>
-                                <th className="px-2 py-2 sm:px-2 sm:py-2 text-left font-semibold uppercase tracking-wider">Profit</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Account</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Remaining Due</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Partial</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tickets</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Total</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Refund</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Booking</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Profit</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 text-xs">

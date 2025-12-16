@@ -16,13 +16,13 @@ export function SummaryCard({ title, value, icon, color }: { title: string; valu
 }
 
 export function YearlyTotalPercentageChart({ salaries }: { salaries: ApiSalary[] }) {
-    // Sort by year ascending for proper display
-    const sortedData = [...salaries].sort((a, b) => a.year - b.year);
+    // Sort by year descending for latest on top
+    const sortedData = [...salaries].sort((a, b) => b.year - a.year);
     const maxPercentage = Math.max(...sortedData.map(s => s.totalPercentage), 25);
 
     return (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-blue-800 mb-4 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-600" />
                 Year vs Total % Increase
             </h3>
@@ -51,14 +51,14 @@ export function YearlyTotalPercentageChart({ salaries }: { salaries: ApiSalary[]
 }
 
 export function YearlyBonusPercentageChart({ salaries }: { salaries: ApiSalary[] }) {
-    // Sort by year ascending for proper display
-    const sortedData = [...salaries].sort((a, b) => a.year - b.year);
+    // Sort by year descending for latest on top
+    const sortedData = [...salaries].sort((a, b) => b.year - a.year);
     const maxPercentage = Math.max(...sortedData.map(s => s.bonusPercentage), 10);
 
     return (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
+            <h3 className="text-sm font-semibold text-green-600 mb-4 flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-500" />
                 Year vs Bonus %
             </h3>
             <div className="space-y-3">

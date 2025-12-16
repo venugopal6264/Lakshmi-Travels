@@ -46,7 +46,7 @@ export function MonthlyHorizontalBarChart({ rows, color }: { rows: MonthRow[]; c
     const gap = 12;
     const padY = 24;
     const padX = 8;
-    const labelW = 100;
+    const labelW = 60;
     const chartW = Math.max(400, containerW - labelW - padX * 2 - 40);
 
     const svgH = padY * 2 + data.length * barH + Math.max(0, data.length - 1) * gap;
@@ -88,8 +88,8 @@ export function MonthlyHorizontalBarChart({ rows, color }: { rows: MonthRow[]; c
             <div className="overflow-x-auto">
                 <svg width={svgW} height={svgH}>
                     <g transform={`translate(${padX}, ${padY})`}>
-                        {/* baseline */}
-                        <line x1={labelW} y1={-8} x2={labelW} y2={svgH - padY * 2 + 8} stroke="#e5e7eb" strokeWidth={1} />
+                        {/* baseline - positioned at left edge */}
+                        <line x1={0} y1={-8} x2={0} y2={svgH - padY * 2 + 8} stroke="#e5e7eb" strokeWidth={1} />
                         {data.map((d, i) => {
                             const y = i * (barH + gap);
                             const fuelW = d.total ? (d.fuel / maxTotal) * chartW : 0;

@@ -115,7 +115,9 @@ export default function PaymentTracker({
     for (const p of accountFilteredPayments) {
       const d = new Date(p.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+      const month = d.toLocaleString(undefined, { month: 'short' });
+      const yearShort = String(d.getFullYear()).slice(-2);
+      const label = `${month} ${yearShort}`;
       if (!map[key]) map[key] = { key, label, amount: 0 };
       map[key].amount += Number(p.amount || 0);
     }
@@ -420,7 +422,9 @@ export default function PaymentTracker({
     dateFilteredTickets.forEach(t => {
       const d = new Date(t.bookingDate);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+      const month = d.toLocaleString(undefined, { month: 'short' });
+      const yearShort = String(d.getFullYear()).slice(-2);
+      const label = `${month} ${yearShort}`;
       if (!map[key]) map[key] = { key, label, trainCount: 0, trainProfit: 0, flightCount: 0, flightProfit: 0, busCount: 0, busProfit: 0, totalProfit: 0, totalTickets: 0 };
       const profitNet = (Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0));
       map[key].totalProfit += profitNet; map[key].totalTickets += 1;
@@ -444,11 +448,34 @@ export default function PaymentTracker({
     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden mb-6">
       {/* Colorful header to match Vehicles page */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-green-500 px-2 py-2">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-3">
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
             Payment Tracker
           </h2>
+
+          {/* Date Filter */}
+          <div className="flex flex-wrap items-center gap-2 lg:gap-3 lg:bg-white/10 lg:backdrop-blur-sm lg:p-1 lg:rounded-lg lg:border lg:border-white/20">
+            <div className="flex items-center gap-2">
+              <label className="text-xs lg:text-sm font-medium text-white whitespace-nowrap">From</label>
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="px-2 py-1.5 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/95 text-xs lg:text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs lg:text-sm font-medium text-white whitespace-nowrap">To</label>
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="px-2 py-1.5 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/95 text-xs lg:text-sm"
+              />
+            </div>
+          </div>
+
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={exportPaymentReport}
@@ -477,34 +504,7 @@ export default function PaymentTracker({
           </div>
         </div>
       </div>
-      <div className="p-2">
-        {/* Local Date Filter (independent of Dashboard) */}
-        <div className="mb-2 grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gradient-to-r from-indigo-50 to-blue-50 p-2 rounded-md border border-indigo-100">
-          <div>
-            <label className="block text-xs font-medium text-indigo-800 mb-1">From Date</label>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="w-full px-2 py-2 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-indigo-800 mb-1">To Date</label>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="w-full px-2 py-2 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-            />
-          </div>
-          <div className="flex items-end">
-            <div className="text-xs text-indigo-700 bg-white/60 px-2 py-2 rounded border border-indigo-200">
-              Showing data between <span className="font-semibold">{from}</span> and <span className="font-semibold">{to}</span>
-            </div>
-          </div>
-        </div>
-
+      <div className="p-2" data-testid="payment-tracker-content">
         {/* Paid Tickets Widgets */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 lg:gap-8 mb-2">
           <div className="bg-indigo-50 p-2 rounded-lg border-t-4 border-indigo-500">
@@ -514,15 +514,15 @@ export default function PaymentTracker({
           </div>
           <div className="bg-purple-50 p-2 rounded-lg border-t-4 border-purple-500">
             <h3 className="text-sm font-medium text-purple-600">Total Ticket Amount</h3>
-            <p className="text-2xl font-bold text-purple-900">₹{Math.round(totalsPaid.ticket).toLocaleString()}</p>
+            <p className="text-xl font-bold text-purple-900">₹{Math.round(totalsPaid.ticket).toLocaleString()}</p>
           </div>
           <div className="bg-green-50 p-2 rounded-lg border-t-4 border-green-500">
             <h3 className="text-sm font-medium text-green-600">Total Profit)</h3>
-            <p className="text-2xl font-bold text-green-900">₹{Math.round(totalsPaid.profit).toLocaleString()}</p>
+            <p className="text-xl font-bold text-green-900">₹{Math.round(totalsPaid.profit).toLocaleString()}</p>
           </div>
           <div className="bg-red-50 p-2 rounded-lg border-t-4 border-red-500">
             <h3 className="text-sm font-medium text-red-600">Total Refund</h3>
-            <p className="text-2xl font-bold text-red-900">₹{Math.round(totalsPaid.refund).toLocaleString()}</p>
+            <p className="text-xl font-bold text-red-900">₹{Math.round(totalsPaid.refund).toLocaleString()}</p>
             <p className="text-xs text-red-600">{totalsPaid.refundedCount} refunded</p>
           </div>
           <div className="bg-gradient-to-br from-blue-50 via-emerald-50 to-purple-50 p-2 rounded-lg border-t-4 border-blue-500">
@@ -548,21 +548,24 @@ export default function PaymentTracker({
 
         {/* Payment History */}
         <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-green-500">
-          <div className="flex justify-between items-center mb-3 gap-2">
-            <h2 className="text-xl font-semibold text-green-700">Monthly Payment History</h2>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-600">Account</label>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 gap-2">
+            <h2 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Monthly Amount Received
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-green-600">Account</label>
               <select
                 value={paymentAccountFilter}
                 onChange={(e) => setPaymentAccountFilter(e.target.value)}
                 className="px-2 py-1.5 text-xs border border-green-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
               >
-                <option value="all">All</option>
+                <option className="text-green-600" value="all">All</option>
                 {paymentAccounts.map(acc => (
                   <option key={acc} value={acc}>{acc}</option>
                 ))}
               </select>
-              <div className="flex gap-2 ml-2">
+              <div className="flex gap-2">
                 <button
                   type="button"
                   className={`px-3 py-1 rounded border text-xs ${paymentTypeFilter === 'partial' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-300'}`}
@@ -583,10 +586,7 @@ export default function PaymentTracker({
 
           {/* Monthly Amount Received Bar Chart */}
           <div className="rounded-md border border-green-100 bg-gradient-to-b from-white to-green-50/40 p-2 mb-3">
-            <h4 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Monthly Amount Received
-            </h4>
+
             <div className="space-y-3">
               {monthlyPayments.rows.map((r) => {
                 const amt = Math.max(0, Number(r.amount || 0));
@@ -594,7 +594,7 @@ export default function PaymentTracker({
                 const value = `₹${Math.round(amt).toLocaleString()}`;
                 return (
                   <div key={r.key} className="group flex items-center gap-3">
-                    <div className="w-20 text-xs font-medium text-gray-700 text-right flex-shrink-0" title={r.label}>
+                    <div className="lg:w-20 text-xs font-medium text-gray-700 text-right flex-shrink-0" title={r.label}>
                       {r.label}
                     </div>
                     <div className="flex-1 relative">
@@ -629,8 +629,8 @@ export default function PaymentTracker({
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
                     <th className="px-2 py-2 text-left font-semibold uppercase">Account</th>
-                    <th className="px-2 py-2 text-left font-semibold uppercase">Amount Received Date</th>
-                    <th className="px-2 py-2 text-left font-semibold uppercase">No. of Tickets</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Amount Received dt</th>
+                    <th className="px-2 py-2 text-left font-semibold uppercase">Tickets</th>
                     <th className="px-2 py-2 text-left font-semibold uppercase">Amount Received</th>
                     <th className="px-2 py-2 text-left font-semibold uppercase">Ticket Amount</th>
                     <th className="px-2 py-2 text-left font-semibold uppercase">Profit</th>
@@ -694,7 +694,7 @@ export default function PaymentTracker({
         {/* Combined Account Breakdown with scope toggle */}
         <div className="bg-white rounded-lg shadow-md p-2 border-t-4 border-t-indigo-500 mt-4">
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <h3 className="text-md font-semibold text-gray-800 flex items-center gap-2">
+            <h3 className="text-md font-semibold text-indigo-800 flex items-center gap-2">
               <Layers className="w-4 h-4" /> Account Breakdown
             </h3>
             <div className="flex gap-2">
@@ -757,8 +757,8 @@ export default function PaymentTracker({
 
         {/* Monthly Performance */}
         <div className="bg-white rounded-lg shadow-md p-2 mt-4 border-t-4 border-t-purple-500">
-          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <h4 className="text-sm font-semibold text-purple-700 mb-3 flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <h4 className="font-semibold text-purple-700 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Monthly Profit Trend
             </h4>
@@ -774,7 +774,7 @@ export default function PaymentTracker({
                 const value = `₹${Math.round(profit).toLocaleString()}`;
                 return (
                   <div key={r.key} className="group flex items-center gap-3">
-                    <div className="w-20 text-xs font-medium text-gray-700 text-right flex-shrink-0" title={r.label}>
+                    <div className="w-16 text-xs font-medium text-gray-700 text-left flex-shrink-0" title={r.label}>
                       {r.label}
                     </div>
                     <div className="flex-1 relative">

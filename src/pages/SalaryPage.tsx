@@ -163,7 +163,7 @@ export default function SalaryPage() {
                     <>
                         {/* Summary Cards */}
                         {salaries.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
                                 <SummaryCard
                                     title="Current CTC"
                                     value={fmt(salaries[0]?.finalSalary || 0)}

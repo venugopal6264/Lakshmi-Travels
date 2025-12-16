@@ -59,7 +59,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
             {/* Mobile Top Navigation Bar */}
             <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 shadow-lg">
                 {/* Top Row with Icons */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/20">
+                <div className="flex items-center justify-between px-2 py-2">
                     {/* Hamburger Menu */}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -83,6 +83,13 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                     {/* Right Icons */}
                     <div className="flex items-center gap-2">
                         <button
+                            onClick={() => onOpenPnrSearch?.()}
+                            className="p-2 rounded-lg hover:bg-white/20 text-white relative"
+                            title="Search"
+                        >
+                            <Search className="w-6 h-6" />
+                        </button>
+                        <button
                             onClick={() => onPageChange('accounts')}
                             className="p-2 rounded-lg hover:bg-white/20 text-white relative"
                             title="Account Settings"
@@ -94,17 +101,6 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                         </button>
                     </div>
-                </div>
-
-                {/* Search Bar - Always Visible Below Top Bar */}
-                <div className="px-4 py-3 bg-white/10 border-b border-white/20">
-                    <button
-                        onClick={() => onOpenPnrSearch?.()}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-white/20 rounded-lg text-left border border-white/30"
-                    >
-                        <Search className="w-5 h-5 text-white/80" />
-                        <span className="text-white/90">Search</span>
-                    </button>
                 </div>
 
                 {/* Mobile Dropdown Menu */}
@@ -162,7 +158,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
 
             {/* Desktop Top Horizontal Bar - Full Width - Hidden on Mobile */}
             <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 shadow-lg">
-                <div className="flex items-center justify-between gap-3 px-6 py-3">
+                <div className="flex items-center justify-between gap-3 px-4 py-2">
                     {/* Logo and Brand Name on Left */}
                     <button
                         onClick={() => onPageChange('dashboard')}
@@ -217,7 +213,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
             {/* Desktop Vertical Sidebar - Below Horizontal Bar - Hidden on Mobile */}
             <aside className="hidden md:flex fixed top-[64px] bottom-0 left-0 z-40 w-64 bg-slate-900 shadow-xl flex-col">
                 {/* Navigation Items */}
-                <nav className="flex-1 overflow-y-auto py-4 px-3">
+                <nav className="flex-1 overflow-y-auto py-4 px-2">
                     <div className="space-y-1">
                         {navItems.map((item) => {
                             const Icon = item.icon;

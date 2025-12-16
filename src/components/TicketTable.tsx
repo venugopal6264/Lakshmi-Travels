@@ -235,7 +235,7 @@ export default function TicketTable({
     return Number(ticket.refund || 0) > 0;
   };
   return (
-    <div className='bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-indigo-500 p-2'>
+    <div className='bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-green-500 p-2'>
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-2">
         <h2 className={`text-xl font-semibold ${titleColor}`}>
           {activeTable === 'open' ? 'Open Tickets' : 'Paid Tickets'}
@@ -387,7 +387,7 @@ export default function TicketTable({
           <thead className={`sticky top-0 z-10 ${headerVariant === 'accountBreakdown' ? '' : `${headerGradient} ${headerBorder}`}`}>
             <tr className={`${headerVariant === 'accountBreakdown' ? 'bg-purple-500 text-white' : ''}`}>
               {activeTable === 'open' && (
-                <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
+                <th className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                   <input
                     type="checkbox"
                     checked={selectedTickets.length === sortedTickets.length && sortedTickets.length > 0}
@@ -398,25 +398,25 @@ export default function TicketTable({
               )}
               {/* Account */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('account')}
               >
                 Account {sortField === 'account' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Booking Date */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('bookingDate')}
               >
-                B Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                Booking Date {sortField === 'bookingDate' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* PNR */}
-              <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
+              <th className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                 PNR
               </th>
               {/* Passenger Name */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('passengerName')}
                 style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
               >
@@ -424,49 +424,49 @@ export default function TicketTable({
               </th>
               {/* Ticket Amount */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('ticketAmount')}
               >
                 Ticket Amount {sortField === 'ticketAmount' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Booking Amount */}
-              <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
+              <th className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                 Booking Amount
               </th>
               {/* Refund */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('refund')}
               >
                 Refund {sortField === 'refund' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Profit */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('profit')}
               >
                 Profit {sortField === 'profit' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Place */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider select-none ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider select-none ${headerTextColor}`}
               >
                 Place
               </th>
               {/* Service */}
-              <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
+              <th className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
                 Service
               </th>
               {/* Type */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
                 onClick={() => handleSort('type')}
               >
                 Type {sortField === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               {/* Actions */}
               <th
-                className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}
+                className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}
               >
                 Actions
               </th>
@@ -505,7 +505,7 @@ export default function TicketTable({
                 </td>
                 {/* Passenger Name (wrap long names, fixed width) */}
                 <td
-                  className="px- py-4 text-xs text-gray-900 whitespace-normal break-words"
+                  className="px-2 py-2 text-xs text-gray-900 whitespace-normal break-words"
                   style={{ width: passengerColWidth, minWidth: passengerColWidth, maxWidth: passengerColWidth }}
                 >
                   {ticket.passengerName}
@@ -572,24 +572,24 @@ export default function TicketTable({
             {/* Totals Row (sticky at bottom) */}
             <tr className="bg-gray-50 font-semibold text-xs border-t border-gray-200">
               {/* If your "open" table has a leading selection/status col, keep an empty td */}
-              {activeTable === 'open' && <td className="px-4 py-3"></td>}
+              {activeTable === 'open' && <td className="px-2 py-2"></td>}
 
               {/* Adjust colSpan to match your first N descriptive columns */}
-              <td className="px-4 py-3" colSpan={4}>
+              <td className="px-2 py-2" colSpan={4}>
                 Totals ({totals.count} tickets)
               </td>
 
               {/* Amount columns – keep the same order you have in the header */}
-              <td className="px-4 py-3">₹{Math.round(totals.ticketAmount).toLocaleString()}</td>
-              <td className="px-4 py-3">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
-              <td className="px-4 py-3 text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
-              <td className="px-4 py-3">₹{Math.round(totals.profit).toLocaleString()}</td>
+              <td className="px-2 py-2">₹{Math.round(totals.ticketAmount).toLocaleString()}</td>
+              <td className="px-2 py-2">₹{Math.round(totals.bookingAmount).toLocaleString()}</td>
+              <td className="px-2 py-2 text-red-700">₹{Math.round(totals.refund).toLocaleString()}</td>
+              <td className="px-2 py-2">₹{Math.round(totals.profit).toLocaleString()}</td>
 
               {/* If your table has trailing columns (place/service/type/actions), keep placeholders */}
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3"></td>
+              <td className="px-2 py-2"></td>
+              <td className="px-2 py-2"></td>
+              <td className="px-2 py-2"></td>
+              <td className="px-2 py-2"></td>
             </tr>
           </tbody>
         </table>
