@@ -166,8 +166,18 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    let processedValue = value;
+    if (name === 'passengerName') {
+      processedValue = value
+        .replace(/\b(n\/a|N\/A|female|Female|FEMALE|male|Male|MALE)\b/gi, '')
+        .replace(/\s+/g, ' ')  // Replace multiple spaces/tabs with single space
+        .replace(/\s+,/g, ',') // Remove space before comma
+        .replace(/,\s+/g, ', ') // Normalize comma spacing
+        .trim();
+    }
+
     setFormData(prev => {
-      const next = { ...prev, [name]: value } as typeof prev;
+      const next = { ...prev, [name]: processedValue } as typeof prev;
 
       // Parse numbers safely
       const fare = parseFloat(next.bookingAmount);
@@ -311,11 +321,11 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               <User className="w-4 h-4 inline mr-1" />
               Passenger Names *
             </label>
-            <input
-              type="text"
+            <textarea
               name="passengerName"
               value={formData.passengerName}
               onChange={handleChange}
+              rows={2}
               className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.passengerName ? 'border-red-500' : 'border-gray-300'
                 }`}
               placeholder="Passenger names with ,"

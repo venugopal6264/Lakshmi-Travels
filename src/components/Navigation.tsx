@@ -74,7 +74,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                     >
                         <img
-                            src="/logo.png"
+                            src="/LakshmiTravels.png"
                             alt="Logo"
                             className="h-8 w-8 object-contain bg-white rounded-md p-1 ring-2 ring-white/30 shadow-md"
                         />
@@ -165,9 +165,9 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         className="flex items-center gap-3 hover:opacity-90 transition-opacity"
                     >
                         <img
-                            src="/logo.png"
+                            src="/LakshmiTravels.png"
                             alt="Lakshmi Travels logo"
-                            className="h-10 w-10 object-contain bg-white rounded-md p-1 ring-2 ring-white/30 shadow-md"
+                            className="h-10 w-10 object-contain bg-white rounded-md ring-2 ring-white/30 shadow-md"
                         />
                         <div>
                             <h1 className="text-lg font-bold text-white">Lakshmi Travels</h1>

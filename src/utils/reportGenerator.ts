@@ -146,7 +146,7 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
   // Header with logo and title (repeat per page)
-  const logoDataUrl = await loadImageAsDataUrl('/logo.png');
+  const logoDataUrl = await loadImageAsDataUrl('/LakshmiTravels.png');
   const title = 'Lakshmi Travels';
   const subtitle = 'Tickets Report';
   const account = options?.accountLabel || 'All Accounts';

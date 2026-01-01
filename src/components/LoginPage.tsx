@@ -51,7 +51,7 @@ export default function LoginPage() {
           {/* Mobile branding (hidden on md and up) */}
           <div className="md:hidden mb-6 -mt-4">
             <div className="flex items-center gap-3 mb-3">
-              <img src="/logo.png" alt="Lakshmi Travels" className="h-12 w-12 rounded-xl bg-white shadow ring-1 ring-black/10 p-1" />
+              <img src="/LakshmiTravels.png" alt="Lakshmi Travels" className="h-12 w-12 rounded-xl bg-white shadow ring-1 ring-black/10 p-1" />
               <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-emerald-600 bg-clip-text text-transparent">Lakshmi Travels</span>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed">
@@ -118,7 +118,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 mix-blend-overlay bg-[linear-gradient(120deg,rgba(255,255,255,0.15),rgba(255,255,255,0))]" />
           <div className="h-full w-full flex flex-col items-center justify-center text-center px-10">
             <div className="flex items-center gap-3 mb-6">
-              <img src="/logo.png" alt="Lakshmi Travels" className="h-14 w-14 rounded-xl bg-white/90 p-1.5 shadow-lg ring-2 ring-white/40" />
+              <img src="/LakshmiTravels.png" alt="Lakshmi Travels" className="h-14 w-14 rounded-xl bg-white/90 p-1.5 shadow-lg ring-2 ring-white/40" />
               <span className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">Lakshmi Travels</span>
             </div>
             <p className="text-white/90 text-sm max-w-sm leading-relaxed font-medium">

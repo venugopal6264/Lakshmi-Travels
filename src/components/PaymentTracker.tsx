@@ -48,7 +48,7 @@ export default function PaymentTracker({
     return local.toISOString().split('T')[0];
   };
   const today = new Date();
-  const janFirst = new Date(today.getFullYear(), 0, 1);
+  const janFirst = new Date(2025, 0, 1);
   const [from, setFrom] = useState<string>(toIso(janFirst));
   const [to, setTo] = useState<string>(toIso(today));
   // Export UI state (CSV export)
@@ -121,7 +121,7 @@ export default function PaymentTracker({
       if (!map[key]) map[key] = { key, label, amount: 0 };
       map[key].amount += Number(p.amount || 0);
     }
-    const rows = Object.values(map).sort((a, b) => (a.key < b.key ? -1 : 1)); // asc by month
+    const rows = Object.values(map).sort((a, b) => (a.key > b.key ? -1 : 1)); // desc by month (latest on top)
     const total = rows.reduce((s, r) => s + r.amount, 0);
     return { rows, total };
   }, [accountFilteredPayments]);

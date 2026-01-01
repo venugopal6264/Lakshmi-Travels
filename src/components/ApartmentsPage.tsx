@@ -126,124 +126,127 @@ export default function ApartmentsPage() {
             </div>
 
             {loading ? (
-                <div className="text-center text-gray-500">Loading…</div>
+                <div className="text-center py-8 text-gray-500">Loading…</div>
+            ) : filteredFlats.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No flats found</div>
             ) : (
-                <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
-                    <table className="min-w-[920px] md:min-w-full table-auto">
-                        <thead>
-                            <tr className="text-left text-sm text-gray-600 whitespace-nowrap">
-                                <th className="px-4 py-2">S No</th>
-                                <th className="px-4 py-2">Flat Number</th>
-                                <th className="px-4 py-2">Member Name</th>
-                                <th className="px-4 py-2">Rent Status</th>
-                                <th className="px-4 py-2">Amount</th>
-                                <th className="px-4 py-2">Rent Paid</th>
-                                <th className="px-4 py-2">Manage Tenant</th>
-                                <th className="px-4 py-2">Occupied History</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 whitespace-nowrap">
-                            {filteredFlats.map((f, idx) => {
-                                const rr = rentByFlat[f._id!];
-                                const tenant = f.currentTenant as ApiTenant | null;
-                                return (
-                                    <tr key={f._id} className="text-sm">
-                                        <td className="px-4 py-3 text-gray-700">{idx + 1}</td>
-                                        <td className="px-4 py-3 font-medium text-gray-900">{f.number}</td>
-                                        <td className="px-4 py-3 text-gray-800">
-                                            {tenant ? (
-                                                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                    {filteredFlats.map((f, idx) => {
+                        const rr = rentByFlat[f._id!];
+                        const tenant = f.currentTenant as ApiTenant | null;
+                        const isPaid = rr?.paid;
+                        return (
+                            <div
+                                key={f._id}
+                                className={`relative rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow ${tenant
+                                        ? isPaid
+                                            ? 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white'
+                                            : 'border-amber-200 bg-gradient-to-br from-amber-50 to-white'
+                                        : 'border-gray-200 bg-gradient-to-br from-gray-50 to-white'
+                                    }`}
+                            >
+                                {/* Status indicator */}
+                                <div className={`absolute top-0 right-0 w-16 h-16 overflow-hidden`}>
+                                    <div className={`absolute top-3 right-[-32px] w-32 h-6 transform rotate-45 text-center text-xs font-semibold text-white shadow-sm ${tenant
+                                            ? isPaid ? 'bg-emerald-500' : 'bg-amber-500'
+                                            : 'bg-gray-400'
+                                        }`}>
+                                        {tenant ? (isPaid ? 'Paid' : 'Unpaid') : 'Vacant'}
+                                    </div>
+                                </div>
+
+                                <div className="p-4">
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div>
+                                            <div className="text-xs text-gray-500 mb-1">Flat #{idx + 1}</div>
+                                            <h3 className="text-2xl font-bold text-gray-900">{f.number}</h3>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            title="View occupied history"
+                                            className="inline-flex items-center justify-center rounded-lg bg-purple-100 text-purple-700 p-2 hover:bg-purple-200 transition-colors"
+                                            onClick={() => openHistory(f)}
+                                        >
+                                            <History className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    {/* Tenant Info */}
+                                    <div className="mb-4 min-h-[60px]">
+                                        {tenant ? (
+                                            <div>
+                                                <div className="text-xs text-gray-500 mb-1">Member</div>
+                                                <button
+                                                    type="button"
+                                                    className="text-lg font-semibold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-2"
+                                                    onClick={() => setViewTenant(tenant)}
+                                                >
+                                                    {tenant.name}
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                {tenant.phone && (
+                                                    <div className="text-sm text-gray-600 mt-1">{tenant.phone}</div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full">
+                                                <span className="text-gray-400 text-sm">No tenant</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Rent Amount */}
+                                    {tenant && (
+                                        <div className="mb-4 p-3 rounded-lg bg-white/70 border border-gray-200">
+                                            <div className="text-xs text-gray-500 mb-1">Rent Amount</div>
+                                            <div className="text-2xl font-bold text-gray-900">
+                                                ₹{rr?.paid ? (rr?.amount ?? 0).toLocaleString() : 0}
+                                            </div>
+                                            {!isPaid && tenant.rentAmount && (
+                                                <div className="text-xs text-gray-500 mt-1">Expected: ₹{tenant.rentAmount.toLocaleString()}</div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2 mt-4">
+                                        {tenant ? (
+                                            <>
+                                                {!isPaid && (
                                                     <button
                                                         type="button"
-                                                        className="text-indigo-600 hover:underline hover:text-indigo-700"
-                                                        onClick={() => setViewTenant(tenant)}
-                                                    >
-                                                        {tenant.name}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        title="View member"
-                                                        className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-50 text-indigo-700 px-1.5 py-1 text-xs hover:bg-indigo-100"
-                                                        onClick={() => setViewTenant(tenant)}
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                '-'
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {tenant ? (
-                                                rr?.paid ? (
-                                                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">Paid</span>
-                                                ) : (
-                                                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">Unpaid</span>
-                                                )
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {tenant ? (
-                                                <span className="text-gray-900 font-medium">₹{rr?.paid ? (rr?.amount ?? 0) : 0}</span>
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {tenant ? (
-                                                rr?.paid ? (
-                                                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">Paid</span>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-white text-sm hover:bg-emerald-700"
+                                                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
                                                         onClick={() => handleTogglePaid(f)}
                                                     >
                                                         Mark Paid
                                                     </button>
-                                                )
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {tenant ? (
+                                                )}
                                                 <button
                                                     type="button"
                                                     title="Change tenant"
-                                                    className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-2 py-1 text-sm hover:bg-gray-50"
+                                                    className={`${isPaid ? 'flex-1' : ''} inline-flex items-center justify-center gap-2 rounded-lg border-2 border-indigo-200 bg-white px-4 py-2.5 text-indigo-700 text-sm font-medium hover:bg-indigo-50 transition-colors`}
                                                     onClick={() => setShowAddTenantFor(f)}
                                                 >
                                                     <Edit3 className="w-4 h-4" />
+                                                    {isPaid ? 'Change Tenant' : 'Change'}
                                                 </button>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    title="Add tenant"
-                                                    className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-2 py-1 text-sm hover:bg-gray-50"
-                                                    onClick={() => setShowAddTenantFor(f)}
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
+                                            </>
+                                        ) : (
                                             <button
                                                 type="button"
-                                                title="View occupied history"
-                                                className="inline-flex items-center justify-center rounded-md border border-transparent bg-purple-50 text-purple-700 px-2 py-1 text-sm hover:bg-purple-100"
-                                                onClick={() => openHistory(f)}
+                                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+                                                onClick={() => setShowAddTenantFor(f)}
                                             >
-                                                <History className="w-4 h-4" />
+                                                <Plus className="w-4 h-4" />
+                                                Add Tenant
                                             </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
