@@ -464,7 +464,7 @@ export default function Dashboard({
                             <div className="bg-gray-50 rounded-lg p-2 font-mono text-sm space-y-1">
                                 <div className="bg-gray-50 rounded-lg font-mono text-sm space-y-1">
                                     <div className="font-semibold text-gray-900">
-                                        PNR: {successTicketData.pnr}, DOB: {successTicketData.bookingDate}, {successTicketData.place},{successTicketData.passengerName}, FARE: ₹{successTicketData.ticketAmount}, This rail travel is insured. -IRCTC
+                                        PNR: {successTicketData.pnr}, DOB: {successTicketData.bookingDate}, {successTicketData.place},{successTicketData.passengerName}, FARE: ₹{successTicketData.ticketAmount}, This rail travel is insured. For Enquiry/Complaint/Assistance, please dial 139 , Save Paper - Present this e-ticket -IRCTC
                                     </div>
                                 </div>
                             </div>
