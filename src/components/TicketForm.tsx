@@ -155,6 +155,8 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           refund: parseFloat(formData.refund) || 0,
           remarks: formData.remarks
         });
+
+        // Reset form after successful save
         resetForm();
       }
     } catch (error) {
@@ -187,12 +189,6 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
       const hasAmount = next.ticketAmount !== '' && !Number.isNaN(amount);
       const hasProfit = next.profit !== '' && !Number.isNaN(profit);
 
-      // Calculation precedence rules:
-      // - If user edits amount (with fare present) => derive profit = amount - fare
-      // - If user edits profit (with fare present) => derive amount = fare + profit
-      // - If user edits fare:
-      //   * If amount present => derive profit
-      //   * Else if profit present => derive amount
       if (name === 'ticketAmount' && hasFare && !Number.isNaN(amount)) {
         const p = amount - fare;
         next.profit = Number.isFinite(p) ? (Math.round(p * 100) / 100).toString() : next.profit;

@@ -138,12 +138,6 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
   const handleAddTicket = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
     const normalized = normalizeTicketForSave(ticketData);
     await addTicket(normalized);
-    // Navigate to dashboard and show basic success toast
-    window.history.pushState({}, '', '/dashboard');
-    // Simple feedback; can be replaced with a toast lib later
-    setTimeout(() => {
-      alert(`${normalized.passengerName} Ticket has been created successfully.`);
-    }, 50);
   };
 
   const handleDeleteTicket = async (id: string) => {

@@ -1,5 +1,6 @@
 import { BarChart3, Calendar, Download, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { ApiPayment, ApiTicket } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
 import { downloadPDFReport } from '../utils/reportGenerator';
@@ -37,6 +38,10 @@ export default function Dashboard({
     const [showExportToast, setShowExportToast] = useState(false);
     // Anchor to scroll to the Open Tickets table
     const ticketsSectionRef = useRef<HTMLDivElement | null>(null);
+
+    // Success alert modal state
+    const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+    const [successTicketData, setSuccessTicketData] = useState<Partial<ApiTicket> | null>(null);
 
     // Cleanup toast timer on unmount
     useEffect(() => {
@@ -189,6 +194,12 @@ export default function Dashboard({
             setSavingTicket(true);
             await onAddTicket(ticket);
             setShowCreateModal(false);
+
+            // Show success modal after ticket is added
+            flushSync(() => {
+                setSuccessTicketData(ticket);
+                setShowSuccessAlert(true);
+            });
         } finally {
             setSavingTicket(false);
         }
@@ -425,6 +436,49 @@ export default function Dashboard({
                                     />
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Alert Modal */}
+            {showSuccessAlert && successTicketData && (
+                <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-fadeIn">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Ticket Saved Successfully!</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                            <div className="bg-gray-50 rounded-lg p-2 font-mono text-sm space-y-1">
+                                <div className="bg-gray-50 rounded-lg font-mono text-sm space-y-1">
+                                    <div className="font-semibold text-gray-900">
+                                        PNR: {successTicketData.pnr}, DOB: {successTicketData.bookingDate}, {successTicketData.place},{successTicketData.passengerName}, FARE: ₹{successTicketData.ticketAmount}, This rail travel is insured. -IRCTC
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Close Button */}
+                            <button
+                                onClick={() => {
+                                    setShowSuccessAlert(false);
+                                    setSuccessTicketData(null);
+                                }}
+                                className="mt-6 w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-emerald-700 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>
