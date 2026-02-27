@@ -1,7 +1,7 @@
-import { BarChart3, Calendar, Download, Plus, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Calendar, Download, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { ApiPayment, ApiTicket } from '../services/api';
+import { ApiFlat, ApiPayment, ApiRentRecord, ApiTenant, ApiTicket, apiService } from '../services/api';
 import { useDateRange } from '../context/useDateRange';
 import { downloadPDFReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
@@ -42,6 +42,48 @@ export default function Dashboard({
     // Success alert modal state
     const [showSuccessAlert, setShowSuccessAlert] = useState(false);
     const [successTicketData, setSuccessTicketData] = useState<Partial<ApiTicket> | null>(null);
+
+    // ── Rent overdue notification ──────────────────────────────────────────────
+    const [overdueNotifDismissed, setOverdueNotifDismissed] = useState(false);
+    const [overdueFlats, setOverdueFlats] = useState<{ flatNumber: string; tenantName: string }[]>([]);
+
+    useEffect(() => {
+        const today = new Date();
+        // Only show after the 6th of the current month
+        if (today.getDate() < 6) return;
+
+        const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+        (async () => {
+            try {
+                const [flats, rents] = await Promise.all([
+                    apiService.getFlats(),
+                    apiService.getRents(currentMonth),
+                ]);
+                // Build a quick lookup: flatId → paid status
+                const paidMap: Record<string, boolean> = {};
+                for (const r of rents as ApiRentRecord[]) {
+                    const id = typeof r.flat === 'string' ? r.flat : (r.flat as ApiFlat)._id!;
+                    if (r.paid) paidMap[id] = true;
+                }
+                // Collect occupied flats whose rent is not paid
+                const unpaid = (flats as ApiFlat[])
+                    .filter(f => {
+                        const tenant = f.currentTenant as ApiTenant | null;
+                        if (!tenant) return false;               // vacant — skip
+                        return !paidMap[f._id!];                 // not marked paid
+                    })
+                    .map(f => ({
+                        flatNumber: f.number,
+                        tenantName: (f.currentTenant as ApiTenant).name,
+                    }));
+                setOverdueFlats(unpaid);
+            } catch {
+                // silently ignore — notification is best-effort
+            }
+        })();
+    }, []);
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Cleanup toast timer on unmount
     useEffect(() => {
@@ -342,6 +384,32 @@ export default function Dashboard({
                 {/* Body */}
                 <div className="p-2 space-y-3">
                     <>
+                        {/* ── Rent Overdue Notification ── */}
+                        {!overdueNotifDismissed && overdueFlats.length > 0 && (
+                            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
+                                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-500" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-red-700">
+                                        Rent overdue — {overdueFlats.length} flat{overdueFlats.length > 1 ? 's' : ''} unpaid this month
+                                    </p>
+                                    <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                                        {overdueFlats.map(f => (
+                                            <li key={f.flatNumber} className="text-xs text-red-600">
+                                                <span className="font-medium">Flat {f.flatNumber}</span> — {f.tenantName}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <button
+                                    onClick={() => setOverdueNotifDismissed(true)}
+                                    className="flex-shrink-0 rounded-full p-1 text-red-400 hover:bg-red-100 hover:text-red-600 transition"
+                                    title="Dismiss"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        )}
+
                         <OverviewPanels
                             metrics={{
                                 totalRemainingDue,

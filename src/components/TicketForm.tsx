@@ -171,7 +171,7 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     let processedValue = value;
     if (name === 'passengerName') {
       processedValue = value
-        .replace(/\b(n\/a|N\/A|female|Female|FEMALE|male|Male|MALE)\b/gi, '')
+        .replace(/\b(n\/a|N\/A|female|Female|FEMALE|male|Male|MALE|CNF|cnf)\b/gi, '')
         .replace(/\s+/g, ' ')  // Replace multiple spaces/tabs with single space
         .replace(/\s+,/g, ',') // Remove space before comma
         .replace(/,\s+/g, ', ') // Normalize comma spacing

@@ -25,12 +25,24 @@ const VehicleDashboard = () => {
                 const list = await apiService.getVehicles();
                 const arr = list as VehicleDoc[];
                 setVehicles(arr);
-                // Default to ALL vehicles view
-                setSelectedVehicleId(null);
-                setSelectedVehicleName('All Vehicles');
-                setSelectedVehicleColor('#3b82f6');
-                setActiveVehicle('car');
-                setActiveVehicleId(null);
+                // Default to Breeza (car), fallback to first car, then first vehicle
+                const defaultVehicle =
+                    arr.find(v => v.name.toLowerCase().includes('breeza')) ||
+                    arr.find(v => v.type === 'car') ||
+                    arr[0];
+                if (defaultVehicle) {
+                    setSelectedVehicleId(defaultVehicle._id);
+                    setSelectedVehicleName(defaultVehicle.name);
+                    setSelectedVehicleColor(defaultVehicle.color || '#3b82f6');
+                    setActiveVehicle(defaultVehicle.type);
+                    setActiveVehicleId(defaultVehicle._id);
+                } else {
+                    setSelectedVehicleId(null);
+                    setSelectedVehicleName('All Vehicles');
+                    setSelectedVehicleColor('#3b82f6');
+                    setActiveVehicle('car');
+                    setActiveVehicleId(null);
+                }
             } catch {
                 // ignore
             }
@@ -246,7 +258,7 @@ const VehicleDashboard = () => {
                     <div className="mt-4">
                         <VehicleDash
                             vehicle={activeVehicle}
-                            items={periodFilteredFuel}
+                            items={visibleList}
                             vehicleId={activeVehicleId}
                             vehicleName={undefined}
                             color={selectedVehicleColor}
