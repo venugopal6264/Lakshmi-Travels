@@ -284,6 +284,19 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running', timestamp: new Date().toISOString() });
 });
 
+// Keep-alive ping: prevents Render free tier from spinning down (pings every 14 minutes)
+const SELF_URL = process.env.SERVER_ORIGIN || `http://localhost:${PORT}`;
+if (process.env.NODE_ENV === 'production') {
+  setInterval(async () => {
+    try {
+      await fetch(`${SELF_URL}/api/health`);
+      console.log('[keep-alive] ping sent');
+    } catch (e) {
+      console.warn('[keep-alive] ping failed:', e.message);
+    }
+  }, 14 * 60 * 1000); // every 14 minutes
+}
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
