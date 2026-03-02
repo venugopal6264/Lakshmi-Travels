@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Pin, PinOff, Tag, Trash2, Edit3, StickyNote } from 'lucide-react';
+import { X, Pin, PinOff, Tag, Trash2, Edit3, StickyNote, Maximize2 } from 'lucide-react';
 import { ApiNote } from '../services/api';
 import { softenColor, noteColors, NoteInput } from '../utils/notesUtils';
 
@@ -8,9 +8,10 @@ interface NoteCardProps {
     onEdit: (n: ApiNote) => void;
     onDelete: (id: string) => void;
     onTogglePin: (id: string, pinned: boolean) => void;
+    onView: (n: ApiNote) => void;
 }
 
-export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps) {
+export function NoteCard({ note, onEdit, onDelete, onTogglePin, onView }: NoteCardProps) {
     const c = softenColor(note.color || '#fffbea', 0.35);
     const isTable = note.format === 'table';
     const cardClass = isTable
@@ -30,9 +31,14 @@ export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps)
                     <Trash2 className="h-4 w-4" />
                 </button>
             </div>
-            {note.title && <div className="text-sm font-semibold mb-1 pr-14 break-words">{note.title}</div>}
+            {note.title && <div className="text-sm font-semibold mb-1 pr-24 break-words">{note.title}</div>}
 
-            <div className={`text-sm flex-1 overflow-y-auto overflow-x-hidden`}>
+            {/* Clickable content area — opens view popup */}
+            <div
+                className="text-sm flex-1 overflow-y-auto overflow-x-hidden cursor-pointer"
+                onClick={() => onView(note)}
+                title="Click to expand"
+            >
                 {isTable && note.tableData ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs border-collapse">
@@ -68,7 +74,16 @@ export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps)
                     ))}
                 </div>
             )}
-            <div className="mt-2 text-[10px] text-gray-600">{new Date(note.updatedAt || note.createdAt || Date.now()).toLocaleString()}</div>
+            <div className="mt-2 flex items-center justify-between">
+                <div className="text-[10px] text-gray-600">{new Date(note.updatedAt || note.createdAt || Date.now()).toLocaleString()}</div>
+                <button
+                    className="p-1 rounded hover:bg-black/10 text-gray-500"
+                    title="View full note"
+                    onClick={() => onView(note)}
+                >
+                    <Maximize2 className="h-3 w-3" />
+                </button>
+            </div>
         </div>
     );
 }
@@ -261,6 +276,108 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
                         <button className="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white" onClick={handleSave}>Save</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Full-screen view popup ─────────────────────────────────────────────────
+interface NoteViewModalProps {
+    note: ApiNote;
+    onClose: () => void;
+    onEdit: (n: ApiNote) => void;
+}
+
+export function NoteViewModal({ note, onClose, onEdit }: NoteViewModalProps) {
+    const c = softenColor(note.color || '#fffbea', 0.3);
+    const isTable = note.format === 'table';
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+            {/* Sheet: full-screen on mobile, large card on desktop */}
+            <div
+                className="relative z-10 w-full sm:max-w-2xl sm:mx-4 sm:rounded-2xl sm:max-h-[85vh] rounded-t-2xl flex flex-col shadow-2xl"
+                style={{ background: c, height: '100dvh' }}
+            >
+                {/* Drag handle (mobile only) */}
+                <div className="sm:hidden flex justify-center pt-2 pb-1">
+                    <div className="w-10 h-1.5 rounded-full bg-black/20" />
+                </div>
+
+                {/* Header */}
+                <div className="flex items-start justify-between px-4 pt-3 pb-2 border-b border-black/10 flex-shrink-0">
+                    <div className="flex-1 min-w-0 pr-4">
+                        {note.title ? (
+                            <h2 className="text-base font-semibold break-words">{note.title}</h2>
+                        ) : (
+                            <h2 className="text-base font-semibold text-gray-400 italic">Untitled</h2>
+                        )}
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                            {new Date(note.updatedAt || note.createdAt || Date.now()).toLocaleString()}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                            className="p-2 rounded-full hover:bg-black/10 text-gray-600"
+                            title="Edit"
+                            onClick={() => { onClose(); onEdit(note); }}
+                        >
+                            <Edit3 className="h-4 w-4" />
+                        </button>
+                        <button
+                            className="p-2 rounded-full hover:bg-black/10 text-gray-600"
+                            title="Close"
+                            onClick={onClose}
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto px-4 py-3">
+                    {isTable && note.tableData ? (
+                        <div className="overflow-x-auto rounded-lg border border-black/10">
+                            <table className="w-full text-sm border-collapse">
+                                <thead>
+                                    <tr className="border-b border-black/20 bg-black/5">
+                                        {note.tableData.headers.map((header, i) => (
+                                            <th key={i} className="px-3 py-2 text-left font-semibold">{header}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {note.tableData.rows.map((row, i) => (
+                                        <tr key={i} className={`border-b border-black/10 ${i % 2 === 1 ? 'bg-black/[0.03]' : ''}`}>
+                                            {row.map((cell, j) => (
+                                                <td key={j} className="px-3 py-2 break-words">{cell}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{note.content}</p>
+                    )}
+                </div>
+
+                {/* Labels */}
+                {note.labels && note.labels.length > 0 && (
+                    <div className="px-4 py-2 border-t border-black/10 flex flex-wrap gap-1.5 flex-shrink-0">
+                        {note.labels.map((l, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-white/60 border border-black/10">
+                                <Tag className="h-3 w-3" /> {l}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Bottom safe-area spacer for mobile */}
+                <div className="flex-shrink-0 pb-6 sm:pb-2" />
             </div>
         </div>
     );

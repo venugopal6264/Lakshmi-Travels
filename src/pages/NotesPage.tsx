@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StickyNote, Plus, Search } from 'lucide-react';
 import { ApiNote, apiService } from '../services/api';
-import { NoteCard, NoteEditor } from '../components/NoteComponents';
+import { NoteCard, NoteEditor, NoteViewModal } from '../components/NoteComponents';
 import { NoteInput } from '../utils/notesUtils';
 
 export default function NotesPage() {
@@ -11,6 +11,7 @@ export default function NotesPage() {
     const [editorOpen, setEditorOpen] = useState(false);
     const [editing, setEditing] = useState<ApiNote | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [viewingNote, setViewingNote] = useState<ApiNote | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -111,7 +112,7 @@ export default function NotesPage() {
                                 <div className="text-xs uppercase text-gray-500 mb-2">Pinned</div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                     {pinned.map(n => (
-                                        <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} />
+                                        <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} onView={setViewingNote} />
                                     ))}
                                 </div>
                             </div>
@@ -120,7 +121,7 @@ export default function NotesPage() {
                             <div className="text-xs uppercase text-gray-500 mb-2">Others</div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {others.map(n => (
-                                    <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} />
+                                    <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} onView={setViewingNote} />
                                 ))}
                             </div>
                         </div>
@@ -128,6 +129,13 @@ export default function NotesPage() {
                 )}
                 {editorOpen && (
                     <NoteEditor initial={editing} onClose={() => { setEditorOpen(false); setEditing(null); }} onSave={onSave} />
+                )}
+                {viewingNote && (
+                    <NoteViewModal
+                        note={viewingNote}
+                        onClose={() => setViewingNote(null)}
+                        onEdit={(n) => { setViewingNote(null); setEditing(n); setEditorOpen(true); }}
+                    />
                 )}
             </div>
             {/* Floating Add Note button */}
