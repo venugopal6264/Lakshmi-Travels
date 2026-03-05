@@ -305,6 +305,19 @@ export default function Dashboard({
         setDateRange({ from, to });
     };
 
+    const handleDismissExportToast = () => {
+        if (exportToastTimer.current) {
+            window.clearTimeout(exportToastTimer.current);
+            exportToastTimer.current = null;
+        }
+        setShowExportToast(false);
+    };
+
+    const handleDismissSuccessAlert = () => {
+        setShowSuccessAlert(false);
+        setSuccessTicketData(null);
+    };
+
     return (
         <>
             <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
@@ -321,13 +334,7 @@ export default function Dashboard({
                                         <div className="text-sm text-gray-800">Tickets exported successfully.</div>
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                if (exportToastTimer.current) {
-                                                    window.clearTimeout(exportToastTimer.current);
-                                                    exportToastTimer.current = null;
-                                                }
-                                                setShowExportToast(false);
-                                            }}
+                                            onClick={handleDismissExportToast}
                                             className="ml-2 px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
                                         >
                                             Close
@@ -363,7 +370,7 @@ export default function Dashboard({
                             <button
                                 onClick={exportReport}
                                 disabled={exportingTickets}
-                                className={`bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2 ${exportingTickets ? 'opacity-70 cursor-not-allowed' : 'hover:from-indigo-600 hover:to-blue-700'}`}
+                                className={`bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2${exportingTickets ? ' opacity-70 cursor-not-allowed' : ' hover:from-indigo-600 hover:to-blue-700'}`}
                                 title={exportingTickets ? 'Exporting…' : 'Export Report'}
                             >
                                 {exportingTickets ? (
@@ -539,10 +546,7 @@ export default function Dashboard({
 
                             {/* Close Button */}
                             <button
-                                onClick={() => {
-                                    setShowSuccessAlert(false);
-                                    setSuccessTicketData(null);
-                                }}
+                                onClick={handleDismissSuccessAlert}
                                 className="mt-6 w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-emerald-700 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
                             >
                                 Close

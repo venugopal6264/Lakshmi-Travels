@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiService, ApiFlat, ApiRentRecord, ApiTenant } from '../services/api';
 import { Calendar, Home, Plus, X, Search, Edit3, Eye, History } from 'lucide-react';
 
@@ -6,6 +6,27 @@ type MonthKey = string; // YYYY-MM
 
 function ym(d = new Date()): MonthKey {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function flatCardClass(tenant: ApiTenant | null, isPaid: boolean | undefined): string {
+    if (!tenant) return 'relative rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow border-gray-200 bg-gradient-to-br from-gray-50 to-white';
+    if (isPaid) return 'relative rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow border-emerald-200 bg-gradient-to-br from-emerald-50 to-white';
+    return 'relative rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow border-amber-200 bg-gradient-to-br from-amber-50 to-white';
+}
+
+function statusBadgeClass(tenant: ApiTenant | null, isPaid: boolean | undefined): string {
+    if (!tenant) return 'absolute top-3 right-[-32px] w-32 h-6 transform rotate-45 text-center text-xs font-semibold text-white shadow-sm bg-gray-400';
+    if (isPaid) return 'absolute top-3 right-[-32px] w-32 h-6 transform rotate-45 text-center text-xs font-semibold text-white shadow-sm bg-emerald-500';
+    return 'absolute top-3 right-[-32px] w-32 h-6 transform rotate-45 text-center text-xs font-semibold text-white shadow-sm bg-amber-500';
+}
+
+function statusLabel(tenant: ApiTenant | null, isPaid: boolean | undefined): string {
+    if (!tenant) return 'Vacant';
+    return isPaid ? 'Paid' : 'Unpaid';
+}
+
+function changeTenantBtnClass(isPaid: boolean | undefined): string {
+    return `${isPaid ? 'flex-1' : ''} inline-flex items-center justify-center gap-2 rounded-lg border-2 border-indigo-200 bg-white px-4 py-2.5 text-indigo-700 text-sm font-medium hover:bg-indigo-50 transition-colors`;
 }
 
 export default function ApartmentsPage() {
@@ -62,6 +83,26 @@ export default function ApartmentsPage() {
         setShowAddTenantFor(null);
     };
 
+    const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value);
+    const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value);
+    const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value as 'all' | 'occupied' | 'vacant');
+    const handleShowAddFlat = () => setShowAddFlat(true);
+    const handleCloseAddFlat = () => setShowAddFlat(false);
+    const handleCloseAddTenant = () => setShowAddTenantFor(null);
+    const handleAddTenantForCurrent = (input: { name: string; phone?: string; aadharNumber?: string; startDate: string; rentAmount: number; deposit?: number }) => {
+        if (showAddTenantFor) handleAddTenant(showAddTenantFor, input);
+    };
+    const handleCloseHistory = () => { setHistoryFor(null); setHistory(null); };
+    const handleCloseEditTenant = () => setEditTenant(null);
+    const handleSaveEditTenant = async (patch: Partial<ApiTenant>) => {
+        if (!editTenant?._id) return;
+        await apiService.updateTenant(editTenant._id, patch);
+        setEditTenant(null);
+        await loadAll();
+    };
+    const handleCloseViewTenant = () => setViewTenant(null);
+    const handleEditFromView = (t: ApiTenant) => { setViewTenant(null); setEditTenant(t); };
+
     const handleTogglePaid = async (flat: ApiFlat) => {
         // Mark Paid: set paid=true, amount=tenant's rentAmount, set paidDate to today
         const tenant = flat.currentTenant as ApiTenant | null;
@@ -108,18 +149,18 @@ export default function ApartmentsPage() {
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <div className="flex items-center gap-2 bg-white/15 text-white rounded-full px-2 py-2 ring-1 ring-white/30">
                         <Calendar className="w-4 h-4" />
-                        <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="bg-transparent focus:outline-none" />
+                        <input type="month" value={month} onChange={handleMonthChange} className="bg-transparent focus:outline-none" />
                     </div>
                     <div className="hidden sm:flex items-center gap-2 bg-white/15 text-white rounded-full px-2 py-2 ring-1 ring-white/30">
                         <Search className="w-4 h-4" />
-                        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tenant or flat" className="bg-transparent placeholder:text-white/80 focus:outline-none" />
+                        <input value={query} onChange={handleQueryChange} placeholder="Search tenant or flat" className="bg-transparent placeholder:text-white/80 focus:outline-none" />
                     </div>
-                    <select value={filter} onChange={e => setFilter(e.target.value as 'all' | 'occupied' | 'vacant')} className="bg-white/90 text-indigo-700 rounded-full px-2 py-2 text-sm">
+                    <select value={filter} onChange={handleFilterChange} className="bg-white/90 text-indigo-700 rounded-full px-2 py-2 text-sm">
                         <option value="all">All</option>
                         <option value="occupied">Occupied</option>
                         <option value="vacant">Vacant</option>
                     </select>
-                    <button onClick={() => setShowAddFlat(true)} className="inline-flex items-center gap-2 bg-white text-indigo-700 px-4 py-2 rounded-full font-medium hover:bg-indigo-50">
+                    <button onClick={handleShowAddFlat} className="inline-flex items-center gap-2 bg-white text-indigo-700 px-4 py-2 rounded-full font-medium hover:bg-indigo-50">
                         <Plus className="w-4 h-4" /> Add Flat
                     </button>
                 </div>
@@ -135,23 +176,16 @@ export default function ApartmentsPage() {
                         const rr = rentByFlat[f._id!];
                         const tenant = f.currentTenant as ApiTenant | null;
                         const isPaid = rr?.paid;
+                        const changeBtnLabel = isPaid ? 'Change Tenant' : 'Change';
                         return (
                             <div
                                 key={f._id}
-                                className={`relative rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow ${tenant
-                                        ? isPaid
-                                            ? 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white'
-                                            : 'border-amber-200 bg-gradient-to-br from-amber-50 to-white'
-                                        : 'border-gray-200 bg-gradient-to-br from-gray-50 to-white'
-                                    }`}
+                                className={flatCardClass(tenant, isPaid)}
                             >
                                 {/* Status indicator */}
-                                <div className={`absolute top-0 right-0 w-16 h-16 overflow-hidden`}>
-                                    <div className={`absolute top-3 right-[-32px] w-32 h-6 transform rotate-45 text-center text-xs font-semibold text-white shadow-sm ${tenant
-                                            ? isPaid ? 'bg-emerald-500' : 'bg-amber-500'
-                                            : 'bg-gray-400'
-                                        }`}>
-                                        {tenant ? (isPaid ? 'Paid' : 'Unpaid') : 'Vacant'}
+                                <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
+                                    <div className={statusBadgeClass(tenant, isPaid)}>
+                                        {statusLabel(tenant, isPaid)}
                                     </div>
                                 </div>
 
@@ -225,11 +259,11 @@ export default function ApartmentsPage() {
                                                 <button
                                                     type="button"
                                                     title="Change tenant"
-                                                    className={`${isPaid ? 'flex-1' : ''} inline-flex items-center justify-center gap-2 rounded-lg border-2 border-indigo-200 bg-white px-4 py-2.5 text-indigo-700 text-sm font-medium hover:bg-indigo-50 transition-colors`}
+                                                    className={changeTenantBtnClass(isPaid)}
                                                     onClick={() => setShowAddTenantFor(f)}
                                                 >
                                                     <Edit3 className="w-4 h-4" />
-                                                    {isPaid ? 'Change Tenant' : 'Change'}
+                                                    {changeBtnLabel}
                                                 </button>
                                             </>
                                         ) : (
@@ -252,34 +286,30 @@ export default function ApartmentsPage() {
 
             {/* Add Flat Modal */}
             {showAddFlat && (
-                <AddFlatModal onClose={() => setShowAddFlat(false)} onCreate={handleCreateFlat} />
+                <AddFlatModal onClose={handleCloseAddFlat} onCreate={handleCreateFlat} />
             )}
 
             {/* Add/Change Tenant Modal */}
             {showAddTenantFor && (
-                <AddTenantModal flat={showAddTenantFor} onClose={() => setShowAddTenantFor(null)} onCreate={(input) => handleAddTenant(showAddTenantFor, input)} />
+                <AddTenantModal flat={showAddTenantFor} onClose={handleCloseAddTenant} onCreate={handleAddTenantForCurrent} />
             )}
 
             {/* Tenant History Modal */}
             {historyFor && (
-                <HistoryModal flat={historyFor} history={history} onClose={() => { setHistoryFor(null); setHistory(null); }} />)
+                <HistoryModal flat={historyFor} history={history} onClose={handleCloseHistory} />)
             }
 
             {/* Edit Tenant Modal */}
             {editTenant && (
-                <EditTenantModal tenant={editTenant} onClose={() => setEditTenant(null)} onSave={async (patch) => {
-                    await apiService.updateTenant(editTenant._id!, patch);
-                    setEditTenant(null);
-                    await loadAll();
-                }} />
+                <EditTenantModal tenant={editTenant} onClose={handleCloseEditTenant} onSave={handleSaveEditTenant} />
             )}
 
             {/* View Member Modal */}
             {viewTenant && (
                 <ViewMemberModal
                     tenant={viewTenant}
-                    onClose={() => setViewTenant(null)}
-                    onEdit={(t) => { setViewTenant(null); setEditTenant(t); }}
+                    onClose={handleCloseViewTenant}
+                    onEdit={handleEditFromView}
                 />
             )}
         </div>

@@ -41,6 +41,10 @@ function InnerApp() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const { user, loading } = useAuth();
 
+  // Fetch tickets & payments once at the top level — shared by AuthedApp and AuthedPnrPortal
+  const ticketsHook = useTickets();
+  const paymentsHook = usePayments();
+
   // Lightweight router: sync currentPage with URL and browser history (no date range in URL)
   useEffect(() => {
     // On initial load, derive page from path
@@ -73,6 +77,10 @@ function InnerApp() {
     }
   }, [user, loading]);
 
+  const [showPnr, setShowPnr] = useState(false);
+  const handleOpenPnrSearch = () => setShowPnr(true);
+  const handleClosePnrSearch = () => setShowPnr(false);
+
   const renderCurrentPage = () => {
     if (loading) {
       return (
@@ -82,24 +90,40 @@ function InnerApp() {
     if (!user) {
       return <LoginPage />;
     }
-    return <AuthedApp currentPage={currentPage} />;
+    return <AuthedApp currentPage={currentPage} ticketsHook={ticketsHook} paymentsHook={paymentsHook} />;
   };
-  const [showPnr, setShowPnr] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} onOpenPnrSearch={() => setShowPnr(true)} />
+      <Navigation currentPage={currentPage} onPageChange={setCurrentPage} onOpenPnrSearch={handleOpenPnrSearch} />
       <div className="md:ml-64 md:pt-16 pt-16 lg:px-2 max-w-full">
         {renderCurrentPage()}
       </div>
-      {/* PNR Search is rendered only when authenticated, so we mount it below */}
-      {user && (
-        <AuthedPnrPortal open={showPnr} onClose={() => setShowPnr(false)} />
+      {/* PNR portal — only mount when open; receives already-fetched data, no extra API calls */}
+      {user && showPnr && (
+        <AuthedPnrPortal
+          open={showPnr}
+          onClose={handleClosePnrSearch}
+          ticketsHook={ticketsHook}
+          paymentsHook={paymentsHook}
+        />
       )}
     </div>
   );
 }
 
-function AuthedApp({ currentPage }: { currentPage: string }) {
+type TicketsHook = ReturnType<typeof useTickets>;
+type PaymentsHook = ReturnType<typeof usePayments>;
+
+function AuthedApp({
+  currentPage,
+  ticketsHook,
+  paymentsHook,
+}: {
+  currentPage: string;
+  ticketsHook: TicketsHook;
+  paymentsHook: PaymentsHook;
+}) {
   const {
     tickets,
     loading: ticketsLoading,
@@ -108,7 +132,7 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     deleteTicket,
     updateTicket,
     processRefund,
-  } = useTickets();
+  } = ticketsHook;
 
   const {
     payments,
@@ -116,7 +140,7 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
     error: paymentsError,
     addPayment,
     deletePayment: deletePayment
-  } = usePayments();
+  } = paymentsHook;
 
   // Normalize passenger name: comma-separated list, each name title-cased
   const normalizePassengerName = (input?: string): string => {
@@ -156,6 +180,18 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
   const addTicketNormalizedNoNavigate = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
     const normalized = normalizeTicketForSave(ticketData);
     await addTicket(normalized);
+  };
+
+  const handleAddPayment = async (paymentData: Parameters<typeof addPayment>[0]) => {
+    await addPayment(paymentData);
+  };
+
+  const handleAddTicketFromPayments = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
+    await addTicketNormalizedNoNavigate(ticketData);
+  };
+
+  const handleDeleteTicketFromPayments = async (id: string) => {
+    await deleteTicket(id);
   };
 
   const handleProcessRefund = async (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => {
@@ -222,9 +258,9 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
           <PaymentTracker
             payments={payments}
             tickets={tickets}
-            onAddPayment={async (paymentData) => { await addPayment(paymentData); }}
-            onAddTicket={async (ticketData) => { await addTicketNormalizedNoNavigate(ticketData); }}
-            onDeleteTicket={async (id) => { await deleteTicket(id); }}
+            onAddPayment={handleAddPayment}
+            onAddTicket={handleAddTicketFromPayments}
+            onDeleteTicket={handleDeleteTicketFromPayments}
             loading={paymentsLoading}
           />
         );
@@ -271,10 +307,23 @@ function AuthedApp({ currentPage }: { currentPage: string }) {
   return render();
 }
 
-// Small helper to access hooks and wire data into PNR modal
-function AuthedPnrPortal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { tickets, updateTicket, processRefund, deleteTicket } = useTickets();
-  const { payments } = usePayments();
+// Small helper to wire already-fetched hook data into PNR modal — no new API calls
+function AuthedPnrPortal({
+  open,
+  onClose,
+  ticketsHook,
+  paymentsHook,
+}: {
+  open: boolean;
+  onClose: () => void;
+  ticketsHook: TicketsHook;
+  paymentsHook: PaymentsHook;
+}) {
+  const { tickets, updateTicket, processRefund, deleteTicket } = ticketsHook;
+  const { payments } = paymentsHook;
+  const handleUpdateTicket = async (id: string, data: Partial<ApiTicket>) => { await updateTicket(id, data); };
+  const handleProcessRefund = async (id: string, data: { refund: number; refundDate: string; refundReason: string }) => { await processRefund(id, data); };
+  const handleDeleteTicket = async (id: string) => { await deleteTicket(id); };
   if (!open) return null;
   return (
     <PnrSearchModal
@@ -282,9 +331,9 @@ function AuthedPnrPortal({ open, onClose }: { open: boolean; onClose: () => void
       onClose={onClose}
       tickets={tickets}
       payments={payments}
-      onUpdateTicket={async (id, data) => { await updateTicket(id, data); }}
-      onProcessRefund={async (id, data) => { await processRefund(id, data); }}
-      onDeleteTicket={async (id) => { await deleteTicket(id); }}
+      onUpdateTicket={handleUpdateTicket}
+      onProcessRefund={handleProcessRefund}
+      onDeleteTicket={handleDeleteTicket}
     />
   );
 }

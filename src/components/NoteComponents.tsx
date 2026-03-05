@@ -149,6 +149,15 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
         });
     };
 
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
+    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value);
+    const handleLabelInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setLabelInput(e.target.value);
+    const handlePinnedChange = (e: React.ChangeEvent<HTMLInputElement>) => setPinned(e.target.checked);
+    const handleLabelInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') { e.preventDefault(); addLabel(); }
+    };
+    const handleRemoveLabel = (l: string) => setLabels(prev => prev.filter(x => x !== l));
+
     const handleSave = () => {
         if (format === 'table') {
             onSave({
@@ -173,7 +182,7 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
                     <button className="p-1 rounded hover:bg-gray-100" onClick={onClose}><X className="h-4 w-4" /></button>
                 </div>
                 <div className="p-2 space-y-3 max-h-[80vh] overflow-y-auto">
-                    <input className="w-full border rounded px-2 py-2 text-sm" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+                    <input className="w-full border rounded px-2 py-2 text-sm" placeholder="Title" value={title} onChange={handleTitleChange} />
 
                     {/* Format Toggle */}
                     <div className="flex items-center gap-2 border rounded p-2">
@@ -189,7 +198,7 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
 
                     {/* Content Area */}
                     {format === 'text' ? (
-                        <textarea className="w-full border rounded px-2 py-2 text-sm min-h-[120px]" placeholder="Write a note..." value={content} onChange={(e) => setContent(e.target.value)} />
+                        <textarea className="w-full border rounded px-2 py-2 text-sm min-h-[120px]" placeholder="Write a note..." value={content} onChange={handleContentChange} />
                     ) : (
                         <div className="border rounded p-3 space-y-2">
                             <div className="flex justify-between items-center mb-2">
@@ -250,7 +259,7 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
                         {noteColors.map(cVal => (
                             <button
                                 key={cVal}
-                                className={`w-6 h-6 rounded border relative transition ${color === cVal ? 'ring-2 ring-indigo-500' : ''}`}
+                                className={`w-6 h-6 rounded border relative transition${color === cVal ? ' ring-2 ring-indigo-500' : ''}`}
                                 style={{ background: softenColor(cVal, 0.2), borderColor: '#d1d5db' }}
                                 aria-label={`Color ${cVal}`}
                                 onClick={() => setColor(cVal)}
@@ -258,16 +267,16 @@ export function NoteEditor({ initial, onClose, onSave }: NoteEditorProps) {
                                 {color === cVal && <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-indigo-700">✓</span>}
                             </button>
                         ))}
-                        <label className="ml-2 inline-flex items-center gap-1 text-xs"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />Pinned</label>
+                        <label className="ml-2 inline-flex items-center gap-1 text-xs"><input type="checkbox" checked={pinned} onChange={handlePinnedChange} />Pinned</label>
                     </div>
                     <div className="flex items-center gap-2">
-                        <input className="flex-1 border rounded px-2 py-1 text-xs" placeholder="Add label" value={labelInput} onChange={(e) => setLabelInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLabel(); } }} />
+                        <input className="flex-1 border rounded px-2 py-1 text-xs" placeholder="Add label" value={labelInput} onChange={handleLabelInputChange} onKeyDown={handleLabelInputKeyDown} />
                         <button className="px-2 py-1 text-xs rounded border" onClick={addLabel}>Add</button>
                     </div>
                     {labels.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                             {labels.map((l, i) => (
-                                <span key={i} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 border"><Tag className="h-3 w-3" />{l}<button className="ml-1 text-gray-500 hover:text-gray-700" onClick={() => setLabels(prev => prev.filter(x => x !== l))}>×</button></span>
+                                <span key={i} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 border"><Tag className="h-3 w-3" />{l}<button className="ml-1 text-gray-500 hover:text-gray-700" onClick={() => handleRemoveLabel(l)}>×</button></span>
                             ))}
                         </div>
                     )}
@@ -291,6 +300,8 @@ interface NoteViewModalProps {
 export function NoteViewModal({ note, onClose, onEdit }: NoteViewModalProps) {
     const c = softenColor(note.color || '#fffbea', 0.3);
     const isTable = note.format === 'table';
+
+    const handleEditClick = () => { onClose(); onEdit(note); };
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -323,7 +334,7 @@ export function NoteViewModal({ note, onClose, onEdit }: NoteViewModalProps) {
                         <button
                             className="p-2 rounded-full hover:bg-black/10 text-gray-600"
                             title="Edit"
-                            onClick={() => { onClose(); onEdit(note); }}
+                            onClick={handleEditClick}
                         >
                             <Edit3 className="h-4 w-4" />
                         </button>
@@ -351,7 +362,7 @@ export function NoteViewModal({ note, onClose, onEdit }: NoteViewModalProps) {
                                 </thead>
                                 <tbody>
                                     {note.tableData.rows.map((row, i) => (
-                                        <tr key={i} className={`border-b border-black/10 ${i % 2 === 1 ? 'bg-black/[0.03]' : ''}`}>
+                                        <tr key={i} className={`border-b border-black/10${i % 2 === 1 ? ' bg-black/[0.03]' : ''}`}>
                                             {row.map((cell, j) => (
                                                 <td key={j} className="px-3 py-2 break-words">{cell}</td>
                                             ))}

@@ -444,6 +444,30 @@ export default function PaymentTracker({
   }, [dateFilteredTickets]);
   const maxMonthlyProfit = React.useMemo(() => Math.max(1, ...monthlyStats.rows.map(r => Math.max(0, r.totalProfit))), [monthlyStats.rows]);
 
+  const handleFromChange = (e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value);
+  const handleToChange = (e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value);
+  const handlePaymentAccountChange = (e: React.ChangeEvent<HTMLSelectElement>) => setPaymentAccountFilter(e.target.value);
+  const handleScopeAll = () => setBreakdownScope('all');
+  const handleScopeOpen = () => setBreakdownScope('open');
+  const handleScopePaid = () => setBreakdownScope('paid');
+  const handleFilterPartial = () => setPaymentTypeFilter('partial');
+  const handleFilterFull = () => setPaymentTypeFilter('full');
+  const handlePaymentDateChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPaymentData(prev => ({ ...prev, date: e.target.value }));
+  const handlePaymentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPaymentData(prev => ({ ...prev, amount: e.target.value }));
+  const handlePaymentPeriodChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPaymentData(prev => ({ ...prev, period: e.target.value }));
+  const handleTogglePartial = () => setPaymentData(p => ({ ...p, isPartial: !p.isPartial }));
+  const handleDismissExportToast = () => {
+    if (exportToastTimer.current) { window.clearTimeout(exportToastTimer.current); exportToastTimer.current = null; }
+    setShowExportToast(false);
+  };
+  const handleCreateTicketFromModal = async (ticketData: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => {
+    await onAddTicket(ticketData);
+    setShowCreateTicket(false);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden mb-6">
       {/* Colorful header to match Vehicles page */}
@@ -461,7 +485,7 @@ export default function PaymentTracker({
               <input
                 type="date"
                 value={from}
-                onChange={(e) => setFrom(e.target.value)}
+                onChange={handleFromChange}
                 className="px-2 py-1.5 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/95 text-xs lg:text-sm"
               />
             </div>
@@ -470,7 +494,7 @@ export default function PaymentTracker({
               <input
                 type="date"
                 value={to}
-                onChange={(e) => setTo(e.target.value)}
+                onChange={handleToChange}
                 className="px-2 py-1.5 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/95 text-xs lg:text-sm"
               />
             </div>
@@ -557,7 +581,7 @@ export default function PaymentTracker({
               <label className="text-xs text-green-600">Account</label>
               <select
                 value={paymentAccountFilter}
-                onChange={(e) => setPaymentAccountFilter(e.target.value)}
+                onChange={handlePaymentAccountChange}
                 className="px-2 py-1.5 text-xs border border-green-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
               >
                 <option className="text-green-600" value="all">All</option>
@@ -569,14 +593,14 @@ export default function PaymentTracker({
                 <button
                   type="button"
                   className={`px-3 py-1 rounded border text-xs ${paymentTypeFilter === 'partial' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-300'}`}
-                  onClick={() => setPaymentTypeFilter('partial')}
+                  onClick={handleFilterPartial}
                 >
                   Partial
                 </button>
                 <button
                   type="button"
                   className={`px-3 py-1 rounded border text-xs ${paymentTypeFilter === 'full' ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-700 border-gray-300'}`}
-                  onClick={() => setPaymentTypeFilter('full')}
+                  onClick={handleFilterFull}
                 >
                   Full
                 </button>
@@ -700,15 +724,15 @@ export default function PaymentTracker({
             <div className="flex gap-2">
               <button
                 className={`px-3 py-1 rounded border ${breakdownScope === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300'}`}
-                onClick={() => setBreakdownScope('all')}
+                onClick={handleScopeAll}
               >All</button>
               <button
                 className={`px-3 py-1 rounded border ${breakdownScope === 'open' ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-gray-700 border-gray-300'}`}
-                onClick={() => setBreakdownScope('open')}
+                onClick={handleScopeOpen}
               >Open</button>
               <button
                 className={`px-3 py-1 rounded border ${breakdownScope === 'paid' ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-700 border-gray-300'}`}
-                onClick={() => setBreakdownScope('paid')}
+                onClick={handleScopePaid}
               >Paid</button>
             </div>
           </div>
@@ -891,7 +915,7 @@ export default function PaymentTracker({
                     <input
                       type="date"
                       value={paymentData.date}
-                      onChange={(e) => setPaymentData(prev => ({ ...prev, date: e.target.value }))}
+                      onChange={handlePaymentDateChange}
                       className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
                     />
@@ -904,7 +928,7 @@ export default function PaymentTracker({
                       min={0}
                       step={0.01}
                       value={paymentData.amount}
-                      onChange={(e) => setPaymentData(prev => ({ ...prev, amount: e.target.value }))}
+                      onChange={handlePaymentAmountChange}
                       placeholder="e.g. 1200"
                       className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
@@ -916,7 +940,7 @@ export default function PaymentTracker({
                     <input
                       type="text"
                       value={paymentData.period}
-                      onChange={(e) => setPaymentData(prev => ({ ...prev, period: e.target.value }))}
+                      onChange={handlePaymentPeriodChange}
                       placeholder="e.g., Jan 1 - Jan 15 2025"
                       className="w-full px-2 py-2 rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       required
@@ -931,7 +955,7 @@ export default function PaymentTracker({
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => setPaymentData(p => ({ ...p, isPartial: !p.isPartial }))}
+                        onClick={handleTogglePartial}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${paymentData.isPartial ? 'bg-emerald-600' : 'bg-gray-300'}`}
                         aria-pressed={paymentData.isPartial}
                         disabled={!accountDueInfo || (accountDueInfo?.remainingDue ?? 0) === 0}
@@ -1002,13 +1026,7 @@ export default function PaymentTracker({
             <div className="text-sm text-gray-800">Payments report exported.</div>
             <button
               type="button"
-              onClick={() => {
-                if (exportToastTimer.current) {
-                  window.clearTimeout(exportToastTimer.current);
-                  exportToastTimer.current = null;
-                }
-                setShowExportToast(false);
-              }}
+              onClick={handleDismissExportToast}
               className="ml-2 px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
             >
               Close
@@ -1062,10 +1080,7 @@ export default function PaymentTracker({
                 <div className="h-1 w-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-emerald-400" />
                 <div className="px-4 sm:px-6 py-4 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)] flex-1 overflow-y-auto touch-pan-y [-webkit-overflow-scrolling:touch]">
                   <TicketForm
-                    onAddTicket={async (ticketData) => {
-                      await onAddTicket(ticketData);
-                      setShowCreateTicket(false);
-                    }}
+                    onAddTicket={handleCreateTicketFromModal}
                     loading={submitting}
                   />
                 </div>

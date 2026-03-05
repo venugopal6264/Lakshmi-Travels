@@ -43,7 +43,7 @@ export function useTickets() {
   const updateTicket = async (id: string, ticketData: Partial<ApiTicket>) => {
     try {
       const updatedTicket = await apiService.updateTicket(id, ticketData);
-      setTickets(prev => prev.map(ticket => 
+      setTickets(prev => prev.map(ticket =>
         ticket._id === id ? updatedTicket : ticket
       ));
       return updatedTicket;
@@ -56,7 +56,7 @@ export function useTickets() {
   const processRefund = async (id: string, refundData: { refund: number; refundDate: string; refundReason: string }) => {
     try {
       const updatedTicket = await apiService.processRefund(id, refundData);
-      setTickets(prev => prev.map(ticket => 
+      setTickets(prev => prev.map(ticket =>
         ticket._id === id ? updatedTicket : ticket
       ));
       return updatedTicket;
@@ -66,7 +66,22 @@ export function useTickets() {
     }
   };
   useEffect(() => {
-    fetchTickets();
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getTickets();
+        if (!cancelled) {
+          setTickets(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to fetch tickets');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   return {
@@ -121,7 +136,22 @@ export function usePayments() {
   };
 
   useEffect(() => {
-    fetchPayments();
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getPayments();
+        if (!cancelled) {
+          setPayments(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to fetch payments');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   return {
@@ -186,7 +216,22 @@ export function useFuel() {
   };
 
   useEffect(() => {
-    fetchFuel();
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getFuel();
+        if (!cancelled) {
+          setFuel(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to fetch fuel entries');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   return { fuel, loading, error, addFuel, updateFuel, deleteFuel, refetch: fetchFuel };

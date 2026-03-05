@@ -77,6 +77,10 @@ export default function SalaryPage() {
     const fmt = (n: number) => `₹${n.toLocaleString('en-IN')}`;
     const pct = (n: number) => `${n.toFixed(2)}%`;
 
+    const handleEditSalary = (sal: ApiSalary) => { setEditing(sal); setEditorOpen(true); };
+    const handleCloseEditor = () => { setEditorOpen(false); setEditing(null); };
+    const handleCloseComponents = () => setViewingComponents(null);
+
     // Calculate components for display if they don't exist
     const getComponents = (salary: ApiSalary) => {
         if (salary.components) return salary.components;
@@ -130,6 +134,8 @@ export default function SalaryPage() {
             ctcPM: { annual: ctcPM, month: Math.round(ctcPM / 12) }
         };
     };
+
+    const viewingComponentsData = viewingComponents ? getComponents(viewingComponents) : null;
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -239,10 +245,7 @@ export default function SalaryPage() {
                                                     <button
                                                         className="p-1 rounded hover:bg-gray-200 mr-1"
                                                         title="Edit"
-                                                        onClick={() => {
-                                                            setEditing(sal);
-                                                            setEditorOpen(true);
-                                                        }}
+                                                        onClick={() => handleEditSalary(sal)}
                                                     >
                                                         <Edit3 className="h-4 w-4 text-blue-600" />
                                                     </button>
@@ -267,10 +270,7 @@ export default function SalaryPage() {
                     <SalaryEditor
                         initial={editing}
                         salaries={salaries}
-                        onClose={() => {
-                            setEditorOpen(false);
-                            setEditing(null);
-                        }}
+                        onClose={handleCloseEditor}
                         onSave={onSave}
                     />
                 )}
@@ -283,100 +283,97 @@ export default function SalaryPage() {
                                 <h2 className="text-xl font-bold">Salary Component Breakdown - {viewingComponents.year}</h2>
                                 <button
                                     className="text-white hover:text-gray-200 text-2xl font-bold"
-                                    onClick={() => setViewingComponents(null)}
+                                    onClick={handleCloseComponents}
                                 >
                                     ×
                                 </button>
                             </div>
                             <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-                                {(() => {
-                                    const components = getComponents(viewingComponents);
-                                    return (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead>
-                                                    <tr className="bg-indigo-100">
-                                                        <th className="px-4 py-2 text-left font-semibold text-gray-700">Component</th>
-                                                        <th className="px-4 py-2 text-right font-semibold text-gray-700">Monthly (₹)</th>
-                                                        <th className="px-4 py-2 text-right font-semibold text-gray-700">Annual (₹)</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="bg-white">
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">Basic (40%)</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.basic?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.basic?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">HRA (16%)</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.hra?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.hra?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">Special Allowance (Remaining)</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.specialAllowance?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.specialAllowance?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b bg-indigo-50">
-                                                        <td className="px-4 py-2 font-semibold text-gray-800">Gross Salary</td>
-                                                        <td className="px-4 py-2 text-right font-semibold text-gray-800">{components.grossSalary?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-semibold text-gray-800">{components.grossSalary?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">LTA</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.lta?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.lta?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">Phone</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.phone?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.phone?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">Fuel</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.fuel?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.fuel?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">Food</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.food?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.food?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b bg-indigo-50">
-                                                        <td className="px-4 py-2 font-semibold text-gray-800">Total</td>
-                                                        <td className="px-4 py-2 text-right font-semibold text-gray-800">{components.total?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-semibold text-gray-800">{components.total?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">PF (12% of Basic)</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.pf?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.pf?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">Gratuity (4.8% of Basic)</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.gratuity?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.gratuity?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-2 text-gray-700">NPS (5% of Basic)</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.nps?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-medium">{components.nps?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="border-b bg-indigo-50">
-                                                        <td className="px-4 py-2 font-semibold text-gray-800">Total Retirals</td>
-                                                        <td className="px-4 py-2 text-right font-semibold text-gray-800">{components.totalRetails?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-2 text-right font-semibold text-gray-800">{components.totalRetails?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                    <tr className="bg-indigo-100">
-                                                        <td className="px-4 py-3 font-bold text-gray-900">CTC PM</td>
-                                                        <td className="px-4 py-3 text-right font-bold text-gray-900">{components.ctcPM?.month?.toLocaleString('en-IN') || 0}</td>
-                                                        <td className="px-4 py-3 text-right font-bold text-gray-900">{components.ctcPM?.annual?.toLocaleString('en-IN') || 0}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    );
-                                })()}
+                                {viewingComponentsData && (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="bg-indigo-100">
+                                                    <th className="px-4 py-2 text-left font-semibold text-gray-700">Component</th>
+                                                    <th className="px-4 py-2 text-right font-semibold text-gray-700">Monthly (₹)</th>
+                                                    <th className="px-4 py-2 text-right font-semibold text-gray-700">Annual (₹)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white">
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">Basic (40%)</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.basic?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.basic?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">HRA (16%)</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.hra?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.hra?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">Special Allowance (Remaining)</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.specialAllowance?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.specialAllowance?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b bg-indigo-50">
+                                                    <td className="px-4 py-2 font-semibold text-gray-800">Gross Salary</td>
+                                                    <td className="px-4 py-2 text-right font-semibold text-gray-800">{viewingComponentsData.grossSalary?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-semibold text-gray-800">{viewingComponentsData.grossSalary?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">LTA</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.lta?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.lta?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">Phone</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.phone?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.phone?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">Fuel</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.fuel?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.fuel?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">Food</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.food?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.food?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b bg-indigo-50">
+                                                    <td className="px-4 py-2 font-semibold text-gray-800">Total</td>
+                                                    <td className="px-4 py-2 text-right font-semibold text-gray-800">{viewingComponentsData.total?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-semibold text-gray-800">{viewingComponentsData.total?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">PF (12% of Basic)</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.pf?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.pf?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">Gratuity (4.8% of Basic)</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.gratuity?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.gratuity?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b hover:bg-gray-50">
+                                                    <td className="px-4 py-2 text-gray-700">NPS (5% of Basic)</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.nps?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{viewingComponentsData.nps?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="border-b bg-indigo-50">
+                                                    <td className="px-4 py-2 font-semibold text-gray-800">Total Retirals</td>
+                                                    <td className="px-4 py-2 text-right font-semibold text-gray-800">{viewingComponentsData.totalRetails?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-2 text-right font-semibold text-gray-800">{viewingComponentsData.totalRetails?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                                <tr className="bg-indigo-100">
+                                                    <td className="px-4 py-3 font-bold text-gray-900">CTC PM</td>
+                                                    <td className="px-4 py-3 text-right font-bold text-gray-900">{viewingComponentsData.ctcPM?.month?.toLocaleString('en-IN') || 0}</td>
+                                                    <td className="px-4 py-3 text-right font-bold text-gray-900">{viewingComponentsData.ctcPM?.annual?.toLocaleString('en-IN') || 0}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

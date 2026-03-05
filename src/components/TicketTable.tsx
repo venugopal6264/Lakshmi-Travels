@@ -234,6 +234,33 @@ export default function TicketTable({
   const isRefunded = (ticket: ApiTicket) => {
     return Number(ticket.refund || 0) > 0;
   };
+
+  const handleConfirmBulkPaid = async () => {
+    setShowConfirmBulk(false);
+    setBulkLoading(true);
+    await handleBulkMarkAsPaid();
+    setBulkLoading(false);
+  };
+
+  type BulkRow = { count: number; net: number; partial: number; remaining: number };
+
+  const bulkBreakdownRows = useMemo((): Array<[string, BulkRow]> => {
+    const byId: Record<string, ApiTicket> = Object.fromEntries(tickets.map(t => [t._id!, t]));
+    const selected = selectedTickets.map(id => byId[id]).filter(Boolean);
+    const grouped: Record<string, BulkRow> = {};
+    for (const t of selected) {
+      const acc = t.account || 'Unknown';
+      if (!grouped[acc]) grouped[acc] = { count: 0, net: 0, partial: 0, remaining: 0 };
+      grouped[acc].count += 1;
+      grouped[acc].net += Number(t.ticketAmount || 0) - Number(t.refund || 0);
+    }
+    payments.filter(p => p.isPartial && p.account && grouped[p.account]).forEach(p => {
+      const acc = p.account!;
+      grouped[acc].partial += Number(p.amount || 0);
+    });
+    Object.values(grouped).forEach(row => { row.remaining = row.net - row.partial; });
+    return Object.entries(grouped);
+  }, [selectedTickets, tickets, payments]);
   return (
     <div className='bg-white rounded-lg shadow-md overflow-hidden border-t-4 border-green-500 p-2'>
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center mb-2">
@@ -353,8 +380,7 @@ export default function TicketTable({
               const v = e.target.value;
               setAccountFilter(v);
               onAccountFilterChange?.(v);
-            }}
-            className={`w-56 sm:w-72 md:w-80 px-2 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
+            }} className={`w-56 sm:w-72 md:w-80 px-2 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
           >
             <option value="all">All Accounts</option>
             {uniqueAccounts.map(account => (
@@ -701,53 +727,28 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    const byId: Record<string, ApiTicket> = Object.fromEntries(tickets.map(t => [t._id!, t]));
-                    const selected = selectedTickets.map(id => byId[id]).filter(Boolean);
-                    // Aggregate selected ticket net (ticket - refund) per account
-                    const grouped: Record<string, { count: number; net: number; partial: number; remaining: number }> = {};
-                    for (const t of selected) {
-                      const acc = t.account || 'Unknown';
-                      if (!grouped[acc]) grouped[acc] = { count: 0, net: 0, partial: 0, remaining: 0 };
-                      grouped[acc].count += 1;
-                      grouped[acc].net += Number(t.ticketAmount || 0) - Number(t.refund || 0);
-                    }
-                    // Add partial payments only for accounts that have selected tickets
-                    payments.filter(p => p.isPartial && p.account && grouped[p.account]).forEach(p => {
-                      const acc = p.account!;
-                      grouped[acc].partial += Number(p.amount || 0);
-                    });
-                    // Compute remaining due allowing negative values
-                    Object.values(grouped).forEach(row => {
-                      row.remaining = row.net - row.partial;
-                    });
-                    const rows = Object.entries(grouped);
-                    if (rows.length === 0) {
-                      return (
-                        <tr>
-                          <td colSpan={4} className="px-3 py-3 text-center text-gray-500">No tickets selected.</td>
+                  {bulkBreakdownRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-3 text-center text-gray-500">No tickets selected.</td>
+                    </tr>
+                  ) : (
+                    <>
+                      {bulkBreakdownRows.map(([acc, v]) => (
+                        <tr key={acc} className="border-t">
+                          <td className="px-2 py-2">{acc}</td>
+                          <td className="px-2 py-2">{v.count}</td>
+                          <td className="px-2 py-2 text-amber-700">₹{Math.round(v.partial).toLocaleString()}</td>
+                          <td className={`px-2 py-2 font-medium ${v.remaining < 0 ? 'text-red-700' : ''}`}>₹{Math.round(v.remaining).toLocaleString()}</td>
                         </tr>
-                      );
-                    }
-                    return (
-                      <>
-                        {rows.map(([acc, v]) => (
-                          <tr key={acc} className="border-t">
-                            <td className="px-2 py-2">{acc}</td>
-                            <td className="px-2 py-2">{v.count}</td>
-                            <td className="px-2 py-2 text-amber-700">₹{Math.round(v.partial).toLocaleString()}</td>
-                            <td className={`px-2 py-2 font-medium ${v.remaining < 0 ? 'text-red-700' : ''}`}>₹{Math.round(v.remaining).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                        <tr className="border-t bg-gray-50 font-medium">
-                          <td className="px-2 py-2">Total</td>
-                          <td className="px-2 py-2">{rows.reduce((s, [, v]) => s + v.count, 0)}</td>
-                          <td className="px-2 py-2 text-amber-700">₹{Math.round(rows.reduce((s, [, v]) => s + v.partial, 0)).toLocaleString()}</td>
-                          <td className="px-2 py-2">₹{Math.round(rows.reduce((s, [, v]) => s + v.remaining, 0)).toLocaleString()}</td>
-                        </tr>
-                      </>
-                    );
-                  })()}
+                      ))}
+                      <tr className="border-t bg-gray-50 font-medium">
+                        <td className="px-2 py-2">Total</td>
+                        <td className="px-2 py-2">{bulkBreakdownRows.reduce((s, [, v]) => s + v.count, 0)}</td>
+                        <td className="px-2 py-2 text-amber-700">₹{Math.round(bulkBreakdownRows.reduce((s, [, v]) => s + v.partial, 0)).toLocaleString()}</td>
+                        <td className="px-2 py-2">₹{Math.round(bulkBreakdownRows.reduce((s, [, v]) => s + v.remaining, 0)).toLocaleString()}</td>
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -764,12 +765,7 @@ Amount: \u20B9${Math.round(Number(confirmDeleteTicket.ticketAmount || 0)).toLoca
               <button
                 type="button"
                 className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition disabled:opacity-50"
-                onClick={async () => {
-                  setShowConfirmBulk(false);
-                  setBulkLoading(true);
-                  await handleBulkMarkAsPaid();
-                  setBulkLoading(false);
-                }}
+                onClick={handleConfirmBulkPaid}
                 disabled={bulkLoading}
               >
                 {bulkLoading ? 'Processing…' : 'Mark as Paid'}

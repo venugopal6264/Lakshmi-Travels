@@ -1,7 +1,11 @@
 import { RefreshCw, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ApiTicket } from '../services/api';
 import TicketForm from './TicketForm';
+
+function tabBtnClass(active: boolean): string {
+    return `px-6 py-3 font-medium ${active ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`;
+}
 
 interface EditTicketModalProps {
     ticket: ApiTicket;
@@ -77,6 +81,15 @@ export default function EditTicketModal({
         }
     };
 
+    const handleRefundAmountChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+        setRefundData(prev => ({ ...prev, refund: e.target.value }));
+    const handleRefundDateChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+        setRefundData(prev => ({ ...prev, refundDate: e.target.value }));
+    const handleRefundReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) =>
+        setRefundData(prev => ({ ...prev, refundReason: e.target.value }));
+    const handleTabEdit = () => setActiveTab('edit');
+    const handleTabRefund = () => setActiveTab('refund');
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto p-2 flex items-center justify-center z-50">
             <div className="w-full max-w-2xl mx-auto">
@@ -100,20 +113,14 @@ export default function EditTicketModal({
 
                         <div className="flex border-b">
                             <button
-                                onClick={() => setActiveTab('edit')}
-                                className={`px-6 py-3 font-medium ${activeTab === 'edit'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                    }`}
+                                onClick={handleTabEdit}
+                                className={tabBtnClass(activeTab === 'edit')}
                             >
                                 Edit Details
                             </button>
                             <button
-                                onClick={() => setActiveTab('refund')}
-                                className={`px-6 py-3 font-medium ${activeTab === 'refund'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                    }`}
+                                onClick={handleTabRefund}
+                                className={tabBtnClass(activeTab === 'refund')}
                             >
                                 Process Refund
                             </button>
@@ -152,7 +159,7 @@ export default function EditTicketModal({
                                             <input
                                                 type="number"
                                                 value={refundData.refund}
-                                                onChange={(e) => setRefundData(prev => ({ ...prev, refund: e.target.value }))}
+                                                onChange={handleRefundAmountChange}
                                                 className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 placeholder="Enter refund amount"
                                             />
@@ -165,7 +172,7 @@ export default function EditTicketModal({
                                             <input
                                                 type="date"
                                                 value={refundData.refundDate}
-                                                onChange={(e) => setRefundData(prev => ({ ...prev, refundDate: e.target.value }))}
+                                                onChange={handleRefundDateChange}
                                                 className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
@@ -177,7 +184,7 @@ export default function EditTicketModal({
                                         </label>
                                         <textarea
                                             value={refundData.refundReason}
-                                            onChange={(e) => setRefundData(prev => ({ ...prev, refundReason: e.target.value }))}
+                                            onChange={handleRefundReasonChange}
                                             rows={3}
                                             className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="Enter reason for refund"

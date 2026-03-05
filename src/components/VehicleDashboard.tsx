@@ -113,6 +113,74 @@ const VehicleDashboard = () => {
     }
 
     const theme = selectedVehicleColor || '#3b82f6';
+
+    const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => setPeriod(e.target.value as PeriodKey);
+
+    const handleVehicleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const id = e.target.value || null;
+        setActiveVehicleId(id);
+        if (!id) {
+            setSelectedVehicleId(null);
+            setSelectedVehicleName('All Vehicles');
+            setSelectedVehicleColor('#3b82f6');
+            return;
+        }
+        const found = vehicles.find(x => x._id === id);
+        if (found) {
+            setActiveVehicle(found.type);
+            setSelectedVehicleColor(found.color || selectedVehicleColor);
+            setSelectedVehicleId(found._id);
+            setSelectedVehicleName(found.name);
+        }
+    };
+
+    const handleSelectAllVehicles = () => {
+        setActiveVehicleId(null);
+        setSelectedVehicleId(null);
+        setSelectedVehicleName('All Vehicles');
+        setSelectedVehicleColor('#3b82f6');
+    };
+
+    const handleOpenAddFuel = () => { setEditingEntry(null); setEntryModalOpen(true); };
+    const handleCloseFuelEntry = () => { setEntryModalOpen(false); setEditingEntry(null); };
+    const handleEditEntry = (e: ApiFuel) => { setEditingEntry(e); setEntryModalOpen(true); };
+    const handleDeleteEntry = (e: ApiFuel) => { if (e._id) deleteFuel(e._id); };
+
+    const handleCloseVehicleModal = () => setVehicleModalOpen(false);
+    const handleCloseVehicleManager = () => setVehicleManagerOpen(false);
+
+    const handleVehicleAdded = (v: VehicleDoc) => {
+        setVehicles(prev => {
+            const others = prev.filter(x => x._id !== v._id);
+            return [v, ...others];
+        });
+        setSelectedVehicleId(v._id);
+        setSelectedVehicleName(v.name);
+        setSelectedVehicleColor(v.color || '#3b82f6');
+        setActiveVehicle(v.type);
+        setVehicleModalOpen(false);
+    };
+
+    const handleVehicleUpdated = (v: VehicleDoc) => {
+        setVehicles(prev => prev.map(x => x._id === v._id ? v : x));
+        if (v._id === selectedVehicleId) setSelectedVehicleColor(v.color || selectedVehicleColor);
+    };
+    const handleVehicleDeleted = (id: string) => setVehicles(prev => prev.filter(x => x._id !== id));
+
+    const handleFuelSave = async (payload: Omit<ApiFuel, '_id' | 'createdAt' | 'updatedAt'>, id?: string) => {
+        if (id) { await updateFuel(id, payload); } else { await addFuel(payload); }
+        setEntryModalOpen(false);
+        setEditingEntry(null);
+    };
+
+    const handleWidgetVehicleClick = (v: { _id: string; name: string; type: 'car' | 'bike'; color?: string }) => {
+        setActiveVehicle(v.type);
+        setActiveVehicleId(v._id);
+        setSelectedVehicleId(v._id);
+        setSelectedVehicleName(v.name);
+        setSelectedVehicleColor(v.color || selectedVehicleColor);
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-md p-0 overflow-hidden">
             {/* Colorful header (tinted with selected color) */}
@@ -130,7 +198,7 @@ const VehicleDashboard = () => {
                     </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                         <button
-                            onClick={() => { setEditingEntry(null); setEntryModalOpen(true); }}
+                            onClick={handleOpenAddFuel}
                             className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full hover:from-emerald-600 hover:to-teal-600 ring-1 ring-white/20 shadow-sm transition duration-200 flex items-center gap-2"
                             title="Add new entry"
                         >
@@ -163,13 +231,7 @@ const VehicleDashboard = () => {
                         vehicles={vehicles}
                         fuel={fuel}
                         selectedVehicleId={selectedVehicleId}
-                        onVehicleClick={(v) => {
-                            setActiveVehicle(v.type);
-                            setActiveVehicleId(v._id);
-                            setSelectedVehicleId(v._id);
-                            setSelectedVehicleName(v.name);
-                            setSelectedVehicleColor(v.color || selectedVehicleColor);
-                        }}
+                        onVehicleClick={handleWidgetVehicleClick}
                     />
                 )}
                 {/* Toolbar: Vehicle and Period selectors */}
@@ -185,23 +247,7 @@ const VehicleDashboard = () => {
                                 borderColor: withAlpha(theme, 0.4)
                             }}
                             value={activeVehicleId ?? ''}
-                            onChange={(e) => {
-                                const id = e.target.value || null;
-                                setActiveVehicleId(id);
-                                if (!id) {
-                                    setSelectedVehicleId(null);
-                                    setSelectedVehicleName('All Vehicles');
-                                    setSelectedVehicleColor('#3b82f6');
-                                    return;
-                                }
-                                const found = vehicles.find(x => x._id === id);
-                                if (found) {
-                                    setActiveVehicle(found.type);
-                                    setSelectedVehicleColor(found.color || selectedVehicleColor);
-                                    setSelectedVehicleId(found._id);
-                                    setSelectedVehicleName(found.name);
-                                }
-                            }}
+                            onChange={handleVehicleSelectChange}
                         >
                             <option value="">All Vehicles</option>
                             <optgroup label="Cars">
@@ -227,7 +273,7 @@ const VehicleDashboard = () => {
                                 borderColor: withAlpha(theme, 0.4)
                             }}
                             value={period}
-                            onChange={(e) => setPeriod(e.target.value as PeriodKey)}
+                            onChange={handlePeriodChange}
                         >
                             <option value="all">All Time</option>
                             <option value="1m">Last Month</option>
@@ -262,13 +308,8 @@ const VehicleDashboard = () => {
                             vehicleId={activeVehicleId}
                             vehicleName={undefined}
                             color={selectedVehicleColor}
-                            onEdit={(e) => {
-                                setEditingEntry(e);
-                                setEntryModalOpen(true);
-                            }}
-                            onDelete={(e) => {
-                                if (e._id) deleteFuel(e._id);
-                            }}
+                            onEdit={handleEditEntry}
+                            onDelete={handleDeleteEntry}
                         />
 
                     </div>
@@ -276,20 +317,8 @@ const VehicleDashboard = () => {
             </div>
             {vehicleModalOpen && (
                 <AddVehicleModal
-                    onClose={() => setVehicleModalOpen(false)}
-                    onAdded={(v: VehicleDoc) => {
-                        setVehicles(prev => {
-                            // prefer one active selection per type - keep newest at front
-                            const others = prev.filter(x => x._id !== v._id);
-                            const next: VehicleDoc[] = [v, ...others];
-                            return next;
-                        });
-                        setSelectedVehicleId(v._id);
-                        setSelectedVehicleName(v.name);
-                        setSelectedVehicleColor(v.color || '#3b82f6');
-                        setActiveVehicle(v.type);
-                        setVehicleModalOpen(false);
-                    }}
+                    onClose={handleCloseVehicleModal}
+                    onAdded={handleVehicleAdded}
                     color={selectedVehicleColor}
                 />
             )}
@@ -297,12 +326,9 @@ const VehicleDashboard = () => {
                 <VehicleManagerModal
                     vehicles={vehicles}
                     color={selectedVehicleColor}
-                    onClose={() => setVehicleManagerOpen(false)}
-                    onUpdated={(v) => {
-                        setVehicles(prev => prev.map(x => x._id === v._id ? v : x));
-                        if (v._id === selectedVehicleId) setSelectedVehicleColor(v.color || selectedVehicleColor);
-                    }}
-                    onDeleted={(id) => setVehicles(prev => prev.filter(x => x._id !== id))}
+                    onClose={handleCloseVehicleManager}
+                    onUpdated={handleVehicleUpdated}
+                    onDeleted={handleVehicleDeleted}
                 />
             )}
             {entryModalOpen && (
@@ -310,16 +336,8 @@ const VehicleDashboard = () => {
                     initial={editingEntry}
                     defaultVehicle={{ id: editingEntry?.vehicleId ?? selectedVehicleId, name: editingEntry?.vehicleName ?? selectedVehicleName, type: editingEntry?.vehicle ?? activeVehicle }}
                     vehicles={vehicles}
-                    onClose={() => { setEntryModalOpen(false); setEditingEntry(null); }}
-                    onSave={async (payload, id) => {
-                        if (id) {
-                            await updateFuel(id, payload);
-                        } else {
-                            await addFuel(payload);
-                        }
-                        setEntryModalOpen(false);
-                        setEditingEntry(null);
-                    }}
+                    onClose={handleCloseFuelEntry}
+                    onSave={handleFuelSave}
                     color={selectedVehicleColor}
                 />
             )}
@@ -330,7 +348,7 @@ const VehicleDashboard = () => {
                     type="button"
                     title="Add Fuel"
                     aria-label="Add Fuel"
-                    onClick={() => { setEditingEntry(null); setEntryModalOpen(true); }}
+                    onClick={handleOpenAddFuel}
                     className="w-14 h-14 rounded-full shadow-xl ring-2 ring-emerald-400/50 flex items-center justify-center transition transform hover:scale-110 hover:shadow-2xl"
                     style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }}
                 >
@@ -341,32 +359,28 @@ const VehicleDashboard = () => {
                     type="button"
                     title="All Vehicles"
                     aria-label="All Vehicles"
-                    onClick={() => {
-                        setActiveVehicleId(null);
-                        setSelectedVehicleId(null);
-                        setSelectedVehicleName('All Vehicles');
-                        setSelectedVehicleColor('#3b82f6');
-                    }}
-                    className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105 ${!activeVehicleId ? 'ring-2 ring-indigo-500' : ''}`}
+                    onClick={handleSelectAllVehicles}
+                    className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105${!activeVehicleId ? ' ring-2 ring-indigo-500' : ''}`}
                     style={{ background: withAlpha('#3b82f6', 0.85), color: '#fff' }}
                 >Reset</button>
                 {vehicles.map(v => {
                     const Icon = v.type === 'car' ? Car : Bike;
                     const isActive = activeVehicleId === v._id;
+                    const handleSelectThisVehicle = () => {
+                        setActiveVehicle(v.type);
+                        setActiveVehicleId(v._id);
+                        setSelectedVehicleId(v._id);
+                        setSelectedVehicleName(v.name);
+                        setSelectedVehicleColor(v.color || '#3b82f6');
+                    };
                     return (
                         <button
                             key={v._id}
                             type="button"
                             title={v.name}
                             aria-label={v.name}
-                            onClick={() => {
-                                setActiveVehicle(v.type);
-                                setActiveVehicleId(v._id);
-                                setSelectedVehicleId(v._id);
-                                setSelectedVehicleName(v.name);
-                                setSelectedVehicleColor(v.color || '#3b82f6');
-                            }}
-                            className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105 ${isActive ? 'ring-2 ring-indigo-500' : ''}`}
+                            onClick={handleSelectThisVehicle}
+                            className={`w-12 h-12 rounded-full shadow-lg ring-1 ring-black/10 flex items-center justify-center transition transform hover:scale-105${isActive ? ' ring-2 ring-indigo-500' : ''}`}
                             style={{ background: v.color || '#64748b', color: '#fff' }}
                         >
                             <Icon className="w-6 h-6" />

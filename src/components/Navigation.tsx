@@ -2,6 +2,22 @@ import { BarChart3, DollarSign, Car, LogOut, User2, Search, Home, Users, StickyN
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
+function mobileNavItemClass(active: boolean): string {
+    return `w-full flex items-center gap-3 px-6 py-3 text-left${active
+        ? ' bg-blue-600 text-white border-l-4 border-blue-400'
+        : ' text-gray-300 hover:bg-slate-800 hover:text-white'}`;
+}
+
+function sidebarNavItemClass(active: boolean): string {
+    return `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group${active
+        ? ' bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+        : ' text-slate-300 hover:bg-slate-800 hover:text-white'}`;
+}
+
+function navIconClass(active: boolean): string {
+    return `w-5 h-5${active ? ' text-white' : ' text-slate-400 group-hover:text-white'} transition-colors`;
+}
+
 interface NavigationProps {
     currentPage: string;
     onPageChange: (page: string) => void;
@@ -43,6 +59,8 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
             (id === 'payments' && currentPage === 'payments') ||
             (id === 'dashboard' && currentPage === 'dashboard');
     };
+
+    const handleMobileLogout = () => { logout(); setMobileMenuOpen(false); };
 
     if (loading) {
         return (
@@ -116,10 +134,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                                     <button
                                         key={item.id}
                                         onClick={() => handleNavigation(item.id)}
-                                        className={`w-full flex items-center gap-3 px-6 py-3 text-left ${active
-                                            ? 'bg-blue-600 text-white border-l-4 border-blue-400'
-                                            : 'text-gray-300 hover:bg-slate-800 hover:text-white'
-                                            }`}
+                                        className={mobileNavItemClass(active)}
                                     >
                                         <Icon className="w-5 h-5" />
                                         <span className="font-medium">{item.label}</span>
@@ -142,10 +157,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                                 </div>
                             </div>
                             <button
-                                onClick={() => {
-                                    logout();
-                                    setMobileMenuOpen(false);
-                                }}
+                                onClick={handleMobileLogout}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                             >
                                 <LogOut className="w-5 h-5" />
@@ -222,16 +234,9 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                                 <button
                                     key={item.id}
                                     onClick={() => handleNavigation(item.id)}
-                                    className={`
-                                        w-full flex items-center gap-3 px-4 py-3 rounded-lg
-                                        transition-all duration-200 group
-                                        ${active
-                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                        }
-                                    `}
+                                    className={sidebarNavItemClass(active)}
                                 >
-                                    <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-slate-400 group-hover:text-white'} transition-colors`} />
+                                    <Icon className={navIconClass(active)} />
                                     <span className="font-medium text-sm">{item.label}</span>
                                 </button>
                             );

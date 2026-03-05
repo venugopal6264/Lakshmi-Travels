@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StickyNote, Plus, Search } from 'lucide-react';
 import { ApiNote, apiService } from '../services/api';
 import { NoteCard, NoteEditor, NoteViewModal } from '../components/NoteComponents';
@@ -47,6 +47,11 @@ export default function NotesPage() {
     const others = useMemo(() => filteredNotes.filter(n => !n.pinned), [filteredNotes]);
 
     const openNew = () => { setEditing(null); setEditorOpen(true); };
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value);
+    const handleEditNote = (n: ApiNote) => { setEditing(n); setEditorOpen(true); };
+    const handleViewNoteEdit = (n: ApiNote) => { setViewingNote(null); setEditing(n); setEditorOpen(true); };
+    const handleCloseEditor = () => { setEditorOpen(false); setEditing(null); };
+    const handleCloseViewer = () => setViewingNote(null);
     const onSave = async (data: NoteInput, id?: string) => {
         try {
             const saved = id ? await apiService.updateNote(id, data) : await apiService.createNote(data);
@@ -82,7 +87,7 @@ export default function NotesPage() {
                                 type="text"
                                 placeholder="Search notes..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={handleSearchChange}
                                 className="w-full pl-9 pr-3 py-2 text-sm border border-white/30 rounded-lg bg-white/95 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-gray-400"
                             />
                         </div>
@@ -112,7 +117,7 @@ export default function NotesPage() {
                                 <div className="text-xs uppercase text-gray-500 mb-2">Pinned</div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                     {pinned.map(n => (
-                                        <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} onView={setViewingNote} />
+                                        <NoteCard key={n._id} note={n} onEdit={handleEditNote} onDelete={onDelete} onTogglePin={onTogglePin} onView={setViewingNote} />
                                     ))}
                                 </div>
                             </div>
@@ -121,20 +126,20 @@ export default function NotesPage() {
                             <div className="text-xs uppercase text-gray-500 mb-2">Others</div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {others.map(n => (
-                                    <NoteCard key={n._id} note={n} onEdit={(n) => { setEditing(n); setEditorOpen(true); }} onDelete={onDelete} onTogglePin={onTogglePin} onView={setViewingNote} />
+                                    <NoteCard key={n._id} note={n} onEdit={handleEditNote} onDelete={onDelete} onTogglePin={onTogglePin} onView={setViewingNote} />
                                 ))}
                             </div>
                         </div>
                     </>
                 )}
                 {editorOpen && (
-                    <NoteEditor initial={editing} onClose={() => { setEditorOpen(false); setEditing(null); }} onSave={onSave} />
+                    <NoteEditor initial={editing} onClose={handleCloseEditor} onSave={onSave} />
                 )}
                 {viewingNote && (
                     <NoteViewModal
                         note={viewingNote}
-                        onClose={() => setViewingNote(null)}
-                        onEdit={(n) => { setViewingNote(null); setEditing(n); setEditorOpen(true); }}
+                        onClose={handleCloseViewer}
+                        onEdit={handleViewNoteEdit}
                     />
                 )}
             </div>
