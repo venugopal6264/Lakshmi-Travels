@@ -2,6 +2,57 @@ import { X, Pencil, Trash2, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ApiName, CreateNamePayload, apiService } from '../services/api';
 
+// ── Pure helpers (no hooks, defined outside component) ───────────────────────
+
+/** Calculate age in whole years from a DOB string. Returns undefined if invalid. */
+function calcAgeFromDob(dob: string | undefined | null): number | undefined {
+    if (!dob) return undefined;
+    const d = new Date(String(dob));
+    if (isNaN(d.getTime())) return undefined;
+    const today = new Date();
+    let age = today.getFullYear() - d.getFullYear();
+    const m = today.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+    return age;
+}
+
+/** Resolve effective age: use stored age if available, otherwise compute from DOB. */
+function resolveAge(n: ApiName): number | undefined {
+    return typeof n.age === 'number' ? n.age : calcAgeFromDob(String(n.dob ?? ''));
+}
+
+/** Returns the row background class and the senior-citizen flag for a customer row. */
+function getRowMeta(n: ApiName, index: number): { age: number | undefined; isSenior: boolean; rowClass: string } {
+    const age = resolveAge(n);
+    const g = (n.gender || '').toLowerCase();
+    const isSenior = age != null && ((g === 'female' && age >= 45) || (g !== 'female' && age >= 60));
+    const zebra = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+    const rowClass = isSenior ? 'bg-green-50' : zebra;
+    return { age, isSenior, rowClass };
+}
+
+/** Returns Tailwind classes for a gender toggle button. */
+function genderBtnClass(selected: boolean): string {
+    return `px-3 py-1.5 text-xs rounded-md transition ${selected ? 'bg-emerald-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`;
+}
+
+/** Formats a raw DOB value for display (YYYY-MM-DD slice). */
+function formatDob(dob: unknown): string {
+    return dob ? String(dob).slice(0, 10) : '-';
+}
+
+/** Sort direction arrow indicator component. */
+function SortIndicator({ column, sortColumn, sortDir }: {
+    column: string;
+    sortColumn: string;
+    sortDir: 'asc' | 'desc';
+}) {
+    if (column !== sortColumn) return null;
+    return <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface CustomersModalProps {
     open: boolean;
     existingAccounts: string[];
@@ -12,7 +63,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
     const [customersName, setCustomersName] = useState('');
     const [customersAge, setCustomersAge] = useState('');
     const [customersAccount, setCustomersAccount] = useState('');
-    const [customersDob, setCustomersDob] = useState('2020-01-01');
+    const [customersDob, setCustomersDob] = useState('');
     const [customersGender, setCustomersGender] = useState<'male' | 'female'>('female');
     const [customersAadhar, setCustomersAadhar] = useState(''); // NEW
     const [customersList, setCustomersList] = useState<ApiName[]>([]);
@@ -104,7 +155,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
             setShowCustomersForm(false);
             setCustomersName('');
             setCustomersAccount('');
-            setCustomersDob('2020-01-01');
+            setCustomersDob('');
             setCustomersAge('');
             setCustomersGender('female');
             setCustomersAadhar('');
@@ -117,7 +168,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
         setShowCustomersForm(false);
         setCustomersName('');
         setCustomersAccount('');
-        setCustomersDob('2020-01-01');
+        setCustomersDob('');
         setCustomersAge('');
         setCustomersGender('female');
         setCustomersAadhar('');
@@ -129,7 +180,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
         setEditingId(n._id ?? null);
         setCustomersName(n.name || '');
         setCustomersAccount(n.account || '');
-        setCustomersDob(n.dob ? String(n.dob).slice(0, 10) : '2020-01-01');
+        setCustomersDob(n.dob ? String(n.dob).slice(0, 10) : '');
         setCustomersAge(n.age != null ? String(n.age) : '');
         setCustomersGender((n.gender as 'male' | 'female') || 'female');
         setCustomersAadhar(n.aadharNumber || '');
@@ -171,7 +222,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
             setCustomersList(data);
             setCustomersName('');
             setCustomersAccount('');
-            setCustomersDob('2020-01-01');
+            setCustomersDob('');
             setCustomersAge('');
             setCustomersGender('female');
             setCustomersAadhar('');
@@ -181,6 +232,41 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
             alert('Failed to save');
         }
     };
+
+    /** Opens the form in create mode (resets all fields). */
+    const handleCreateNew = () => {
+        setEditingId(null);
+        setCustomersName('');
+        setCustomersAccount('');
+        setCustomersDob('');
+        setCustomersAge('');
+        setCustomersGender('female');
+        setCustomersAadhar('');
+        setShowCustomersForm(true);
+    };
+
+    /** Updates DOB and auto-calculates age whenever the DOB input changes. */
+    const handleDobChange = (value: string) => {
+        setCustomersDob(value);
+        if (!value) return;                          // DOB cleared — keep age as-is
+        const computed = calcAgeFromDob(value);
+        if (computed != null && computed >= 0) setCustomersAge(String(computed));
+    };
+
+    // ── Simple field change handlers ────────────────────────────────────────
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value);
+    const handleSearchClear = () => setSearch('');
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => setCustomersName(e.target.value);
+    const handleAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => setCustomersAccount(e.target.value);
+    const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => setCustomersAge(e.target.value);
+    const handleAadharChange = (e: React.ChangeEvent<HTMLInputElement>) => setCustomersAadhar(e.target.value);
+    const handleGenderChange = (g: 'male' | 'female') => setCustomersGender(g);
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** Modal title derived from editing context. */
+    const formTitle = editingId ? 'Edit customer details' : 'Create a new customer';
+    /** Save/Update button label. */
+    const saveLabel = editingId ? 'Update' : 'Save';
 
     const outerWrapperClass = 'relative w-full';
     const containerClass = 'w-full m-0';
@@ -203,14 +289,14 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                         <input
                                             type="text"
                                             value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
+                                            onChange={handleSearchChange}
                                             placeholder="Search name, account, or aadhar..."
                                             className="w-64 px-3 py-1.5 text-sm rounded-md bg-white text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                                         />
                                         {search && (
                                             <button
                                                 type="button"
-                                                onClick={() => setSearch('')}
+                                                onClick={handleSearchClear}
                                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-800 text-xs"
                                                 aria-label="Clear search"
                                             >
@@ -221,7 +307,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => { setEditingId(null); setCustomersName(''); setCustomersAccount(''); setCustomersDob('2020-01-01'); setCustomersAge(''); setCustomersGender('female'); setShowCustomersForm(true); }}
+                                    onClick={handleCreateNew}
                                     className="inline-flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-semibold text-emerald-700 bg-white hover:bg-white/90 rounded-md shadow"
                                 >
                                     <Plus className="w-4 h-4" /> Create Customer
@@ -235,14 +321,14 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                 <input
                                     type="text"
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={handleSearchChange}
                                     placeholder="Search name, account, or aadhar..."
                                     className="w-full px-2 py-2 text-sm border rounded-md border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 {search && (
                                     <button
                                         type="button"
-                                        onClick={() => setSearch('')}
+                                        onClick={handleSearchClear}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-700 hover:text-emerald-900 text-xs"
                                         aria-label="Clear search"
                                     >
@@ -264,97 +350,30 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                                 <thead className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-600 text-white">
                                                     <tr>
                                                         <th className="px-2 py-2 text-left w-16">S.No</th>
-                                                        <th
-                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
-                                                            onClick={() => handleSort('name')}
-                                                            title="Sort by Name"
-                                                        >
-                                                            <span className="inline-flex items-center gap-1">
-                                                                Name
-                                                                {sortColumn === 'name' && (
-                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                                                                )}
-                                                            </span>
+                                                        <th className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10" onClick={() => handleSort('name')} title="Sort by Name">
+                                                            <span className="inline-flex items-center gap-1">Name <SortIndicator column="name" sortColumn={sortColumn} sortDir={sortDir} /></span>
                                                         </th>
-                                                        <th
-                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
-                                                            onClick={() => handleSort('age')}
-                                                            title="Sort by Age"
-                                                        >
-                                                            <span className="inline-flex items-center gap-1">
-                                                                Age
-                                                                {sortColumn === 'age' && (
-                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                                                                )}
-                                                            </span>
+                                                        <th className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10" onClick={() => handleSort('age')} title="Sort by Age">
+                                                            <span className="inline-flex items-center gap-1">Age <SortIndicator column="age" sortColumn={sortColumn} sortDir={sortDir} /></span>
                                                         </th>
-                                                        <th
-                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
-                                                            onClick={() => handleSort('account')}
-                                                            title="Sort by Account"
-                                                        >
-                                                            <span className="inline-flex items-center gap-1">
-                                                                Account
-                                                                {sortColumn === 'account' && (
-                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                                                                )}
-                                                            </span>
+                                                        <th className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10" onClick={() => handleSort('account')} title="Sort by Account">
+                                                            <span className="inline-flex items-center gap-1">Account <SortIndicator column="account" sortColumn={sortColumn} sortDir={sortDir} /></span>
                                                         </th>
-                                                        <th
-                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
-                                                            onClick={() => handleSort('aadhar')}
-                                                            title="Sort by Aadhar"
-                                                        >
-                                                            <span className="inline-flex items-center gap-1">
-                                                                Aadhar
-                                                                {sortColumn === 'aadhar' && (
-                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                                                                )}
-                                                            </span>
+                                                        <th className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10" onClick={() => handleSort('aadhar')} title="Sort by Aadhar">
+                                                            <span className="inline-flex items-center gap-1">Aadhar <SortIndicator column="aadhar" sortColumn={sortColumn} sortDir={sortDir} /></span>
                                                         </th>
-                                                        <th
-                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
-                                                            onClick={() => handleSort('dob')}
-                                                            title="Sort by DOB"
-                                                        >
-                                                            <span className="inline-flex items-center gap-1">
-                                                                DOB
-                                                                {sortColumn === 'dob' && (
-                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                                                                )}
-                                                            </span>
+                                                        <th className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10" onClick={() => handleSort('dob')} title="Sort by DOB">
+                                                            <span className="inline-flex items-center gap-1">DOB <SortIndicator column="dob" sortColumn={sortColumn} sortDir={sortDir} /></span>
                                                         </th>
-                                                        <th
-                                                            className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10"
-                                                            onClick={() => handleSort('gender')}
-                                                            title="Sort by Gender"
-                                                        >
-                                                            <span className="inline-flex items-center gap-1">
-                                                                Gender
-                                                                {sortColumn === 'gender' && (
-                                                                    <span className="text-[10px] opacity-90">{sortDir === 'asc' ? '▲' : '▼'}</span>
-                                                                )}
-                                                            </span>
+                                                        <th className="px-2 py-2 text-left cursor-pointer select-none hover:bg-white/10" onClick={() => handleSort('gender')} title="Sort by Gender">
+                                                            <span className="inline-flex items-center gap-1">Gender <SortIndicator column="gender" sortColumn={sortColumn} sortDir={sortDir} /></span>
                                                         </th>
                                                         <th className="px-2 py-2 text-left">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
                                                     {displayed.map((n, i) => {
-                                                        const age = typeof n.age === 'number' ? n.age : (n.dob ? (() => {
-                                                            const dobStr = String(n.dob);
-                                                            const d = new Date(dobStr);
-                                                            if (isNaN(d.getTime())) return undefined;
-                                                            const today = new Date();
-                                                            let a = today.getFullYear() - d.getFullYear();
-                                                            const m = today.getMonth() - d.getMonth();
-                                                            if (m < 0 || (m === 0 && today.getDate() < d.getDate())) a--;
-                                                            return a;
-                                                        })() : undefined);
-                                                        const g = (n.gender || '').toLowerCase();
-                                                        const flag = age != null && ((g === 'female' && age >= 45) || (g !== 'female' && age >= 60));
-                                                        const zebra = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-                                                        const rowClass = flag ? 'bg-rose-50' : zebra;
+                                                        const { age, rowClass } = getRowMeta(n, i);
                                                         return (
                                                             <tr key={n._id || n.name} className={`${rowClass} hover:bg-amber-50`}>
                                                                 <td>{i + 1}</td>
@@ -362,7 +381,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                                                 <td>{age ?? '-'}</td>
                                                                 <td>{n.account || '-'}</td>
                                                                 <td className="font-mono">{n.aadharNumber || '-'}</td>
-                                                                <td>{n.dob ? String(n.dob).slice(0, 10) : '-'}</td>
+                                                                <td>{formatDob(n.dob)}</td>
                                                                 <td className="capitalize">{n.gender || '-'}</td>
                                                                 <td>
                                                                     <div className="flex items-center gap-2">
@@ -400,7 +419,7 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                         <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-600 via-cyan-500 to-indigo-600 shadow-2xl">
                             <div className="bg-white rounded-2xl flex flex-col">
                                 <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10 bg-gradient-to-r from-emerald-600 to-indigo-600 text-white shadow-sm">
-                                    <h3 className="text-base sm:text-lg font-semibold tracking-wide">{editingId ? 'Edit customer details' : 'Create a new customer'}</h3>
+                                    <h3 className="text-base sm:text-lg font-semibold tracking-wide">{formTitle}</h3>
                                     <button onClick={handleCancel} aria-label="Close" className="p-2 rounded-full bg-white/20 hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/60 transition">
                                         <X className="w-5 h-5" />
                                     </button>
@@ -410,62 +429,45 @@ export default function CustomersModal({ open, existingAccounts }: CustomersModa
                                         {/* Name */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
-                                            <input type="text" value={customersName} onChange={(e) => setCustomersName(e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter full name" />
+                                            <input type="text" value={customersName} onChange={handleNameChange} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter full name" />
                                             {isDuplicateName && (<p className="text-[10px] text-amber-600 mt-1">Duplicate name found. You can still save.</p>)}
                                         </div>
                                         {/* Account */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Account</label>
-                                            <input type="text" value={customersAccount} onChange={(e) => setCustomersAccount(e.target.value)} list="customers-account-suggestions" className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Search or add new account" />
+                                            <input type="text" value={customersAccount} onChange={handleAccountChange} list="customers-account-suggestions" className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Search or add new account" />
                                             <datalist id="customers-account-suggestions">
                                                 {existingAccounts.map((acc) => (<option key={acc} value={acc} />))}
                                             </datalist>
                                         </div>
                                         {/* DOB */}
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1">Date of Birth</label>
-                                            <input type="date" value={customersDob} onChange={(e) => {
-                                                const v = e.target.value;
-                                                setCustomersDob(v);
-                                                if (v) {
-                                                    const d = new Date(v);
-                                                    if (!isNaN(d.getTime())) {
-                                                        const today = new Date();
-                                                        let age = today.getFullYear() - d.getFullYear();
-                                                        const m = today.getMonth() - d.getMonth();
-                                                        if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
-                                                        setCustomersAge(age >= 0 ? String(age) : '');
-                                                    } else {
-                                                        setCustomersAge('');
-                                                    }
-                                                } else {
-                                                    setCustomersAge('');
-                                                }
-                                            }} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                                            <p className="text-[10px] text-gray-500 mt-1">We auto-calculate age from DOB.</p>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Date of Birth <span className="text-gray-400 font-normal">(optional)</span></label>
+                                            <input type="date" value={customersDob} onChange={(e) => handleDobChange(e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                            <p className="text-[10px] text-gray-500 mt-1">Setting DOB auto-fills age.</p>
                                         </div>
                                         {/* Age */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Age</label>
-                                            <input type="text" value={customersAge} readOnly className="w-full px-2 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 focus:outline-none" placeholder="Auto-calculated" />
+                                            <input type="number" min="0" max="120" value={customersAge} onChange={handleAgeChange} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter age" />
                                         </div>
                                         {/* Gender */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Gender</label>
                                             <div className="inline-flex rounded-md border bg-white p-1 shadow-sm">
-                                                <button type="button" onClick={() => setCustomersGender('female')} className={`px-3 py-1.5 text-xs rounded-md transition ${customersGender === 'female' ? 'bg-emerald-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`} aria-pressed={customersGender === 'female'}>Female</button>
-                                                <button type="button" onClick={() => setCustomersGender('male')} className={`px-3 py-1.5 text-xs rounded-md transition ${customersGender === 'male' ? 'bg-emerald-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`} aria-pressed={customersGender === 'male'}>Male</button>
+                                                <button type="button" onClick={() => handleGenderChange('female')} className={genderBtnClass(customersGender === 'female')} aria-pressed={customersGender === 'female'}>Female</button>
+                                                <button type="button" onClick={() => handleGenderChange('male')} className={genderBtnClass(customersGender === 'male')} aria-pressed={customersGender === 'male'}>Male</button>
                                             </div>
                                         </div>
                                         {/* Aadhar */}
                                         <div>
                                             <label className="block text-xs font-medium text-gray-700 mb-1">Aadhar Number</label>
-                                            <input type="text" value={customersAadhar} onChange={(e) => setCustomersAadhar(e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter Aadhar number" />
+                                            <input type="text" value={customersAadhar} onChange={handleAadharChange} className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Enter Aadhar number" />
                                         </div>
                                     </div>
                                     <div className="mt-2 flex justify-between items-center gap-2">
                                         <button type="button" onClick={handleCancel} className="border px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md">Cancel</button>
-                                        <button type="button" onClick={handleSave} className="border px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow">{editingId ? 'Update' : 'Save'}</button>
+                                        <button type="button" onClick={handleSave} className="border px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow">{saveLabel}</button>
                                     </div>
                                 </div>
                             </div>
