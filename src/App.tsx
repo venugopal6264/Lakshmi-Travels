@@ -17,11 +17,11 @@ import NotesPage from './pages/NotesPage';
 import SalaryPage from './pages/SalaryPage';
 
 // Router helpers (module scope, stable references)
-type Page = 'dashboard' | 'login' | 'payments' | 'accounts' | 'vehicles' | 'apartments' | 'customers' | 'notes' | 'salary';
+type Page = 'dashboard' | 'login' | 'reports' | 'accounts' | 'vehicles' | 'apartments' | 'customers' | 'notes' | 'salary';
 const pageToPath: Record<Page, string> = {
   dashboard: '/dashboard',
   login: '/login',
-  payments: '/payment-tracker',
+  reports: '/reports',
   accounts: '/accounts',
   vehicles: '/vehicles',
   apartments: '/apartments',
@@ -253,7 +253,7 @@ function AuthedApp({
             loading={ticketsLoading}
           />
         );
-      case 'payments':
+      case 'reports':
         return (
           <PaymentTracker
             payments={payments}

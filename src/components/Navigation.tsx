@@ -1,4 +1,4 @@
-import { BarChart3, DollarSign, Car, LogOut, User2, Search, Home, Users, StickyNote, TrendingUp, Menu, X, Bell } from 'lucide-react';
+import { BarChart3, FileBarChart, Car, LogOut, User2, Search, Home, Users, StickyNote, TrendingUp, Menu, X, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -30,7 +30,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-        { id: 'payments', label: 'Payments', icon: DollarSign, path: '/payment-tracker' },
+        { id: 'reports', label: 'Reports', icon: FileBarChart, path: '/reports' },
         { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
         { id: 'vehicles', label: 'Vehicles', icon: Car, path: '/vehicles' },
         { id: 'apartments', label: 'Apartments', icon: Home, path: '/apartments' },
@@ -41,7 +41,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
     const handleNavigation = (navItemId: string) => {
         const item = navItems.find((i) => i.id === navItemId);
         if (item) {
-            const targetPage = item.path === '/payment-tracker' ? 'payments'
+            const targetPage = item.path === '/reports' ? 'reports'
                 : item.path === '/dashboard' ? 'dashboard'
                     : item.path === '/vehicles' ? 'vehicles'
                         : item.path === '/apartments' ? 'apartments'
@@ -56,7 +56,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
 
     const isActive = (id: string) => {
         return currentPage === id ||
-            (id === 'payments' && currentPage === 'payments') ||
+            (id === 'reports' && currentPage === 'reports') ||
             (id === 'dashboard' && currentPage === 'dashboard');
     };
 

@@ -291,7 +291,7 @@ export default function TicketTable({
           {view === 'open' && (
             <button
               type="button"
-              onClick={() => navigateTo('/payment-tracker')}
+              onClick={() => navigateTo('/reports')}
               className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 transition flex items-center gap-1"
               title="Go to Paid Tickets"
             >
