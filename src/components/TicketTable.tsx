@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, DollarSign, Edit, Filter, Search, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, DollarSign, Download, Edit, Filter, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ApiTicket, ApiPayment } from '../services/api';
 import EditTicketModal from './EditTicketModal';
@@ -17,6 +17,7 @@ interface TicketTableProps {
   onAccountFilterChange?: (value: string) => void;
   view?: 'open' | 'paid' | 'both';
   headerVariant?: 'default' | 'accountBreakdown';
+  onExportPaidTickets?: (ticketIds: string[]) => void;
 }
 
 export default function TicketTable({
@@ -33,6 +34,7 @@ export default function TicketTable({
   onAccountFilterChange,
   view = 'both',
   headerVariant = 'default',
+  onExportPaidTickets,
 }: TicketTableProps) {
 
   const navigateTo = (path: string) => {
@@ -63,6 +65,7 @@ export default function TicketTable({
     else if (view === 'paid') setActiveTable('paid');
   }, [view]);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [selectedPaidTickets, setSelectedPaidTickets] = useState<string[]>([]);
   const [editingTicket, setEditingTicket] = useState<ApiTicket | null>(null);
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [showConfirmBulk, setShowConfirmBulk] = useState<boolean>(false);
@@ -213,6 +216,27 @@ export default function TicketTable({
     }
   };
 
+  const handleSelectPaidTicket = (ticketId: string) => {
+    setSelectedPaidTickets(prev =>
+      prev.includes(ticketId)
+        ? prev.filter(id => id !== ticketId)
+        : [...prev, ticketId]
+    );
+  };
+
+  const handleSelectAllPaid = () => {
+    if (selectedPaidTickets.length === sortedTickets.length) {
+      setSelectedPaidTickets([]);
+    } else {
+      setSelectedPaidTickets(sortedTickets.map(ticket => ticket._id!));
+    }
+  };
+
+  const handleExportSelectedPaid = () => {
+    if (selectedPaidTickets.length === 0) return;
+    onExportPaidTickets?.(selectedPaidTickets);
+  };
+
   // Date range is provided by parent via props
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
@@ -282,6 +306,15 @@ export default function TicketTable({
                   Mark as Paid (<span>{selectedTickets.length}</span>)
                 </>
               )}
+            </button>
+          )}
+          {activeTable === 'paid' && selectedPaidTickets.length > 0 && (
+            <button
+              onClick={handleExportSelectedPaid}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-200 flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export PDF (<span>{selectedPaidTickets.length}</span>)
             </button>
           )}
           <span className="text-sm text-green-600">
@@ -422,6 +455,16 @@ export default function TicketTable({
                   />
                 </th>
               )}
+              {activeTable === 'paid' && (
+                <th className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider ${headerTextColor}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedPaidTickets.length === sortedTickets.length && sortedTickets.length > 0}
+                    onChange={handleSelectAllPaid}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </th>
+              )}
               {/* Account */}
               <th
                 className={`px-2 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer ${headerVariant === 'accountBreakdown' ? '' : 'hover:bg-gray-100'} ${headerTextColor}`}
@@ -517,6 +560,16 @@ export default function TicketTable({
                     />
                   </td>
                 )}
+                {activeTable === 'paid' && (
+                  <td className="px-2 py-2 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedPaidTickets.includes(ticket._id!)}
+                      onChange={() => handleSelectPaidTicket(ticket._id!)}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </td>
+                )}
                 {/* Account */}
                 <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                   {ticket.account}
@@ -599,6 +652,7 @@ export default function TicketTable({
             <tr className="bg-gray-50 font-semibold text-xs border-t border-gray-200">
               {/* If your "open" table has a leading selection/status col, keep an empty td */}
               {activeTable === 'open' && <td className="px-2 py-2"></td>}
+              {activeTable === 'paid' && <td className="px-2 py-2"></td>}
 
               {/* Adjust colSpan to match your first N descriptive columns */}
               <td className="px-2 py-2" colSpan={4}>

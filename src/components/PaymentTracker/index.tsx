@@ -1,6 +1,7 @@
 import { Download, DollarSign, Plus, Receipt } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiPayment, ApiTicket } from '../../services/api';
+import { downloadPDFReport } from '../../utils/reportGenerator';
 import TicketTable from '../TicketTable';
 import AddPaymentModal, { CreateTicketModal } from './AddPaymentModal';
 import AccountBreakdown from './AccountBreakdown';
@@ -60,6 +61,7 @@ export default function PaymentTracker({
     const [to, setTo] = useState<string>(toIso(today));
 
     const [exportingPayments, setExportingPayments] = useState(false);
+    const [exportingPaidPdf, setExportingPaidPdf] = useState(false);
     const [showExportToast, setShowExportToast] = useState(false);
     const exportToastTimer = useRef<number | null>(null);
 
@@ -359,6 +361,47 @@ export default function PaymentTracker({
         setShowExportToast(false);
     };
 
+    const handleExportPaidTickets = async (ticketIds: string[]) => {
+        if (exportingPaidPdf || ticketIds.length === 0) return;
+        setExportingPaidPdf(true);
+        try {
+            const selected = ticketIds.map(id => ticketById[id]).filter(Boolean);
+            const dates = selected.map(t => (t.bookingDate || '').split('T')[0]).sort();
+            const startLabel = dates[0] || 'ALL';
+            const endLabel = dates[dates.length - 1] || 'ALL';
+            const accounts = Array.from(new Set(selected.map(t => t.account))).sort();
+            const accountLabel = accounts.length === 1 ? accounts[0] : 'Selected';
+            const filename = `paid-${accountLabel}-${startLabel}-${endLabel}.pdf`;
+            const includedAccounts = new Set(accounts);
+            const fromDate = startLabel !== 'ALL' ? new Date(startLabel) : null;
+            const toDate = endLabel !== 'ALL' ? new Date(endLabel) : null;
+            const partialEntries = payments
+                .filter(p => p.isPartial && p.account && includedAccounts.has(p.account))
+                .filter(p => {
+                    const d = new Date(p.date);
+                    if (fromDate && d < fromDate) return false;
+                    if (toDate && d > toDate) return false;
+                    return true;
+                })
+                .map(p => ({ date: p.date, amount: Number(p.amount || 0), account: p.account! }))
+                .sort((a, b) => (a.date < b.date ? -1 : 1));
+            const partialTotal = partialEntries.reduce((s, v) => s + v.amount, 0);
+            await downloadPDFReport(selected, {
+                accountLabel,
+                startLabel,
+                endLabel,
+                filename,
+                partialTotal,
+                partialPayments: partialEntries,
+            });
+        } finally {
+            setExportingPaidPdf(false);
+            setShowExportToast(true);
+            if (exportToastTimer.current) window.clearTimeout(exportToastTimer.current);
+            exportToastTimer.current = window.setTimeout(() => setShowExportToast(false), 5000);
+        }
+    };
+
     const exportPaymentReport = () => {
         setExportingPayments(true);
         try {
@@ -463,6 +506,7 @@ export default function PaymentTracker({
                         dateRange={{ from, to }}
                         view="paid"
                         payments={[]}
+                        onExportPaidTickets={handleExportPaidTickets}
                     />
                 </div>
             </div>

@@ -22,6 +22,7 @@ const sanitizePlace = (s?: string): string => (s ? s.replace(/\s+/g, '') : '');
 
 export const generateCSVReport = (tickets: ApiTicket[]) => {
   const headers = [
+    'S.No',
     'Account',
     'Date',
     'Type',
@@ -36,7 +37,8 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
   // Sort by booking date ascending for CSV as well
   const csvSorted = [...tickets].sort((a, b) => ymdKey(a.bookingDate).localeCompare(ymdKey(b.bookingDate)));
 
-  const rows = csvSorted.map(ticket => [
+  const rows = csvSorted.map((ticket, index) => [
+    (index + 1).toString(),
     ticket.account,
     formatExportDate(ticket.bookingDate),
     ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1),
@@ -61,6 +63,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
     '',
     '',
     '',
+    '',
     'Total',
     Math.round(totalBooking).toString(), // Booking Amount column
     Math.round(totalRefund).toString(), // Refund column
@@ -68,6 +71,7 @@ export const generateCSVReport = (tickets: ApiTicket[]) => {
   ];
 
   const dueRow = [
+    '',
     '',
     '',
     '',
@@ -112,6 +116,7 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   ]);
 
   const headers = [
+    'S.No',
     'Date',
     'Type',
     'Names',
@@ -127,7 +132,8 @@ export async function downloadPDFReport(tickets: ApiTicket[], options: { account
   const cancelled = sorted.filter(t => (Number(t.refund) || 0) > 0);
   const ordered = [...nonCancelled, ...cancelled];
 
-  const rows = ordered.map(t => [
+  const rows = ordered.map((t, index) => [
+    (index + 1).toString(),
     formatExportDate(t.bookingDate),
     t.type.charAt(0).toUpperCase() + t.type.slice(1),
     t.passengerName,
