@@ -46,7 +46,7 @@ export function AddTenantModal({ flat, onClose, onCreate }: AddTenantModalProps)
     const handleSave = () => onCreate({ name, phone, aadharNumber: aadhar, startDate, rentAmount, deposit });
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto">
             <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-600 via-indigo-600 to-fuchsia-600 shadow-xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
@@ -190,7 +190,7 @@ export function ViewMemberModal({ tenant, onClose, onEdit }: ViewMemberModalProp
     const sortedRows = rows.slice().sort((a, b) => a.month.localeCompare(b.month) * -1);
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto">
             <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 shadow-xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
