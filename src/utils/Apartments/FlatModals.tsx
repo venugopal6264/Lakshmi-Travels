@@ -18,7 +18,7 @@ export function AddFlatModal({ onClose, onCreate }: AddFlatModalProps) {
     const handleCreate = () => onCreate(number, notes);
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto">
             <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-emerald-600 shadow-xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
@@ -72,7 +72,7 @@ export function EditTenantModal({ tenant, onClose, onSave }: EditTenantModalProp
     const handleSave = async () => onSave({ name, phone, aadharNumber, startDate, rentAmount, deposit });
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto">
             <div className="w-full max-w-md m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-sky-600 via-indigo-600 to-emerald-600 shadow-xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">
@@ -129,7 +129,7 @@ interface HistoryModalProps {
 
 export function HistoryModal({ flat, history, onClose }: HistoryModalProps) {
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto">
             <div className="w-full max-w-lg m-4 mt-16 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 shadow-xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">

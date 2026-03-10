@@ -192,7 +192,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         {/* Search Button */}
                         <button
                             onClick={() => onOpenPnrSearch?.()}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all text-white border border-white/30 shadow-md hover:shadow-lg"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30  transition-all text-white border border-white/30 shadow-md hover:shadow-lg"
                             title="PNR Search"
                         >
                             <Search className="w-5 h-5" />
@@ -202,7 +202,7 @@ export default function Navigation({ currentPage, onPageChange, onOpenPnrSearch 
                         {/* Account Button */}
                         <button
                             onClick={() => onPageChange('accounts')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all text-white border border-white/30 shadow-md hover:shadow-lg"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30  transition-all text-white border border-white/30 shadow-md hover:shadow-lg"
                             title="Account Settings"
                         >
                             <User2 className="w-5 h-5" />

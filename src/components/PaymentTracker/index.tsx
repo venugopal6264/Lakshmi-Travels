@@ -388,9 +388,9 @@ export default function PaymentTracker({
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-3">
                     <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                         <DollarSign className="w-5 h-5" />
-                        Payment Tracker
+                        Reports
                     </h2>
-                    <div className="flex flex-wrap items-center gap-2 lg:gap-3 lg:bg-white/10 lg:backdrop-blur-sm lg:p-1 lg:rounded-lg lg:border lg:border-white/20">
+                    <div className="flex flex-wrap items-center gap-2 lg:gap-3 lg:bg-white/10 lg: lg:p-1 lg:rounded-lg lg:border lg:border-white/20">
                         <div className="flex items-center gap-2">
                             <label className="text-xs lg:text-sm font-medium text-white whitespace-nowrap">From</label>
                             <input type="date" value={from} onChange={handleFromChange} className="px-2 py-1.5 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50 bg-white/95 text-xs lg:text-sm" />
@@ -416,6 +416,9 @@ export default function PaymentTracker({
             </div>
 
             <div className="p-2">
+
+                <PaidTicketWidgets totalsPaid={totalsPaid} paidTypeProfit={paidTypeProfit} />
+
                 <ChartsRow
                     monthlyPayments={monthlyPayments}
                     maxMonthlyReceived={maxMonthlyReceived}
@@ -430,23 +433,6 @@ export default function PaymentTracker({
                     onFilterPartial={handleFilterPartial}
                     onFilterFull={handleFilterFull}
                 />
-
-                <PaidTicketWidgets totalsPaid={totalsPaid} paidTypeProfit={paidTypeProfit} />
-
-                <div className="mt-3">
-                    <TicketTable
-                        tickets={dateFilteredTickets}
-                        paidTickets={paidTicketIds}
-                        onDeleteTicket={onDeleteTicket}
-                        onUpdateTicket={async () => { }}
-                        onProcessRefund={handleRefundForPaidTicket}
-                        onBulkMarkAsPaid={async () => { }}
-                        loading={loading}
-                        dateRange={{ from, to }}
-                        view="paid"
-                        payments={[]}
-                    />
-                </div>
 
                 <PaymentHistoryTable
                     sortedPayments={sortedPayments}
@@ -464,6 +450,21 @@ export default function PaymentTracker({
                 />
 
                 <MonthlyPerformanceTable monthlyStats={monthlyStats} from={from} to={to} />
+
+                <div className="mt-3">
+                    <TicketTable
+                        tickets={dateFilteredTickets}
+                        paidTickets={paidTicketIds}
+                        onDeleteTicket={onDeleteTicket}
+                        onUpdateTicket={async () => { }}
+                        onProcessRefund={handleRefundForPaidTicket}
+                        onBulkMarkAsPaid={async () => { }}
+                        loading={loading}
+                        dateRange={{ from, to }}
+                        view="paid"
+                        payments={[]}
+                    />
+                </div>
             </div>
 
             {/* Export toast */}

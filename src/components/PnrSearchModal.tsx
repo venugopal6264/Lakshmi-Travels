@@ -54,7 +54,7 @@ export default function PnrSearchModal({ isOpen, onClose, tickets, payments, onU
     const existingServices = Array.from(new Set((tickets || []).map(t => t.service).filter(Boolean)));
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto">
             <div className="w-full max-w-3xl m-4 my-10 mx-auto">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
                     <div className="bg-white rounded-2xl overflow-hidden max-h-[90vh]">

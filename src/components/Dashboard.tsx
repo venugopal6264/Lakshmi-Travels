@@ -481,7 +481,7 @@ export default function Dashboard({
 
             {/* Create Ticket Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto">
+                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50  overflow-y-auto">
                     <div className="w-full max-w-5xl m-4 my-8">
                         {/* Gradient border wrapper for colorful feel */}
                         <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
@@ -518,7 +518,7 @@ export default function Dashboard({
 
             {/* Success Alert Modal */}
             {showSuccessAlert && successTicketData && (
-                <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[9999] bg-black/50  flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-fadeIn">
                         {/* Header */}
                         <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-4">

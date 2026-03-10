@@ -56,7 +56,7 @@ export default function AddPaymentModal({
     onTogglePartial,
 }: AddPaymentModalProps) {
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto p-2 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-black/50  overflow-y-auto p-2 flex items-center justify-center">
             <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fadeIn max-h-[90vh]">
                 {/* Modal Header */}
                 <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 px-6 py-4 flex items-center justify-between">
@@ -203,7 +203,7 @@ interface CreateTicketModalProps {
 
 export function CreateTicketModal({ submitting, onClose, onAddTicket }: CreateTicketModalProps) {
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50  overflow-y-auto">
             <div className="w-full max-w-5xl m-4 my-8">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-500 shadow-2xl">
                     <div className="bg-white rounded-2xl max-h-[90vh] flex flex-col">

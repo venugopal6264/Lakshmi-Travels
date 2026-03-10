@@ -49,7 +49,7 @@ export function CustomerFormModal({
     const handleMale = () => onGenderChange('male');
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50  overflow-y-auto">
             <div className="w-full max-w-2xl m-4 my-10">
                 <div className="relative rounded-2xl p-[2px] bg-gradient-to-r from-emerald-600 via-cyan-500 to-indigo-600 shadow-2xl">
                     <div className="bg-white rounded-2xl flex flex-col">

@@ -7,7 +7,7 @@ interface BarRowProps {
 
 export default function BarRow({ label, value, widthPercent, barClass }: BarRowProps) {
     return (
-        <div className="group/bar flex items-center gap-3">
+        <div className="group/bar flex items-center gap-1">
             <div className="lg:w-20 w-14 text-xs font-medium text-gray-700 text-right flex-shrink-0">
                 {label}
             </div>
