@@ -1,6 +1,7 @@
-import { Calendar, CreditCard, MapPin, Plus, Save, User } from 'lucide-react';
+import { Calendar, CreditCard, MapPin, Plus, Save, Sparkles, User } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { ApiTicket } from '../services/api';
+import { generateIRCTCPdf, parseIRCTCTicket, ParsedTicket } from '../utils/irctcParser';
 
 interface TicketFormProps {
   onAddTicket?: (ticket: Omit<ApiTicket, '_id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -87,6 +88,10 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [parseError, setParseError] = useState('');
+  const [pasteOpen, setPasteOpen] = useState(mode === 'create');
+  const parsedTicketRef = useRef<ParsedTicket | null>(null);
   // Removed PDF upload UI
 
   const resetForm = () => {
@@ -156,6 +161,13 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           remarks: formData.remarks
         });
 
+        // Download IRCTC-style PDF if ticket was parsed from paste
+        if (parsedTicketRef.current) {
+          const profitVal = parseFloat(formData.profit) || 0;
+          await generateIRCTCPdf(parsedTicketRef.current, profitVal);
+          parsedTicketRef.current = null;
+        }
+
         // Reset form after successful save
         resetForm();
       }
@@ -218,6 +230,44 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
     setFormData(prev => ({ ...prev, place: (prev.place || '').replace(/\s+/g, '') }));
   };
 
+  const handlePasteTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPasteText(e.target.value);
+    if (parseError) setParseError('');
+  };
+
+  const handleFormatTicket = () => {
+    const parsed = parseIRCTCTicket(pasteText);
+    if (!parsed) {
+      setParseError('Could not parse ticket details. Please check the pasted text and try again.');
+      return;
+    }
+    setParseError('');
+    parsedTicketRef.current = parsed;
+    setFormData(prev => {
+      const bookingAmount = parsed.totalFare || prev.bookingAmount;
+      const profitNum = parseFloat(prev.profit);
+      const fareNum = parseFloat(bookingAmount);
+      const ticketAmount = prev.ticketAmount ||
+        (Number.isFinite(fareNum) && Number.isFinite(profitNum)
+          ? (Math.round((fareNum + profitNum) * 100) / 100).toString()
+          : '');
+      return {
+        ...prev,
+        type: 'train',
+        pnr: parsed.pnr || prev.pnr,
+        bookingDate: parsed.bookingDate || prev.bookingDate,
+        place: parsed.place || prev.place,
+        bookingAmount,
+        ticketAmount,
+        passengerName: parsed.passengerName || prev.passengerName,
+      };
+    });
+    setPasteOpen(false);
+    setPasteText('');
+  };
+
+  const handleTogglePaste = () => setPasteOpen(o => !o);
+
   return (
     <>
       {!hideHeading && (
@@ -225,6 +275,52 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
           {mode === 'edit' ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
           {heading || (mode === 'edit' ? 'Edit Ticket' : 'Add New Ticket')}
         </h2>
+      )}
+
+      {/* ── IRCTC Paste Panel ───────────────────────────────────────────── */}
+      {mode === 'create' && (
+        <div className="mb-4 border border-indigo-200 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={handleTogglePaste}
+            className="w-full flex items-center justify-between px-4 py-2 bg-indigo-50 hover:bg-indigo-100 transition text-sm font-medium text-indigo-700"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Paste IRCTC Ticket Details
+            </span>
+            <span className="text-indigo-400 text-xs">{pasteOpen ? '▲ collapse' : '▼ expand'}</span>
+          </button>
+          {pasteOpen && (
+            <div className="p-3 bg-white space-y-2">
+              <textarea
+                value={pasteText}
+                onChange={handlePasteTextChange}
+                rows={8}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y"
+                placeholder="Paste the full IRCTC ticket text here (copy from the booking confirmation page)…"
+              />
+              {parseError && (
+                <p className="text-red-600 text-xs">{parseError}</p>
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFormatTicket}
+                  disabled={!pasteText.trim()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Format Ticket
+                </button>
+                <span className="text-xs text-gray-400">
+                  Type, PNR, Date, Place, Booking Amount and Passengers will be auto-filled.
+                  Booking Account &amp; Who Pays must be selected manually.
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -383,22 +479,6 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
             {errors.bookingAmount && <p className="text-red-500 text-xs mt-1">{errors.bookingAmount}</p>}
           </div>
 
-          <div data-testId="amount-input">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Ticket Amount (Booking + Profit) *
-            </label>
-            <input
-              type="number"
-              name="ticketAmount"
-              value={formData.ticketAmount}
-              onChange={handleChange}
-              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ticketAmount ? 'border-red-500' : 'border-gray-300'
-                }`}
-              placeholder="Enter ticket amount"
-            />
-            {errors.ticketAmount && <p className="text-red-500 text-xs mt-1">{errors.ticketAmount}</p>}
-          </div>
-
           <div data-testId="profit-input">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Profit *
@@ -413,6 +493,22 @@ export default function TicketForm({ onAddTicket, onSave, mode = 'create', initi
               placeholder="Enter profit"
             />
             {errors.profit && <p className="text-red-500 text-xs mt-1">{errors.profit}</p>}
+          </div>
+
+          <div data-testId="amount-input">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Ticket Amount (Booking + Profit) *
+            </label>
+            <input
+              type="number"
+              name="ticketAmount"
+              value={formData.ticketAmount}
+              onChange={handleChange}
+              className={`w-full px-2 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ticketAmount ? 'border-red-500' : 'border-gray-300'
+                }`}
+              placeholder="Enter ticket amount"
+            />
+            {errors.ticketAmount && <p className="text-red-500 text-xs mt-1">{errors.ticketAmount}</p>}
           </div>
 
           <div data-testId="refund-input">
