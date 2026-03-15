@@ -1,5 +1,4 @@
 // ─── IRCTC ticket parser & PDF generator ─────────────────────────────────────
-import ersHeaderUrl from '../assets/images/Lakshmi Travels.jpg';
 
 export const CLASS_MAP: Record<string, string> = {
     'THIRD AC': '3A',
@@ -207,67 +206,159 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
         import('jspdf-autotable'),
     ]);
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const pw = doc.internal.pageSize.getWidth();
-    const [logoDataUrl, ersImgDataUrl] = await Promise.all([
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = doc.internal.pageSize.getWidth();   // 210 mm
+    const ph = doc.internal.pageSize.getHeight();  // 297 mm
+    const ml = 10;   // left margin mm
+    const mr = 10;   // right margin mm
+    const cw = pw - ml - mr;  // content width 200 mm
+    const [logoDataUrl, electronicImgDataUrl, irctcImgDataUrl] = await Promise.all([
         loadImg('/LakshmiTravels.png'),
-        loadImg(ersHeaderUrl),
+        loadImg('/Electronic-image.jpg'),
+        loadImg('/Irctc-image.jpg'),
     ]);
 
-    // ── Header bar ─────────────────────────────────────────────────────────────
-    doc.setFillColor(30, 64, 175);
-    doc.rect(0, 0, pw, 48, 'F');
+    // ── Header bar: Electronic (left) | Lakshmi Travels (centre) | IRCTC (right) ──
+    const hdrH = 28;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pw, hdrH, 'F');
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(0, hdrH, pw, hdrH);
 
+    const imgW = 55;
+    const imgH = 22;
+    const imgTop = (hdrH - imgH) / 2;
+
+    // Left — Electronic Reservation Slip
+    if (electronicImgDataUrl) {
+        try { doc.addImage(electronicImgDataUrl, 'JPEG', ml, imgTop, imgW, imgH); } catch { /* skip */ }
+    }
+
+    // Centre — logo + "Lakshmi Travels" + subtitle
+    const cx = pw / 2;
     if (logoDataUrl) {
-        try { doc.addImage(logoDataUrl, 'PNG', 10, 6, 36, 36); } catch { /* skip */ }
+        try { doc.addImage(logoDataUrl, 'PNG', cx - 22, imgTop, imgH, imgH); } catch { /* skip */ }
     }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(255, 255, 255);
-    doc.text('Lakshmi Travels', 54, 22);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('Train Ticket – Booking Confirmation', 54, 36);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(`PNR: ${parsed.pnr}`, pw - 16, 22, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Booked: ${parsed.bookingDateRaw}`, pw - 16, 36, { align: 'right' });
-
-    doc.setTextColor(0, 0, 0);
-
-    // ── ERS banner image ───────────────────────────────────────────────────────
-    // Increased height — use /1.8 ratio for a taller render
-    let y = 54;
-    const ersImgH = Math.round((pw - 20) / 1.8);
-    if (ersImgDataUrl) {
-        try { doc.addImage(ersImgDataUrl, 'JPEG', 10, y, pw - 20, ersImgH); } catch { /* skip */ }
-    }
-    y += ersImgH + 4;
-    doc.setTextColor(0, 0, 0);
-
-    // ── Journey summary row ────────────────────────────────────────────────────
-    doc.setFillColor(239, 246, 255);
-    doc.rect(10, y, pw - 20, 46, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.setTextColor(30, 64, 175);
-    doc.text(`${parsed.trainNo}  ${parsed.trainName}`, pw / 2, y + 11, { align: 'center' });
+    doc.setTextColor(0, 153, 255);
+    doc.text('Lakshmi Travels', cx + 3, imgTop + 8);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 80, 80);
+    doc.text('We Plan, You Decide', cx + 3, imgTop + 20);
 
+    // Right — IRCTC e-Ticketing Service
+    if (irctcImgDataUrl) {
+        try { doc.addImage(irctcImgDataUrl, 'JPEG', pw - mr - imgW, imgTop, imgW, imgH); } catch { /* skip */ }
+    }
+
+    doc.setTextColor(0, 0, 0);
+
+    let y = hdrH + 8;
+
+    // ── ERS bullet rules ───────────────────────────────────────────────────────
+    const rules = [
+        'You can travel on e-ticket sent on SMS or take a Virtual Reservation Message (VRM) along with any one of the prescribed ID in original. Please do not print the ERS unless extremely necessary.',
+        'This Ticket will be valid with an ID proof in original. Please carry original identity proof. If found traveling without original ID proof, passenger will be treated as without ticket and charged as per extent Railway Rules.',
+        'E-Ticket cancellation is permitted through your respective agents only. The customer/passenger should share the Refund OTP with the agent who booked/cancelled the ticket, for getting the cancellation refund amount.',
+        'Fully Waitlisted E-ticket is invalid for travel if it remains fully waitlisted after preparation of chart and the refund of the booking amount shall be credited to the account used for payment for booking of the ticket. Passengers travelling on a fully waitlisted e-ticket will be treated as Ticketless.',
+    ];
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(30, 30, 30);
+    const bulletX = ml + 2;
+    const textX = ml + 6;          // indent for wrapped lines, after the bullet
+    const maxW = cw - 6;           // wrap width measured from textX
+    for (const rule of rules) {
+        const lines = doc.splitTextToSize(rule, maxW);
+        doc.text('\u2022', bulletX, y);          // bullet at left
+        doc.text(lines[0], textX, y);            // first line after bullet
+        for (let i = 1; i < lines.length; i++) {
+            y += 3.8;
+            doc.text(lines[i], textX, y);        // continuation lines, indented
+        }
+        y += 4.5;
+    }
+
+    // ── Agent Details ──────────────────────────────────────────────────────────
+    y += 2;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(0, 153, 255);
+    doc.text('Agent Details:', ml + 2, y);
+    y += 2;
+    doc.setTextColor(0, 0, 0);
+
+    const colW = cw / 4;
+    autoTable(doc, {
+        startY: y,
+        body: [
+            ['Principle Agent :', 'BIRDRES', 'Corporate Name:', 'LAKSHMI TRAVELS'],
+            ['Agent Name:', 'SWARAJYA LAXMI RAYAPATI', 'Email-id:', 'KUCHIPUDILAXMI1@GMAIL.COM'],
+            [
+                { content: 'Address : 5-145, THIMMAKKAPALEM, LINGAPALEM MANADAL, WEST GODAVARI, ANDHRA PRADESH -534462', colSpan: 2 },
+                'Contact Number',
+                '+91-9441751394',
+            ],
+        ],
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5, textColor: [30, 30, 30] },
+        columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: colW },
+            1: { cellWidth: colW },
+            2: { fontStyle: 'bold', cellWidth: colW },
+            3: { cellWidth: colW },
+        },
+        margin: { left: ml, right: mr },
+    });
+
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.5;
+
+    // ── Must Read note ─────────────────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(200, 0, 0);
+    doc.text('Must Read: ', ml + 2, y + 3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text('Please don\'t print unless extremely necessary.', ml + 2 + doc.getTextWidth('Must Read: '), y + 3.5);
+
+    y += 7;
+
+    // ── Journey summary row: Train name | Date|Class|Quota (centre) | FROM-TO — all in 1 row ──
+    doc.setFillColor(235, 245, 255);
+    doc.rect(ml, y, cw, 10, 'F');
+
+    const rowMid = y + 7;  // single baseline for all three columns
+
+    // Left — train number + name
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(0, 153, 255);
+    doc.text(`${parsed.trainNo}  ${parsed.trainName}`, ml + 3, rowMid);
+
+    // Centre — Date | Class | Quota
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(107, 114, 128);
+    doc.text(
+        `${parsed.journeyDate}   |   ${normaliseClass(parsed.cls)}   |   ${parsed.quota}`,
+        pw / 2,
+        rowMid,
+        { align: 'center' },
+    );
+
+    // Right — FROM - TO
     const fromCode = extractCode(parsed.from);
     const toCode = extractCode(parsed.to);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(9);
     doc.setTextColor(17, 24, 39);
-    doc.text(`${fromCode}  -  ${toCode}`, pw / 2, y + 27, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
-    doc.text(`${parsed.journeyDate}   |   ${normaliseClass(parsed.cls)}   |   ${parsed.quota}`, pw / 2, y + 39, { align: 'center' });
+    doc.text(`${fromCode}  -  ${toCode}`, pw - mr - 3, rowMid, { align: 'right' });
 
-    y += 48;
+    y += 12;
     doc.setTextColor(0, 0, 0);
 
     // ── Info grid ──────────────────────────────────────────────────────────────
@@ -284,58 +375,56 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
         startY: y,
         body: infoRows.map(([k1, v1, k2, v2]) => [k1, v1, k2, v2]),
         theme: 'plain',
-        styles: { fontSize: 8, cellPadding: 3 },
+        styles: { fontSize: 7.5, cellPadding: 1.5 },
         columnStyles: {
-            0: { fontStyle: 'bold', textColor: [75, 85, 99], cellWidth: 100 },
-            1: { textColor: [17, 24, 39], cellWidth: pw / 2 - 110 },
-            2: { fontStyle: 'bold', textColor: [75, 85, 99], cellWidth: 100 },
+            0: { fontStyle: 'bold', textColor: [75, 85, 99], cellWidth: 36 },
+            1: { textColor: [17, 24, 39], cellWidth: cw / 2 - 36 },
+            2: { fontStyle: 'bold', textColor: [75, 85, 99], cellWidth: 36 },
             3: { textColor: [17, 24, 39] },
         },
         alternateRowStyles: { fillColor: [249, 250, 251] },
-        margin: { left: 10, right: 10 },
+        margin: { left: ml, right: mr },
     });
 
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
 
     // ── Passenger Details ──────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setFillColor(30, 64, 175);
+    doc.setFontSize(8);
+    doc.setFillColor(0, 153, 255);
     doc.setTextColor(255, 255, 255);
-    doc.rect(10, y, pw - 20, 14, 'F');
-    doc.text('Passenger Details', 16, y + 10);
+    doc.rect(ml, y, cw, 5.5, 'F');
+    doc.text('Passenger Details', ml + 2, y + 4);
     doc.setTextColor(0, 0, 0);
-    y += 14;
+    y += 5.5;
 
     autoTable(doc, {
         startY: y,
         head: [['S.No', 'Passenger Name', 'Age', 'Gender', 'Status', 'Coach', 'Seat/Berth']],
         body: parsed.passengerRows.map(r => [r.sno, r.name, r.age, r.gender, r.status, r.coach, r.berth]),
         theme: 'grid',
-        headStyles: { fillColor: [219, 234, 254], textColor: [30, 64, 175], fontSize: 8, fontStyle: 'bold', cellPadding: 3 },
-        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [204, 235, 255], textColor: [0, 153, 255], fontSize: 7.5, fontStyle: 'bold', cellPadding: 1.5 },
+        styles: { fontSize: 7.5, cellPadding: 1.5 },
         alternateRowStyles: { fillColor: [249, 250, 251] },
-        margin: { left: 10, right: 10 },
+        margin: { left: ml, right: mr },
     });
 
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
 
     // ── Fare Details ───────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setFillColor(30, 64, 175);
+    doc.setFontSize(8);
+    doc.setFillColor(0, 153, 255);
     doc.setTextColor(255, 255, 255);
-    doc.rect(10, y, pw - 20, 14, 'F');
-    doc.text('Fare Details (Inclusive of GST)', 16, y + 10);
+    doc.rect(ml, y, cw, 5.5, 'F');
+    doc.text('Fare Details (Inclusive of GST)', ml + 2, y + 4);
     doc.setTextColor(0, 0, 0);
-    y += 14;
+    y += 5.5;
 
     const totalFareNum = parseFloat(parsed.totalFare) || 0;
     const convFee = parseFloat(parsed.convenienceFee) || 0;
     const insFee = parseFloat(parsed.insuranceFee) || 0;
-    // Total Fare = Booking Amount (ticket fare parsed) + Profit
     const adjTotal = totalFareNum + profit;
-    // Ticket Fare = Total Fare − Convenience Fee − Travel Insurance Premium
     const adjTicketFare = adjTotal - convFee - insFee;
 
     autoTable(doc, {
@@ -348,20 +437,18 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
             `Rs. ${adjTotal.toFixed(2)} *`,
         ]],
         theme: 'grid',
-        headStyles: { fillColor: [219, 234, 254], textColor: [30, 64, 175], fontSize: 8, fontStyle: 'bold', cellPadding: 3 },
-        styles: { fontSize: 9, cellPadding: 4, halign: 'center' },
-        margin: { left: 10, right: 10 },
+        headStyles: { fillColor: [204, 235, 255], textColor: [0, 153, 255], fontSize: 7.5, fontStyle: 'bold', cellPadding: 1.5 },
+        styles: { fontSize: 8, cellPadding: 2, halign: 'center' },
+        margin: { left: ml, right: mr },
     });
 
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
 
     // ── Footer ─────────────────────────────────────────────────────────────────
-    const pageH = doc.internal.pageSize.getHeight();
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setTextColor(156, 163, 175);
-    doc.text('This is a computer-generated ticket. Lakshmi Travels – Powered by LT System.', pw / 2, pageH - 12, { align: 'center' });
+    doc.text('This is a computer-generated ticket. Lakshmi Travels – Powered by LT System.', pw / 2, ph - 5, { align: 'center' });
 
     // ── Save ───────────────────────────────────────────────────────────────────
     const firstName = parsed.passengerRows[0]?.name || parsed.passengerName.split(',')[0] || 'passenger';
