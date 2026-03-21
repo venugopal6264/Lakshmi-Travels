@@ -13,6 +13,8 @@ interface ServiceRow {
 interface ServiceSummaryTableProps {
     rows: ServiceRow[];
     monthLabel: string;
+    onSelectService?: (service: string) => void;
+    selectedService?: string;
 }
 
 const cardColors = [
@@ -30,7 +32,11 @@ function cardColorClass(idx: number): string {
     return cardColors[idx % cardColors.length];
 }
 
-export default function ServiceSummaryTable({ rows, monthLabel }: ServiceSummaryTableProps) {
+function cardSelectedClass(isSelected: boolean): string {
+    return isSelected ? 'ring-2 ring-offset-1 ring-sky-500 brightness-95' : 'hover:brightness-95';
+}
+
+export default function ServiceSummaryTable({ rows, monthLabel, onSelectService, selectedService }: ServiceSummaryTableProps) {
     const totalCount = rows.reduce((s, r) => s + r.count, 0);
     const totalOpen = rows.reduce((s, r) => s + r.openCount, 0);
     const totalPaid = rows.reduce((s, r) => s + r.paidCount, 0);
@@ -52,7 +58,11 @@ export default function ServiceSummaryTable({ rows, monthLabel }: ServiceSummary
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                     {rows.map((r, idx) => (
-                        <div key={r.service} className={`border-l-4 rounded-lg p-2 flex flex-col gap-1 ${cardColorClass(idx)}`}>
+                        <div
+                            key={r.service}
+                            onClick={() => onSelectService?.(r.service)}
+                            className={`border-l-4 rounded-lg p-2 flex flex-col gap-1 cursor-pointer transition ${cardColorClass(idx)} ${cardSelectedClass(selectedService === r.service)}`}
+                        >
                             {/* Row 1: Service name - ticket count */}
                             <div className="flex items-center gap-1 flex-wrap">
                                 <span className="text-xs font-semibold truncate" title={r.service}>{r.service || '—'}</span>

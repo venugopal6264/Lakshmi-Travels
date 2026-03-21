@@ -15,6 +15,8 @@ interface TicketTableProps {
   dateRange: { from: string; to: string };
   accountFilter?: string;
   onAccountFilterChange?: (value: string) => void;
+  serviceFilter?: string;
+  onServiceFilterChange?: (value: string) => void;
   view?: 'open' | 'paid' | 'both';
   headerVariant?: 'default' | 'accountBreakdown';
   onExportPaidTickets?: (ticketIds: string[]) => void;
@@ -32,6 +34,8 @@ export default function TicketTable({
   dateRange,
   accountFilter: accountFilterProp,
   onAccountFilterChange,
+  serviceFilter: serviceFilterProp,
+  onServiceFilterChange,
   view = 'both',
   headerVariant = 'default',
   onExportPaidTickets,
@@ -44,14 +48,19 @@ export default function TicketTable({
   };
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  const [serviceFilter, setServiceFilter] = useState<string>('all');
+  const [serviceFilter, setServiceFilter] = useState<string>(serviceFilterProp ?? 'all');
   const [accountFilter, setAccountFilter] = useState<string>(accountFilterProp ?? 'all');
-  // Keep internal state in sync with controlled prop if provided
+  // Keep internal state in sync with controlled props if provided
   useEffect(() => {
     if (accountFilterProp !== undefined && accountFilterProp !== accountFilter) {
       setAccountFilter(accountFilterProp);
     }
   }, [accountFilterProp, accountFilter]);
+  useEffect(() => {
+    if (serviceFilterProp !== undefined && serviceFilterProp !== serviceFilter) {
+      setServiceFilter(serviceFilterProp);
+    }
+  }, [serviceFilterProp, serviceFilter]);
   const [sortField, setSortField] = useState<keyof ApiTicket>('bookingDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -425,7 +434,7 @@ export default function TicketTable({
 
           <select
             value={serviceFilter}
-            onChange={(e) => setServiceFilter(e.target.value)}
+            onChange={(e) => { const v = e.target.value; setServiceFilter(v); onServiceFilterChange?.(v); }}
             className={`w-48 sm:w-56 px-2 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
           >
             <option value="all">All Services</option>
@@ -437,7 +446,7 @@ export default function TicketTable({
           {(accountFilter !== 'all' || serviceFilter !== 'all') && (
             <button
               type="button"
-              onClick={() => { setAccountFilter('all'); onAccountFilterChange?.('all'); setServiceFilter('all'); }}
+              onClick={() => { setAccountFilter('all'); onAccountFilterChange?.('all'); setServiceFilter('all'); onServiceFilterChange?.('all'); }}
               className="px-2 py-2 text-sm border rounded-md bg-white hover:bg-gray-100 text-gray-700 border-gray-300"
               title="Reset filters"
             >

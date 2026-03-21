@@ -7,6 +7,7 @@ import { downloadPDFReport } from '../utils/reportGenerator';
 import TicketTable from './TicketTable';
 import TicketForm from './TicketForm';
 import OverviewPanels from './OverviewPanels';
+import ServiceSummaryTable from './PaymentTracker/ServiceSummaryTable';
 
 interface DashboardProps {
     tickets: ApiTicket[];
@@ -34,6 +35,7 @@ export default function Dashboard({
     const [savingTicket, setSavingTicket] = useState(false);
     const exportToastTimer = useRef<number | null>(null);
     const [accountFilter, setAccountFilter] = useState<string>('all');
+    const [serviceFilter, setServiceFilter] = useState<string>('all');
     const [exportingTickets, setExportingTickets] = useState(false);
     const [showExportToast, setShowExportToast] = useState(false);
     // Anchor to scroll to the Open Tickets table
@@ -104,6 +106,13 @@ export default function Dashboard({
         }, 0);
     };
 
+    const handleSelectServiceFromCard = (service: string) => {
+        setServiceFilter(service);
+        setTimeout(() => {
+            ticketsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 0);
+    };
+
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
     const parseLocalDate = (s?: string) => {
         if (!s) return null;
@@ -162,6 +171,35 @@ export default function Dashboard({
     const totalRemainingDue = Math.max(0, totalBookingAmount - totalRefundAmount - totalPartialPaid);
 
     // Account breakdown computation moved to OverviewPanels
+
+    const allPaidTicketIds = new Set<string>(payments.flatMap(p => p.tickets || []));
+
+    const currentMonthServiceStats = (() => {
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth();
+        const monthLabel = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+        const map: Record<string, { count: number; openCount: number; paidCount: number; bookingAmount: number; ticketAmount: number; profit: number }> = {};
+        tickets.forEach(t => {
+            const d = new Date(t.bookingDate);
+            if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) return;
+            const svc = t.service || '(No Service)';
+            if (!map[svc]) map[svc] = { count: 0, openCount: 0, paidCount: 0, bookingAmount: 0, ticketAmount: 0, profit: 0 };
+            map[svc].count += 1;
+            if (allPaidTicketIds.has(t._id || '')) {
+                map[svc].paidCount += 1;
+            } else {
+                map[svc].openCount += 1;
+            }
+            map[svc].bookingAmount += Number(t.bookingAmount || 0);
+            map[svc].ticketAmount += Number(t.ticketAmount || 0);
+            map[svc].profit += Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0);
+        });
+        const rows = Object.entries(map)
+            .map(([service, v]) => ({ service, ...v }))
+            .sort((a, b) => b.count - a.count);
+        return { rows, monthLabel };
+    })();
 
     const exportReport = async () => {
         if (tickets.length === 0) {
@@ -434,6 +472,13 @@ export default function Dashboard({
                             onSelectAccount={handleSelectAccountFromBreakdown}
                         />
 
+                        <ServiceSummaryTable
+                            rows={currentMonthServiceStats.rows}
+                            monthLabel={currentMonthServiceStats.monthLabel}
+                            onSelectService={handleSelectServiceFromCard}
+                            selectedService={serviceFilter}
+                        />
+
                         {/* Scroll anchor for Open Tickets */}
                         <div ref={ticketsSectionRef} />
                         {/* OPEN tickets table */}
@@ -449,6 +494,8 @@ export default function Dashboard({
                             dateRange={dateRange}
                             accountFilter={accountFilter}
                             onAccountFilterChange={setAccountFilter}
+                            serviceFilter={serviceFilter}
+                            onServiceFilterChange={setServiceFilter}
                             view="open"
                             headerVariant="accountBreakdown"
                         />
