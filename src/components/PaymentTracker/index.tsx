@@ -9,6 +9,7 @@ import ChartsRow from './ChartsRow';
 import MonthlyPerformanceTable from './MonthlyPerformanceTable';
 import PaidTicketWidgets from './PaidTicketWidgets';
 import PaymentHistoryTable from './PaymentHistoryTable';
+import ServiceSummaryTable from './ServiceSummaryTable';
 
 interface PaymentTrackerProps {
     payments: ApiPayment[];
@@ -266,6 +267,33 @@ export default function PaymentTracker({
         [monthlyStats.rows]
     );
 
+    const currentMonthServiceStats = React.useMemo(() => {
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth(); // 0-indexed
+        const monthLabel = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+        const map: Record<string, { count: number; openCount: number; paidCount: number; bookingAmount: number; ticketAmount: number; profit: number }> = {};
+        tickets.forEach(t => {
+            const d = new Date(t.bookingDate);
+            if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) return;
+            const svc = t.service || '(No Service)';
+            if (!map[svc]) map[svc] = { count: 0, openCount: 0, paidCount: 0, bookingAmount: 0, ticketAmount: 0, profit: 0 };
+            map[svc].count += 1;
+            if (allPaidTicketIds.has(t._id || '')) {
+                map[svc].paidCount += 1;
+            } else {
+                map[svc].openCount += 1;
+            }
+            map[svc].bookingAmount += Number(t.bookingAmount || 0);
+            map[svc].ticketAmount += Number(t.ticketAmount || 0);
+            map[svc].profit += Number(t.ticketAmount || 0) - Number(t.bookingAmount || 0);
+        });
+        const rows = Object.entries(map)
+            .map(([service, v]) => ({ service, ...v }))
+            .sort((a, b) => b.count - a.count);
+        return { rows, monthLabel };
+    }, [tickets, allPaidTicketIds]);
+
     // ─── Handlers ─────────────────────────────────────────────────────────────
 
     const prevAccountRef = useRef<string | null>(null);
@@ -461,6 +489,11 @@ export default function PaymentTracker({
             <div className="p-2">
 
                 <PaidTicketWidgets totalsPaid={totalsPaid} paidTypeProfit={paidTypeProfit} />
+
+                <ServiceSummaryTable
+                    rows={currentMonthServiceStats.rows}
+                    monthLabel={currentMonthServiceStats.monthLabel}
+                />
 
                 <ChartsRow
                     monthlyPayments={monthlyPayments}

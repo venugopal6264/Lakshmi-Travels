@@ -44,6 +44,7 @@ export default function TicketTable({
   };
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [accountFilter, setAccountFilter] = useState<string>(accountFilterProp ?? 'all');
   // Keep internal state in sync with controlled prop if provided
   useEffect(() => {
@@ -114,7 +115,7 @@ export default function TicketTable({
 
   // Get unique accounts for filter dropdown based on the currently active table (open or paid)
   const uniqueAccounts = Array.from(new Set(currentTickets.map(ticket => ticket.account)));
-  const uniqueServices = Array.from(new Set(tickets.map(ticket => ticket.service)));
+  const uniqueServices = Array.from(new Set(currentTickets.map(ticket => ticket.service).filter(Boolean))).sort();
 
   const filteredTickets = currentTickets.filter(ticket => {
     const matchesSearch =
@@ -124,8 +125,9 @@ export default function TicketTable({
 
     const matchesFilter = filterType === 'all' || ticket.type === filterType;
     const matchesAccount = accountFilter === 'all' || ticket.account === accountFilter;
+    const matchesService = serviceFilter === 'all' || ticket.service === serviceFilter;
 
-    return matchesSearch && matchesFilter && matchesAccount;
+    return matchesSearch && matchesFilter && matchesAccount && matchesService;
   });
 
   const sortedTickets = [...filteredTickets].sort((a, b) => {
@@ -421,12 +423,23 @@ export default function TicketTable({
             ))}
           </select>
 
-          {accountFilter !== 'all' && (
+          <select
+            value={serviceFilter}
+            onChange={(e) => setServiceFilter(e.target.value)}
+            className={`w-48 sm:w-56 px-2 py-2.5 border rounded-md focus:outline-none focus:ring-2 text-base ${controlBorder}`}
+          >
+            <option value="all">All Services</option>
+            {uniqueServices.map(svc => (
+              <option key={svc} value={svc}>{svc}</option>
+            ))}
+          </select>
+
+          {(accountFilter !== 'all' || serviceFilter !== 'all') && (
             <button
               type="button"
-              onClick={() => { setAccountFilter('all'); onAccountFilterChange?.('all'); }}
+              onClick={() => { setAccountFilter('all'); onAccountFilterChange?.('all'); setServiceFilter('all'); }}
               className="px-2 py-2 text-sm border rounded-md bg-white hover:bg-gray-100 text-gray-700 border-gray-300"
-              title="Reset account filter"
+              title="Reset filters"
             >
               Reset
             </button>
