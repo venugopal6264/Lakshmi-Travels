@@ -209,8 +209,8 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pw = doc.internal.pageSize.getWidth();   // 210 mm
     const ph = doc.internal.pageSize.getHeight();  // 297 mm
-    const ml = 10;   // left margin mm
-    const mr = 10;   // right margin mm
+    const ml = 20;   // left margin mm
+    const mr = 20;   // right margin mm
     const cw = pw - ml - mr;  // content width 200 mm
     const [logoDataUrl, electronicImgDataUrl, irctcImgDataUrl] = await Promise.all([
         loadImg('/LakshmiTravels.png'),
@@ -219,16 +219,17 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
     ]);
 
     // ── Header bar: Electronic (left) | Lakshmi Travels (centre) | IRCTC (right) ──
+    const hdrTop = 10;   // top padding before the header bar
     const hdrH = 28;
     doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, pw, hdrH, 'F');
+    doc.rect(0, hdrTop, pw, hdrH, 'F');
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.3);
-    doc.line(0, hdrH, pw, hdrH);
+    doc.line(0, hdrTop + hdrH, pw, hdrTop + hdrH);
 
     const imgW = 55;
     const imgH = 22;
-    const imgTop = (hdrH - imgH) / 2;
+    const imgTop = hdrTop + (hdrH - imgH) / 2;
 
     // Left — Electronic Reservation Slip
     if (electronicImgDataUrl) {
@@ -256,7 +257,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
 
     doc.setTextColor(0, 0, 0);
 
-    let y = hdrH + 8;
+    let y = hdrTop + hdrH + 8;
 
     // ── ERS bullet rules ───────────────────────────────────────────────────────
     const rules = [
@@ -266,7 +267,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
         'Fully Waitlisted E-ticket is invalid for travel if it remains fully waitlisted after preparation of chart and the refund of the booking amount shall be credited to the account used for payment for booking of the ticket. Passengers travelling on a fully waitlisted e-ticket will be treated as Ticketless.',
     ];
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(9);
     doc.setTextColor(30, 30, 30);
     const bulletX = ml + 2;
     const textX = ml + 6;          // indent for wrapped lines, after the bullet
@@ -285,7 +286,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
     // ── Agent Details ──────────────────────────────────────────────────────────
     y += 2;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(0, 153, 255);
     doc.text('Agent Details:', ml + 2, y);
     y += 2;
@@ -318,7 +319,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
 
     // ── Must Read note ─────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
+    doc.setFontSize(9);
     doc.setTextColor(200, 0, 0);
     doc.text('Must Read: ', ml + 2, y + 3.5);
     doc.setFont('helvetica', 'normal');
@@ -335,13 +336,13 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
 
     // Left — train number + name
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(12);
     doc.setTextColor(0, 153, 255);
     doc.text(`${parsed.trainNo}  ${parsed.trainName}`, ml + 3, rowMid);
 
     // Centre — Date | Class | Quota
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(12);
     doc.setTextColor(107, 114, 128);
     doc.text(
         `${parsed.journeyDate}   |   ${normaliseClass(parsed.cls)}   |   ${parsed.quota}`,
@@ -354,7 +355,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
     const fromCode = extractCode(parsed.from);
     const toCode = extractCode(parsed.to);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     doc.setTextColor(17, 24, 39);
     doc.text(`${fromCode}  -  ${toCode}`, pw - mr - 3, rowMid, { align: 'right' });
 
@@ -390,7 +391,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
 
     // ── Passenger Details ──────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(12);
     doc.setFillColor(0, 153, 255);
     doc.setTextColor(255, 255, 255);
     doc.rect(ml, y, cw, 5.5, 'F');
@@ -413,7 +414,7 @@ export async function generateIRCTCPdf(parsed: ParsedTicket, profit: number): Pr
 
     // ── Fare Details ───────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(12);
     doc.setFillColor(0, 153, 255);
     doc.setTextColor(255, 255, 255);
     doc.rect(ml, y, cw, 5.5, 'F');
