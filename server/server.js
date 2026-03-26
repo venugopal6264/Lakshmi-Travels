@@ -284,17 +284,30 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running', timestamp: new Date().toISOString() });
 });
 
-// Keep-alive ping: prevents Render free tier from spinning down (pings every 14 minutes)
+// Keep-alive ping: prevents Render free tier from spinning down.
+// Runs every 1 hour, but ONLY between 08:00 and 20:00 IST to conserve free instance hours.
 const SELF_URL = process.env.SERVER_ORIGIN || `http://localhost:${PORT}`;
+function isWithinISTWorkingHours() {
+  // IST = UTC + 5:30
+  const nowUTC = new Date();
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(nowUTC.getTime() + istOffsetMs);
+  const istHour = istDate.getUTCHours(); // hours in IST
+  return istHour >= 8 && istHour < 20;   // 08:00 – 19:59 IST
+}
 if (process.env.NODE_ENV === 'production') {
   setInterval(async () => {
+    if (!isWithinISTWorkingHours()) {
+      console.log('[keep-alive] outside IST working hours (08:00–20:00), skipping ping');
+      return;
+    }
     try {
       await fetch(`${SELF_URL}/api/health`);
       console.log('[keep-alive] ping sent');
     } catch (e) {
       console.warn('[keep-alive] ping failed:', e.message);
     }
-  }, 14 * 60 * 1000); // every 14 minutes
+  }, 60 * 60 * 1000); // every 1 hour
 }
 
 app.listen(PORT, () => {
